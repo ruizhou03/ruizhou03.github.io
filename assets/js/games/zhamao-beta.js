@@ -65,7 +65,8 @@
     }
 
     // 记牌器的图标：一把小算盘（2026-11-27 用户：用窥探的眼睛会让人以为保证开局有一张窥探）
-    const CTR_IC = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.2" fill="#fffdf8" stroke="#7a4f2a" stroke-width="1.8"/><path d="M3.9 9.3h16.2M3.9 14.7h16.2" stroke="#7a4f2a" stroke-width="1.1"/><g fill="#b4392c"><circle cx="7.5" cy="6.8" r="1.5"/><circle cx="15.5" cy="6.8" r="1.5"/><circle cx="10.5" cy="12" r="1.5"/></g><g fill="#c9a24a"><circle cx="12" cy="6.8" r="1.5"/><circle cx="14.5" cy="12" r="1.5"/><circle cx="8" cy="17.3" r="1.5"/><circle cx="16.5" cy="17.3" r="1.5"/></g></svg>';
+    // 2026-11-27 第四轮：算盘也不好认（用户自己都要想一下）→ 一张牌上画「正」字计数，中国人一看就知道是在数东西
+    const CTR_IC = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="2.5" width="15" height="19" rx="2.2" fill="#fffdf8" stroke="#1d1b18" stroke-width="1.5"/><g stroke="#b4392c" stroke-width="1.7" stroke-linecap="round"><path d="M8.2 7h7.6M12 7v10.3M12 11.8h3.2M8.8 11.2v6.1M7.6 17.3h8.8"/></g></svg>';
     // ── 价格（2026-11-27 用户定）──
     // 门票的锚一律指顶格那张：高手 6–9 人 600（用户 2026-11-27）。道具能囤，所以不按本场门票定价，一律按顶格：
     // 记牌器一局 / 加倍 / 作废 / 交换 = 1 张，挑角色 = 1.5 张，记牌器一整天 = 5 张。当天同一样越买越贵（见 priceAt）
@@ -79,7 +80,7 @@
     const CAT = {
       felt: [['paper', '宣纸', 0], ['celadon', '青瓷', 10000], ['sakura', '樱粉', 10000], ['bamboo', '竹影', 20000], ['indigo', '扎染', 30000]],
       back: [['navy', '藏青', 0], ['cinnabar', '朱砂', 10000], ['jade', '墨绿', 10000], ['wisteria', '紫藤', 20000], ['gilt', '鎏金', 30000]],
-      frame: [['none', '无', 0], ['yarn', '毛线', 5000], ['fishbone', '鱼骨', 10000], ['gold', '金边', 20000]],
+      frame: [['none', '无', 0], ['yarn', '毛线', 5000], ['paw', '爪印', 5000], ['fishbone', '鱼骨', 10000], ['sakura', '樱环', 15000], ['bell', '铃铛', 20000], ['qinghua', '青花', 20000], ['ears', '猫耳', 30000], ['gold', '金边', 30000], ['cloud', '祥云', 40000], ['moon', '星月', 50000]],
       fx: [['none', '无', 0], ['petals', '落樱', 30000], ['fish', '鱼群', 40000], ['sparks', '金粉', 50000]],
     };
     const CAT_NAME = { felt: '桌布', back: '牌背', frame: '头像框', fx: '出牌特效' };
@@ -99,10 +100,33 @@
       const bg = FELT[id] || '#f3eee3', pat = FELT_PAT[id];
       return 'background-color:' + bg + ';background-image:' + VIGNETTE + (pat ? ',' + pat : '') + ';background-size:100% 100%' + (pat ? ',auto' : '');
     }
+    /* 头像框（2026-11-27 用户：做得粗糙，要更精致、更多款）。viewBox 64，头像圆边大约在半径 26，框画在 26–33 这一圈，猫耳 / 铃铛可以探出去 */
+    const P = (deg, r) => [32 + Math.cos((deg * Math.PI) / 180) * r, 32 + Math.sin((deg * Math.PI) / 180) * r].map((v) => +v.toFixed(2));
+    const around = (n, r, off, fn) => Array.from({ length: n }, (_, i) => { const a = off + (360 / n) * i, [x, y] = P(a, r); return fn(x, y, a, i); }).join('');
+    const flower = (x, y, s, c1, c2) => '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')">' + [0, 72, 144, 216, 288].map((a) => '<path d="M0 0C-2.2-2-2.2-5 0-6.4C2.2-5 2.2-2 0 0Z" fill="' + c1 + '" transform="rotate(' + a + ')"/>').join('') + '<circle r="1.1" fill="' + c2 + '"/></g>';
+    const paw = (x, y, a) => '<g transform="translate(' + x + ' ' + y + ') rotate(' + (a + 90) + ') scale(.9)" fill="#8a5a3c"><ellipse cx="0" cy="1.2" rx="2.1" ry="1.7"/><circle cx="-2.2" cy="-1.5" r=".9"/><circle cx="0" cy="-2.5" r=".9"/><circle cx="2.2" cy="-1.5" r=".9"/></g>';
     const FRAME_SVG = {
-      yarn: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="none" stroke="#c0648f" stroke-width="3.2" stroke-dasharray="5 3.4" stroke-linecap="round"/><circle cx="54" cy="12" r="5" fill="#c0648f"/><path d="M50.5 9.5l7 5M51 14.6l6-6" stroke="#fbf6ec" stroke-width="1"/></svg>',
-      fishbone: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="none" stroke="#8b8478" stroke-width="2"/>' + Array.from({ length: 16 }, (_, i) => { const a = (i / 16) * Math.PI * 2, x1 = 32 + Math.cos(a) * 27, y1 = 32 + Math.sin(a) * 27, x2 = 32 + Math.cos(a) * 32.5, y2 = 32 + Math.sin(a) * 32.5; return '<path d="M' + x1.toFixed(1) + ' ' + y1.toFixed(1) + 'L' + x2.toFixed(1) + ' ' + y2.toFixed(1) + '" stroke="#8b8478" stroke-width="2" stroke-linecap="round"/>'; }).join('') + '</svg>',
-      gold: '<svg viewBox="0 0 64 64"><defs><linearGradient id="zbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3d58a"/><stop offset=".5" stop-color="#c9a24a"/><stop offset="1" stop-color="#f0cf7a"/></linearGradient></defs><circle cx="32" cy="32" r="30.2" fill="none" stroke="url(#zbg)" stroke-width="3.6"/><circle cx="32" cy="32" r="27.4" fill="none" stroke="#c9a24a" stroke-width=".8" opacity=".7"/><path d="M32 -1.2l2.6 4.6-2.6 2-2.6-2z" fill="#c9a24a"/></svg>',
+      yarn: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29.6" fill="none" stroke="#c4618a" stroke-width="3.6"/><circle cx="32" cy="32" r="29.6" fill="none" stroke="#eba9c2" stroke-width="3.6" stroke-dasharray="1.6 2.6" transform="rotate(8 32 32)"/>' +
+        '<path d="M50 52c3 4 7 4 10 1" fill="none" stroke="#c4618a" stroke-width="1.1" stroke-linecap="round"/><circle cx="51.5" cy="50" r="6" fill="#d9779d" stroke="#a84b72" stroke-width="1"/><path d="M46.5 48.5c3-2 7-2 10 1M46 51.5c3.5-1.5 7.5-1 10.5 2M48.5 45c2.5 3 4 6.5 4 11" fill="none" stroke="#f3c3d4" stroke-width=".9" stroke-linecap="round"/>' +
+        '<path d="M44 40l13 14M47 38l11 16" stroke="#b98a52" stroke-width="1.3" stroke-linecap="round"/><circle cx="44" cy="40" r="1.2" fill="#e8c27a"/><circle cx="47" cy="38" r="1.2" fill="#e8c27a"/></svg>',
+      paw: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30.4" fill="none" stroke="#c9a27a" stroke-width="1.2"/><circle cx="32" cy="32" r="27.4" fill="none" stroke="#c9a27a" stroke-width=".7" stroke-dasharray="1 2"/>' + around(8, 30.4, -90, (x, y, a) => '<circle cx="' + x + '" cy="' + y + '" r="3.6" fill="#f7eadb" stroke="#c9a27a" stroke-width=".8"/>' + paw(x, y, a)) + '</svg>',
+      fishbone: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29.8" fill="none" stroke="#7d7466" stroke-width="2"/>' + around(26, 0, -90, (_x, _y, a, i) => { if (i < 2 || i > 24) return ''; const [x1, y1] = P(a, 27), [x2, y2] = P(a, 32.8); return '<path d="M' + x1 + ' ' + y1 + 'L' + x2 + ' ' + y2 + '" stroke="#7d7466" stroke-width="1.4" stroke-linecap="round"/>'; }) +
+        '<path d="M25 2.2c3.5-2.6 10.5-2.6 14 0l-1.3 4.6c-3.6 1.6-7.8 1.6-11.4 0z" fill="#efe8dc" stroke="#7d7466" stroke-width="1.3" stroke-linejoin="round"/><circle cx="35" cy="4" r="1.2" fill="#1d1b18"/><path d="M29 2.8v3.4" stroke="#7d7466" stroke-width=".9"/></svg>',
+      sakura: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29.8" fill="none" stroke="#8e6a55" stroke-width="1.3"/>' + around(14, 29.8, -70, (x, y, a, i) => (i % 2 ? '<ellipse cx="' + x + '" cy="' + y + '" rx="2.6" ry="1.1" fill="#8fb27a" transform="rotate(' + (a + 40) + ' ' + x + ' ' + y + ')"/>' : '')) +
+        around(7, 29.8, -90, (x, y, a, i) => flower(x, y, i % 3 === 0 ? 0.95 : 0.72, i % 2 ? '#f6c4cf' : '#ec98ab', '#e3b64a')) + '</svg>',
+      bell: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29.8" fill="none" stroke="#b4392c" stroke-width="4.2"/><circle cx="32" cy="32" r="29.8" fill="none" stroke="#f0b8a8" stroke-width=".7" stroke-dasharray="2 2"/>' +
+        '<g transform="translate(0 -3)"><path d="M28 60.6h8l-1 3h-6z" fill="#8a6a2a"/><circle cx="32" cy="64.5" r="5.2" fill="#e3b64a" stroke="#8a6a2a" stroke-width="1"/><path d="M27.4 63.6h9.2" stroke="#8a6a2a" stroke-width=".9"/><circle cx="32" cy="66.3" r="1.1" fill="#5a4318"/><path d="M32 66.3v2.6" stroke="#5a4318" stroke-width=".9"/><circle cx="30" cy="62.6" r="1" fill="#fff6d8" opacity=".9"/></g></svg>',
+      qinghua: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29.6" fill="none" stroke="#fbfaf5" stroke-width="5.6"/><circle cx="32" cy="32" r="32.2" fill="none" stroke="#2b4f8c" stroke-width="1.1"/><circle cx="32" cy="32" r="27" fill="none" stroke="#2b4f8c" stroke-width="1.1"/>' +
+        around(12, 29.6, -90, (x, y, a) => '<g transform="translate(' + x + ' ' + y + ') rotate(' + (a + 90) + ')"><path d="M-3.4 .8c0-2.2 1.6-3 2.8-2.2 1 .7.6 2-.4 1.8" fill="none" stroke="#2b4f8c" stroke-width="1" stroke-linecap="round"/><path d="M3.4 .8c0-2.2-1.6-3-2.8-2.2-1 .7-.6 2 .4 1.8" fill="none" stroke="#2b4f8c" stroke-width="1" stroke-linecap="round"/><circle cy="1.2" r=".7" fill="#4a72b0"/></g>') + '</svg>',
+      ears: '<svg viewBox="0 0 64 64"><path d="M9.5 14.5 6 -3.5 24 4.5Z" fill="#2b2723" stroke="#2b2723" stroke-width="2" stroke-linejoin="round"/><path d="M10.8 10.8 9.4 1.2 18.6 5.4Z" fill="#f2a7b5"/><path d="M54.5 14.5 58 -3.5 40 4.5Z" fill="#2b2723" stroke="#2b2723" stroke-width="2" stroke-linejoin="round"/><path d="M53.2 10.8 54.6 1.2 45.4 5.4Z" fill="#f2a7b5"/>' +
+        '<circle cx="32" cy="32" r="29.8" fill="none" stroke="#2b2723" stroke-width="3.2"/><g stroke="#2b2723" stroke-width="1" stroke-linecap="round"><path d="M-1.5 36l6-1M-1 41l5.6-.2M65.5 36l-6-1M65 41l-5.6-.2"/></g></svg>',
+      gold: '<svg viewBox="0 0 64 64"><defs><linearGradient id="zbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6dc93"/><stop offset=".45" stop-color="#c79a3e"/><stop offset=".7" stop-color="#f3d68a"/><stop offset="1" stop-color="#b8892f"/></linearGradient></defs><circle cx="32" cy="32" r="30" fill="none" stroke="url(#zbg)" stroke-width="3.8"/><circle cx="32" cy="32" r="27.3" fill="none" stroke="#c9a24a" stroke-width=".7" opacity=".8"/>' +
+        around(24, 32.6, 0, (x, y) => '<circle cx="' + x + '" cy="' + y + '" r=".75" fill="#e7c46a"/>') + '<path d="M32 -2.6l3.2 4.4-3.2 3-3.2-3z" fill="url(#zbg)" stroke="#9a7428" stroke-width=".6"/><circle cx="32" cy="1.6" r=".9" fill="#b4392c"/></svg>',
+      cloud: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="none" stroke="#b4392c" stroke-width="2.6"/><circle cx="32" cy="32" r="27.2" fill="none" stroke="#d9a441" stroke-width="1"/>' +
+        around(4, 30.4, -45, (x, y, a) => '<g transform="translate(' + x + ' ' + y + ') rotate(' + (a + 90) + ')"><path d="M-6.4 1.6c-2.2 0-2.8-3.4-.4-3.8.4-2.6 4-3 5 -.8 1-2.4 4.8-2 5 .8 2.4.2 2.2 3.8-.2 3.8z" fill="#fbf3e3" stroke="#d9a441" stroke-width="1.1" stroke-linejoin="round"/><path d="M-3.2-.6c.6-1 2-1 2.4.2M1.6-.6c.6-1 2-1 2.4.2" fill="none" stroke="#d9a441" stroke-width=".8" stroke-linecap="round"/></g>') + '</svg>',
+      moon: '<svg viewBox="0 0 64 64"><defs><linearGradient id="zbm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c3d6b"/><stop offset="1" stop-color="#6b5b95"/></linearGradient></defs><circle cx="32" cy="32" r="29.8" fill="none" stroke="url(#zbm)" stroke-width="4.4"/>' +
+        around(11, 29.8, 10, (x, y, a, i) => (a > 290 && a < 350 ? '' : '<circle cx="' + x + '" cy="' + y + '" r="' + (i % 3 ? 0.55 : 0.9) + '" fill="#fff6d8"/>')) +
+        '<path d="M55.5 1.5a10 10 0 1 0 6.5 15 8 8 0 1 1-6.5-15z" fill="#f3d68a" stroke="#c9a24a" stroke-width=".8"/><path d="M45 3.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" fill="#fff6d8"/></svg>',
     };
 
     // ── 样式 ──
@@ -259,7 +283,7 @@
 .zb-q button[disabled]{opacity:.35}
 .zb-q b{min-width:22px;text-align:center;font-size:20px;margin:0!important;font-family:'ZM Num',Georgia,serif}
 .zb-chip i.inv{min-width:18px;height:18px;border-radius:9px;background:#3f7a52;color:#fbf6ec;justify-content:center;font-weight:700;font-size:11px;padding:0 5px}
-.zb-pshop{display:inline-flex;align-items:center;gap:5px;margin-top:10px;height:34px;padding:0 14px 0 11px;border-radius:17px;border:1.5px solid #1d1b18;background:#b4392c;color:#fffdf8;font:600 14px/1 system-ui,'Noto Sans SC',sans-serif;box-shadow:0 2px 0 #1d1b18;cursor:pointer}
+.zb-pshop{display:inline-flex;align-items:center;gap:5px;height:36px;padding:0 14px 0 11px;border-radius:18px;border:1.5px solid #1d1b18;background:#b4392c;color:#fffdf8;font:600 14px/1 system-ui,'Noto Sans SC',sans-serif;box-shadow:0 2px 0 #1d1b18;cursor:pointer}
 .zb-pshop svg{width:18px;height:18px}
 .zb-pshop:active{transform:translateY(2px);box-shadow:none}
 
@@ -268,6 +292,71 @@
 .zb-tline .zb-bal{font-size:14px}
 .zb-tline .zb-bal svg{width:22px;height:14px}
 .zb-sub{display:block;margin-top:3px;font-size:11.5px;font-weight:400;color:#8a8275}
+.zb-shop{display:flex;flex-direction:column}
+.zb-shop .zb-scene-wrap{padding:10px 12px 0;flex:1;min-height:0;display:flex}
+.zb-shop .zb-scene{flex:1;height:auto;min-height:300px;max-height:560px;position:relative;border-radius:14px;border:1px solid #1d1b18;outline:none;overflow:hidden;transition:background-color .35s;background-color:#f3eee3}
+.zb-ls-rim{position:absolute;left:9%;right:9%;top:13%;bottom:21%;border:2px solid rgba(201,162,74,.28);border-radius:22px;pointer-events:none}
+.zb-ls-opp{position:absolute;top:5%;display:flex;flex-direction:column;align-items:center;gap:3px;transform:translateX(-50%)}
+.zb-ls-opp.o0{left:37%}.zb-ls-opp.o1{left:63%}
+.zb-ls-opp small{font-size:12px;color:#1d1b18}
+.zb-ls-av{position:relative;width:46px;height:46px;border-radius:50%;box-shadow:0 0 0 1.5px #1d1b18;background:#ebe5d8;display:block;transition:box-shadow .25s}
+.zb-ls-av.me{width:50px;height:50px}
+.zb-ls-av.is-act{box-shadow:0 0 0 1.5px #1d1b18,0 0 0 5px rgba(227,182,74,.55)}
+.zb-ls-av svg{position:absolute;inset:-6px;width:calc(100% + 12px);height:calc(100% + 12px);overflow:visible}
+.zb-ls-av .zb-face svg{position:static;width:100%;height:100%}
+.zb-ls-n{position:absolute;right:-9px;top:-7px;min-width:19px;height:21px;border-radius:5px;background:#2f4a6d;color:#fffdf8;font:700 12px/21px 'ZM Num',Georgia,serif;text-align:center;box-shadow:2px 2px 0 rgba(29,27,24,.22);z-index:3}
+.zb-ls-piles{position:absolute;left:50%;top:41%;transform:translate(-50%,-50%);display:flex;gap:26px;align-items:center}
+.zb-ls-deck{position:relative;width:54px;aspect-ratio:100/140;display:block}
+.zb-ls-deck>i{position:absolute;inset:0;border-radius:6px;background:#ece3cf;border:1px solid rgba(29,27,24,.25)}
+.zb-ls-deck>i:nth-child(1){transform:translate(1px,2px)}.zb-ls-deck>i:nth-child(2){transform:translate(0,0)}.zb-ls-deck>i:nth-child(3){transform:translate(-1px,-2px)}
+.zb-ls-top{position:absolute;inset:0;transform:translate(-1px,-4px);display:block}
+.zb-ls-top .zm-card,.zb-ls-fly .zm-card,.zb-ls-dc .zm-card,.zb-ls-hc .zm-card{width:100%!important;position:static}
+.zb-ls-top svg,.zb-ls-fly>svg{width:100%;height:auto;display:block}
+.zb-ls-disc{width:54px;aspect-ratio:100/140;display:block;border-radius:6px;box-shadow:inset 0 0 0 1.5px rgba(29,27,24,.12)}
+.zb-ls-dc{display:block;width:100%}
+.zb-ls-me{position:absolute;left:11%;bottom:22%}
+.zb-ls-btns{position:absolute;right:10%;bottom:23.5%;display:flex;gap:8px;pointer-events:none}
+.zb-ls-btns span{height:28px;padding:0 13px;border-radius:14px;border:1px solid rgba(29,27,24,.35);font-size:13px;line-height:28px;color:rgba(29,27,24,.45)}
+.zb-ls-btns span:first-child{background:#b4392c;border-color:#b4392c;color:#fffdf8}
+.zb-ls-hand{position:absolute;left:0;right:0;bottom:0;height:20%}
+.zb-ls-hc{position:absolute;left:0;top:10%;display:block;transform-origin:50% 120%;transition:transform .35s cubic-bezier(.2,.8,.25,1)}
+.zb-ls-fly{position:absolute;left:0;top:0;z-index:6;display:block;pointer-events:none;filter:drop-shadow(0 6px 8px rgba(29,27,24,.25))}
+.zb-shop .zb-tabs{padding:12px 12px 0}
+.zb-shop .zb-tabs button{position:relative;font-size:14px;height:34px;color:#1d1b18}
+.zb-shop .zb-tabs button[aria-pressed=true]{color:#fbf6ec}
+.zb-tabs .dot{position:absolute;top:4px;right:9px;width:6px;height:6px;border-radius:50%;background:#b4392c}
+.zb-shop .zb-opts{padding:12px 12px 4px}
+.zb-opt{position:relative;justify-content:flex-start}
+.zb-opt.is-own b{margin-bottom:2px}
+.zb-on{position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:50%;background:#b4392c;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #fffdf8}
+.zb-on svg{width:13px;height:13px}
+.zb-big.is-idle{visibility:hidden}
+.zb-it2 small{font-size:10.5px!important;letter-spacing:-.02em}
+.zb-shop .zb-act{padding:8px 16px calc(12px + env(safe-area-inset-bottom));margin-top:0}
+.zb-cf-list{width:100%;display:flex;flex-direction:column;gap:8px}
+.zb-cf-row{display:flex;align-items:center;gap:10px}
+.zb-cf-row .zb-pv{width:44px;height:44px;flex:none}
+.zb-cf-row .zb-pv .zm-card{width:30px!important}
+.zb-cf-row .zb-pv.av{width:38px;height:38px;margin:0 3px}
+.zb-cf-row .zb-pv.fx svg{width:30px;height:30px}
+.zb-cf-row span{flex:1;display:flex;flex-direction:column}
+.zb-cf-row span b{font-size:15px;margin:0}
+.zb-cf-row span small{font-size:12px}
+.zb-cf-row>i{font-style:normal;font-size:13px;display:inline-flex;align-items:center;gap:2px}
+.zb-cf-row>i svg{width:16px;height:10px}
+.zb-items.zr-box{margin-top:10px;padding:12px 8px 10px}
+.zb-items .zr-chips{justify-content:space-around}
+.zb-it2{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;flex:1;max-width:72px;border:0;background:none;padding:0;font:inherit;color:inherit;-webkit-tap-highlight-color:transparent;cursor:pointer}
+.zb-it2 .zr-mc{transition:box-shadow .2s,transform .2s}
+.zb-it2 .zr-mc>svg{width:78%}
+.zb-it2 .zr-mc .rb,.zb-it2 .zr-mc .rf{display:flex;width:100%;height:100%}
+.zb-it2 .zr-mc .rb svg,.zb-it2 .zr-mc .rf svg{width:100%;height:100%}
+.zb-it2 small{font-size:11.5px;color:#6a6358;white-space:nowrap}
+.zb-it2 .pr{align-self:stretch;border-top:1px solid rgba(29,27,24,.13);padding-top:4px;display:inline-flex;align-items:center;justify-content:center;gap:1px;font-size:11.5px;color:#6a6358;white-space:nowrap;font-family:'ZM Num','ZM Serif',serif}
+.zb-it2 .pr svg{width:15px;height:9px}
+.zb-it2[aria-pressed=true] .zr-mc{box-shadow:0 0 0 2px #b4392c,0 2px 5px rgba(29,27,24,.25);transform:translateY(-2px)}
+.zb-it2[aria-pressed=true] small{color:#1d1b18;font-weight:700}
+.zb-it2[aria-pressed=true] .pr{color:#b4392c;border-top-color:rgba(180,57,44,.35)}
 ` + Object.keys(BACK_FILL).filter((k) => k !== 'navy').map((k) => `.zb-back-${k} .zm-card.is-back svg>rect:first-child{fill:${BACK_FILL[k]}}`).join('\n') + '\n' +
       `.zb-back-gilt .zm-card.is-back svg>rect:nth-child(2){stroke:#f3d58a}\n` +
       Object.keys(FELT).filter((k) => FELT[k]).map((k) => `.zb-felt-${k}.zm-app{background-color:${FELT[k]}}\n.zb-felt-${k} .zm-table{${feltStyle(k)}}`).join('\n');
@@ -307,15 +396,22 @@
     const balHtml = () => '<span class="zb-bal">' + FISH() + '<b data-zbbal>' + fmt(bal()) + '</b></span><span class="zb-seal">内测</span>';
     function grabBal(el) { el.querySelectorAll('[data-zbbal]').forEach((e) => balEls.push(e)); }
 
-    // 道具：存货 + 当天件数
-    const ITEMS = [['counterDay', '记牌器（一整天）'], ['counter', '记牌器（一局）'], ['x2', '加倍'], ['role', '挑角色'], ['nope', '作废'], ['swap', '交换']];
-    const ITEM_NAME = Object.fromEntries(ITEMS);
-    const itemIc = (k) => (k === 'counterDay' || k === 'counter' ? CTR_IC : k === 'x2' ? X2_IC : k === 'role' ? '<span class="rb">' + (ART() ? ART().ROLE_BACK : '') + '</span>' : (ART() ? ART().icon(k) : ''));
-    const inv = (k) => ((d.inv || {})[k] | 0);
-    function bought(k) { if (!d.bd || d.bd.d !== today()) { d.bd = { d: today(), n: {} }; } return d.bd.n[k] | 0; }
-    const priceAt = (k, extra) => (k === 'counterDay' ? BASE.counterDay : nice(BASE[k] * Math.min(3, 1 + 0.2 * (bought(k) + (extra || 0)))));
-    const priceFor = (k, q) => { let t = 0; for (let i = 0; i < q; i++) t += priceAt(k, i); return t; };
-    function takeBuy(k, q, why) { const p = priceFor(k, q); book(-p, why || ITEM_NAME[k] + (q > 1 ? ' ×' + q : '')); bought(k); d.bd.n[k] = (d.bd.n[k] | 0) + q; save(); return p; }
+    // 道具（2026-11-27 用户第四轮：商店不卖道具、不囤，只在单机开局当场买，一局一件，不涨价）
+    const ITEM_NAME = { counter: '记牌器', x2: '加倍', role: '挑角色', nope: '必有作废', swap: '必有交换' };
+    // 记牌器：一局 600，当天花满 3,000（= 原来「一整天」的价）后当天剩下的局都免费
+    function ctrSpent() { if (!d.ctr || d.ctr.d !== today()) d.ctr = { d: today(), n: 0 }; return d.ctr.n; }
+    const priceAt = (k) => (k === 'counter' ? (counterDayOn() ? 0 : Math.min(BASE.counter, BASE.counterDay - ctrSpent())) : BASE[k]);
+    function takeBuy(k, why) {
+      const p = priceAt(k);
+      if (p > 0) book(-p, why || ITEM_NAME[k]);
+      if (k === 'counter') { ctrSpent(); d.ctr.n += p; if (d.ctr.n >= BASE.counterDay) d.counterDay = today(); save(); }
+      return p;
+    }
+    if (d.inv || d.bd) {   // 第三轮囤的道具按原价退回（第四轮商店不卖道具了）
+      let t = 0; Object.keys(d.inv || {}).forEach((k) => { t += (d.inv[k] | 0) * (BASE[k] || 0); });
+      delete d.inv; delete d.bd;
+      if (t > 0) book(t, '道具存货退回'); else save();
+    }
 
     function previewHtml(cat, id) {
       if (cat === 'felt') return '<span class="zb-pv" style="' + feltStyle(id) + ';box-shadow:inset 0 0 0 1px rgba(29,27,24,.22)"></span>';
@@ -342,73 +438,70 @@
       return '<span class="zb-face">' + svg + '</span>';
     }
 
+    /* 商店（2026-11-27 用户第四轮）：一进来就是一局自动在打的牌桌（机器猫出牌、摸牌，我出牌放特效），
+     * 下面四个页签（桌布 / 牌背 / 头像框 / 出牌特效）挑款，几样组合起来一起看、一起买；不再有第一层菜单，不卖道具 */
+    const CATS_ORDER = ['felt', 'back', 'frame', 'fx'];
+    let sel = null, scene = null;
+    const owns = (cat, id) => d.own[cat].includes(id);
+    const priceOf = (cat, id) => (CAT[cat].find((x) => x[0] === id) || [0, 0, 0])[2];
+    const nameOf = (cat, id) => (CAT[cat].find((x) => x[0] === id) || [0, ''])[1];
+    const toBuy = () => CATS_ORDER.filter((c) => !owns(c, sel[c]));
+    /* 款式格（2026-11-27 用户：「使用中」「已拥有」几个字笨拙，没买的也别灰得像售罄）：
+     *   没买：底下写价钱；已拥有：不写字；正用着：右上角一枚小红印（勾）；选中看的这款：红框 */
+    const USE_MARK = '<span class="zb-on" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M4 8.4l2.6 2.6L12 5.4" fill="none" stroke="#fffdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+    function optsHtml() {
+      return CAT[tab].map(([id, name, p]) => {
+        const own = owns(tab, id), use = d.use[tab] === id;
+        return '<button type="button" class="zb-opt' + (id === sel[tab] ? ' is-sel' : '') + (own ? ' is-own' : '') + '" data-o="' + id + '" aria-label="' + name + (use ? '（正在用）' : own ? '' : '（' + fmt(p) + '）') + '">' + (use ? USE_MARK : '') + previewHtml(tab, id) + '<b>' + name + '</b>' + (own ? '' : '<i>' + FISH() + fmt(p) + '</i>') + '</button>';
+      }).join('');
+    }
+    function actHtml() {
+      const nb = toBuy();
+      if (nb.length) { const t = nb.reduce((s, c) => s + priceOf(c, sel[c]), 0); return '<button type="button" class="zb-big is-red" data-act="buy"' + (bal() < t ? ' disabled' : '') + '>购买' + (nb.length > 1 ? ' ' + nb.length + ' 件' : '') + ' ' + FISH() + fmt(t) + '</button>'; }
+      if (CATS_ORDER.some((c) => d.use[c] !== sel[c])) return '<button type="button" class="zb-big" data-act="use">使用</button>';
+      return '<button type="button" class="zb-big is-idle" disabled aria-hidden="true"></button>';   // 已经是这一身：按钮收起（留着位置不跳）
+    }
     function shopHtml() {
-      let h = '<div class="zb-top"><button type="button" class="zb-x" data-zb="close" aria-label="返回">' + BACK_SVG + '</button><h2>商店</h2>' + balHtml() +
+      return '<div class="zb-top"><button type="button" class="zb-x" data-zb="close" aria-label="返回">' + BACK_SVG + '</button><h2>商店</h2>' + balHtml() +
         '<button type="button" class="zb-x zb-book" data-zb="ledger" aria-label="账本">' + BOOK_SVG + '</button></div>' +
-        '<div class="zb-tabs"><button type="button" data-zbtab="look" aria-pressed="' + (tab === 'look') + '">外观</button><button type="button" data-zbtab="items" aria-pressed="' + (tab === 'items') + '">道具</button></div><div class="zb-body">';
-      if (tab === 'look') {
-        h += '<div class="zb-cats">' + Object.keys(CAT).map((cat) => '<button type="button" class="zb-cat" data-zbopen="' + cat + '">' + catCover(cat) + '<b>选购' + CAT_NAME[cat] + '</b></button>').join('') + '</div>';
-      } else {
-        h += '<div class="zb-grid">' + ITEMS.map(([k, name]) => {
-          const day = k === 'counterDay', on = day && counterDayOn(), n = inv(k), p = priceAt(k);
-          return '<button type="button" class="zb-it zb-item' + (!on && bal() < p ? ' is-poor' : '') + '" data-zbitem="' + k + '"' + (on ? ' disabled' : '') + '>' + (n ? '<span class="zb-n">' + n + '</span>' : '') +
-            '<span class="zb-pv ic">' + itemIc(k) + '</span><b>' + name + '</b>' + (on ? '<i class="ok">今天已开</i>' : '<i>' + FISH() + fmt(p) + '</i>') + '</button>';
-        }).join('') + '</div>';
-      }
-      return h + '</div>';
+        '<div class="zb-scene-wrap"><div class="zb-scene"></div></div>' +
+        '<div class="zb-tabs">' + CATS_ORDER.map((c) => '<button type="button" data-zbtab="' + c + '" aria-pressed="' + (tab === c) + '">' + CAT_NAME[c] + (!owns(c, sel[c]) ? '<i class="dot"></i>' : '') + '</button>').join('') + '</div>' +
+        '<div class="zb-opts">' + optsHtml() + '</div><div class="zb-act">' + actHtml() + '</div>';
     }
-    // 外观第一层：每类一张大卡，卡面是「现在用着的那款」放在小场景里
-    function catCover(cat) {
-      const id = d.use[cat];
-      if (cat === 'felt') return '<span class="zb-cv" style="' + feltStyle(id === 'paper' ? 'sakura' : id) + '"><span class="zb-cv-card">' + backOf(d.use.back) + '</span><span class="zb-cv-card f">' + (TB() ? TB().cardHtml('skip') : '') + '</span></span>';
-      if (cat === 'back') return '<span class="zb-cv" style="' + feltStyle(d.use.felt) + '">' + ['cinnabar', id, 'jade'].map((b, i) => '<span class="zb-cv-card b' + i + '">' + backOf(i === 1 ? id : b) + '</span>').join('') + '</span>';
-      if (cat === 'frame') return '<span class="zb-cv" style="' + feltStyle(d.use.felt) + '"><span class="zb-pv av big">' + myFace() + (FRAME_SVG[id === 'none' ? 'gold' : id] || '') + '</span></span>';
-      return '<span class="zb-cv" style="' + feltStyle(d.use.felt) + '"><span class="zb-cv-card f">' + (TB() ? TB().cardHtml('nope') : '') + '</span><span class="zb-cv-fx">' + FX_IC[id === 'none' ? 'petals' : id] + '</span></span>';
-    }
-    function paintShop() {
+    function paintShop(keepScroll) {   // 只换页签 / 款式 / 按钮，牌桌那局接着打
       if (!shop) return;
-      const body = shop.querySelector('.zb-body'), y = body ? body.scrollTop : 0;
-      shop.innerHTML = shopHtml(); grabBal(shop);
-      const nb = shop.querySelector('.zb-body'); if (nb) nb.scrollTop = y;   // 买完 / 换完停在原地
+      shop.querySelectorAll('[data-zbtab]').forEach((b) => { const c = b.dataset.zbtab; b.setAttribute('aria-pressed', String(tab === c)); b.innerHTML = CAT_NAME[c] + (!owns(c, sel[c]) ? '<i class="dot"></i>' : ''); });
+      const ol = shop.querySelector('.zb-opts'), x = ol.scrollLeft; ol.innerHTML = optsHtml(); ol.scrollLeft = keepScroll ? x : 0;
+      shop.querySelector('.zb-act').innerHTML = actHtml();
+      if (scene) scene.look(sel);
     }
     function openShop() {
+      sel = Object.assign({}, d.use); tab = 'felt';
       if (!shop) {
         shop = document.createElement('section');
         shop.className = 'zb-shop'; shop.setAttribute('role', 'dialog'); shop.setAttribute('aria-label', '商店');
         document.body.appendChild(shop);
         shop.addEventListener('click', onShop);
       }
-      paintShop();
+      shop.innerHTML = shopHtml(); grabBal(shop);
       shop.hidden = false;
+      if (scene) scene.stop();
+      scene = liveScene(shop.querySelector('.zb-scene'), sel);
       requestAnimationFrame(() => requestAnimationFrame(() => shop.classList.add('is-on')));
     }
-    /* 确认卡：预览 + 名字 + 价钱；道具多一个数量（当天递增价按件加总）。「购买」→ 余额滚下去、鱼游到这件东西上 */
+    /* 确认卡：要买的几样一行一行列出来 + 合计。「购买」→ 余额滚下去、鱼游到牌桌上 */
     let buying = false;
     function confirmBuy(o, tile, done) {
       if (buying) return;
       const m = document.createElement('div');
       m.className = 'zb-cf';
-      let q = 1;
-      const total = () => (o.priceFor ? o.priceFor(q) : o.price);
-      const paint = () => {
-        const t = total(), ok = bal() >= t;
-        m.querySelector('[data-cf="yes"]').innerHTML = '购买 ' + FISH() + fmt(t);
-        m.querySelector('[data-cf="yes"]').disabled = !ok;
-        const qn = m.querySelector('.zb-q b'); if (qn) qn.textContent = q;
-        const mi = m.querySelector('[data-q="-1"]'), pl = m.querySelector('[data-q="1"]');
-        if (mi) mi.disabled = q <= 1; if (pl) pl.disabled = q >= 9 || bal() < (o.priceFor ? o.priceFor(q + 1) : 0);
-      };
-      m.innerHTML = '<div class="zb-cf-in" role="dialog" aria-label="确认购买">' + o.pv + '<b>' + o.name + '</b>' + (o.sub ? '<small>' + o.sub + '</small>' : '') +
-        (o.priceFor ? '<div class="zb-q"><button type="button" data-q="-1" aria-label="少一件">−</button><b>1</b><button type="button" data-q="1" aria-label="多一件">+</button></div>' : '') +
-        '<div class="zb-cf-btns"><button type="button" class="zb-btn" data-cf="no">取消</button><button type="button" class="zb-btn is-red" data-cf="yes"></button></div></div>';
+      m.innerHTML = '<div class="zb-cf-in" role="dialog" aria-label="确认购买">' + o.body +
+        '<div class="zb-cf-btns"><button type="button" class="zb-btn" data-cf="no">取消</button><button type="button" class="zb-btn is-red" data-cf="yes"' + (bal() < o.price ? ' disabled' : '') + '>购买 ' + FISH() + fmt(o.price) + '</button></div></div>';
       (sub || shop).appendChild(m);
-      paint();
       requestAnimationFrame(() => m.classList.add('is-on'));
       const close = () => { m.classList.remove('is-on'); setTimeout(() => m.remove(), 200); };
       m.addEventListener('click', (e) => {
         e.stopPropagation();
-        const qb = e.target.closest('[data-q]');
-        if (qb) { q = Math.max(1, Math.min(9, q + Number(qb.dataset.q))); paint(); return; }
         const b = e.target.closest('[data-cf]');
         if (!b) { if (e.target === m) close(); return; }
         if (b.dataset.cf === 'no') { close(); return; }
@@ -417,41 +510,134 @@
         const host = sub || shop, num = host.querySelector('.zb-top [data-zbbal]'), from = bal(), fx = root.ZhamaoWalletFx;
         close();
         if (num) num.__zbHold = true;
-        done(q);
+        done();
         const to = bal();
         if (num) num.textContent = fmt(from);
         const end = () => { buying = false; if (num) num.__zbHold = false; paintBal(); if (o.after) o.after(); };
         if (fx && num) {
           fx.roll(num, from, to, 520);
-          fx.school(FISH(), num, tile, Math.min(5, 2 + q), { spread: 12, gap: 90, dur: 620, lift: -30, size: 24 }).then(end, end);
+          fx.school(FISH(), num, tile, 4, { spread: 12, gap: 90, dur: 620, lift: -30, size: 24 }).then(end, end);
         } else end();
       });
     }
-    function closeShop() { if (!shop) return; closeSub(); shop.classList.remove('is-on'); setTimeout(() => { shop.hidden = true; }, 320); }
+    function closeShop() { if (!shop) return; closeSub(true); shop.classList.remove('is-on'); if (scene) { scene.stop(); scene = null; } setTimeout(() => { shop.hidden = true; }, 320); }
     function onShop(e) {
       if (sub && sub.contains(e.target)) return;
       const t = e.target.closest('[data-zbtab]');
-      if (t) { tab = t.dataset.zbtab; paintShop(); return; }
+      if (t) { tab = t.dataset.zbtab; paintShop(false); return; }
       const a = e.target.closest('[data-zb]');
-      if (a) {
-        const k = a.dataset.zb;
-        if (k === 'close') closeShop();
-        if (k === 'ledger') openLedger();
-        return;
-      }
-      const op = e.target.closest('[data-zbopen]');
-      if (op) { openLook(op.dataset.zbopen); return; }
-      const it = e.target.closest('[data-zbitem]');
-      if (it && !it.disabled) {
-        const k = it.dataset.zbitem;
-        if (bal() < priceAt(k)) return;
-        const pv = '<span class="zb-pv ic big">' + itemIc(k) + '</span>';
-        if (k === 'counterDay') confirmBuy({ pv, name: ITEM_NAME[k], price: BASE.counterDay, after: paintShop }, it, () => { takeBuy(k, 1); d.counterDay = today(); save(); });
-        else confirmBuy({ pv, name: ITEM_NAME[k], priceFor: (q) => priceFor(k, q), after: paintShop }, it, (q) => { takeBuy(k, q); d.inv = d.inv || {}; d.inv[k] = inv(k) + q; save(); });
-      }
+      if (a) { if (a.dataset.zb === 'close') closeShop(); if (a.dataset.zb === 'ledger') openLedger(); return; }
+      const o = e.target.closest('[data-o]');
+      if (o) { sel[tab] = o.dataset.o; paintShop(true); if (tab === 'fx' && scene) scene.poke(); return; }
+      const act = e.target.closest('[data-act]');
+      if (!act || act.disabled) return;
+      if (act.dataset.act === 'use') { Object.assign(d.use, sel); save(); applyLook(); paintShop(true); return; }
+      const nb = toBuy(), total = nb.reduce((s, c) => s + priceOf(c, sel[c]), 0);
+      const body = '<div class="zb-cf-list">' + nb.map((c) => '<div class="zb-cf-row">' + previewHtml(c, sel[c]) + '<span><b>' + nameOf(c, sel[c]) + '</b><small>' + CAT_NAME[c] + '</small></span><i>' + FISH() + fmt(priceOf(c, sel[c])) + '</i></div>').join('') + '</div>';
+      const pick = Object.assign({}, sel);
+      confirmBuy({ body, price: total, after: () => paintShop(true) }, shop.querySelector('.zb-scene'), () => {
+        nb.forEach((c) => { book(-priceOf(c, pick[c]), CAT_NAME[c] + '「' + nameOf(c, pick[c]) + '」'); if (!owns(c, pick[c])) d.own[c].push(pick[c]); });
+        Object.assign(d.use, pick); save(); applyLook();
+      });
     }
 
-    // ── 二级页（账本 / 外观预览）：从右边滑进来，盖在商店上面 ──
+    /* ── 商店顶上那局：照真牌桌的样子摆（两只机器猫、牌堆、弃牌堆、我的头像和手牌），自己一直打下去 ──
+     * 一轮：左边机器猫出一张 → 右边机器猫摸一张 → 我出一张（放出牌特效）→ 我摸一张；换款当场换到这张桌上 */
+    const PLAYS = ['skip', 'favor', 'shuffle', 'future', 'attack', 'nope', 'reverse', 'alter', 'bottom', 'swap'];
+    const HAND0 = ['defuse', 'skip', 'favor', 'shuffle', 'orange'];
+    const DRAWS = ['tabby', 'nope', 'future', 'cow', 'attack', 'siamese', 'skip', 'calico', 'reverse', 'favor'];
+    function liveScene(el, look0) {
+      let look = Object.assign({}, look0), alive = true, t = 0, step = 0, di = 0, pi = 0;
+      const card = (k) => (TB() ? TB().cardHtml(k) : '');
+      const a = AVS(), bots = a && a.ROBOT ? [a.ROBOT[3], a.ROBOT[1]] : [{ svg: '' }, { svg: '' }];
+      const cnt = [5, 5];
+      el.innerHTML = '<div class="zb-ls-rim"></div>' +
+        [0, 1].map((i) => '<div class="zb-ls-opp o' + i + '"><span class="zb-ls-av"><span class="zb-face">' + bots[i].svg + '</span><b class="zb-ls-n">' + cnt[i] + '</b></span><small>' + ['贝塔', '欧米伽'][i] + '</small></div>').join('') +
+        '<div class="zb-ls-piles"><span class="zb-ls-deck"><i></i><i></i><i></i><span class="zb-ls-top"></span></span><span class="zb-ls-disc"></span></div>' +
+        '<div class="zb-ls-me"><span class="zb-ls-av me"></span></div>' +
+        '<div class="zb-ls-btns"><span>摸牌</span><span>出牌</span></div>' +
+        '<div class="zb-ls-hand"></div>';
+      const $q = (s) => el.querySelector(s);
+      const disc = $q('.zb-ls-disc'), hand = $q('.zb-ls-hand');
+      disc.innerHTML = '<span class="zb-ls-dc">' + card('nope') + '</span>';
+      let hk = HAND0.slice();
+      function paintLook() {
+        el.setAttribute('style', feltStyle(look.felt));
+        $q('.zb-ls-top').innerHTML = backOf(look.back);
+        $q('.zb-ls-me .zb-ls-av').innerHTML = myFace() + (FRAME_SVG[look.frame] || '') + '<b class="zb-ls-n">' + hk.length + '</b>';
+      }
+      function layoutHand() {
+        const n = hk.length, w = el.clientWidth, cw = Math.min(64, w / 5.6), stepX = Math.min(cw * 0.86, (w - cw - 24) / Math.max(1, n - 1));
+        [...hand.children].forEach((c, i) => {
+          const off = i - (n - 1) / 2;
+          c.style.width = cw + 'px';
+          c.style.transform = 'translate(' + (w / 2 - cw / 2 + off * stepX) + 'px,' + (Math.abs(off) * 3) + 'px) rotate(' + (off * 4) + 'deg)';
+        });
+        const me = $q('.zb-ls-me .zb-ls-n'); if (me) me.textContent = n;
+      }
+      function paintHand() { hand.innerHTML = hk.map((k) => '<span class="zb-ls-hc">' + card(k) + '</span>').join(''); layoutHand(); }
+      const rel = (node) => { const r = node.getBoundingClientRect(), s = el.getBoundingClientRect(); return { x: r.left - s.left + r.width / 2, y: r.top - s.top + r.height / 2, w: r.width }; };
+      function fly(html, from, to, w, dur, rot) {   // 一张牌从 from 飞到 to（牌桌里的坐标，牌心）
+        const f = document.createElement('span');
+        f.className = 'zb-ls-fly'; f.style.width = w + 'px'; f.innerHTML = html;
+        el.appendChild(f);
+        const h = w * 1.4;
+        return f.animate([{ transform: 'translate(' + (from.x - w / 2) + 'px,' + (from.y - h / 2) + 'px) scale(' + (from.s || 1) + ') rotate(' + (rot ? rot[0] : 0) + 'deg)' }, { transform: 'translate(' + (to.x - w / 2) + 'px,' + (to.y - h / 2) + 'px) scale(' + (to.s || 1) + ') rotate(' + (rot ? rot[1] : 0) + 'deg)' }],
+          { duration: dur, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' }).finished.then(() => f, () => f);
+      }
+      const dcW = () => $q('.zb-ls-dc').getBoundingClientRect().width || 50;
+      function land(k, f) { disc.innerHTML = '<span class="zb-ls-dc" style="transform:rotate(' + ((Math.random() * 16 - 8).toFixed(1)) + 'deg)">' + card(k) + '</span>'; if (f) f.remove(); }
+      function acting(i) { el.querySelectorAll('.zb-ls-av').forEach((x) => x.classList.remove('is-act')); const av = i < 2 ? el.querySelectorAll('.zb-ls-opp .zb-ls-av')[i] : $q('.zb-ls-me .zb-ls-av'); if (av) av.classList.add('is-act'); }
+      function playFx(at) { if (look.fx !== 'none') burst(look.fx, at, el); }
+      async function tick() {
+        if (!alive || !el.isConnected) return;
+        const s = step++ % 4;
+        try {
+          if (s === 0) {   // 左边机器猫出一张
+            acting(0);
+            const k = PLAYS[pi++ % PLAYS.length], from = rel(el.querySelectorAll('.zb-ls-opp .zb-ls-av')[0]);
+            from.s = 0.5; cnt[0] = Math.max(2, cnt[0] - 1); el.querySelectorAll('.zb-ls-opp .zb-ls-n')[0].textContent = cnt[0];
+            const f = await fly(card(k), from, rel(disc), dcW(), 520, [-20, 4]); land(k, f);
+          } else if (s === 1) {   // 右边机器猫摸一张
+            acting(1);
+            const to = rel(el.querySelectorAll('.zb-ls-opp .zb-ls-av')[1]); to.s = 0.45;
+            const f = await fly(backOf(look.back), rel($q('.zb-ls-top')), to, dcW(), 520, [0, 12]); f.remove();
+            cnt[1] = Math.min(7, cnt[1] + 1); el.querySelectorAll('.zb-ls-opp .zb-ls-n')[1].textContent = cnt[1];
+          } else if (s === 2) {   // 我出一张：先抬起来，再飞到弃牌堆、放特效
+            acting(2);
+            const idx = 1 + ((Math.random() * (hk.length - 1)) | 0), node = hand.children[idx];
+            if (!node) return;
+            node.style.transform += ' translateY(-18px)';
+            await new Promise((r) => setTimeout(r, 380));
+            if (!alive) return;
+            const k = hk[idx], from = rel(node);
+            hk.splice(idx, 1); node.remove(); layoutHand();
+            const f = await fly(card(k), from, rel(disc), dcW(), 420, [0, -5]); land(k, f);
+            playFx(disc);
+          } else {   // 我摸一张：牌背从牌堆飞进手里，翻过来
+            const k = DRAWS[di++ % DRAWS.length];
+            hk.push(k); paintHand();
+            const last = hand.lastElementChild; last.style.visibility = 'hidden';
+            const f = await fly(backOf(look.back), rel($q('.zb-ls-top')), rel(last), last.getBoundingClientRect().width, 520, [0, 0]);
+            f.remove(); last.style.visibility = '';
+            last.animate([{ transform: last.style.transform + ' scaleX(0)' }, { transform: last.style.transform }], { duration: 200, easing: 'ease-out' });
+            if (hk.length > 6) { hk = HAND0.slice(); paintHand(); }
+          }
+        } catch (_) { /* 预览：出错也别停 */ }
+        if (alive) t = setTimeout(tick, s === 2 ? 1300 : 650);
+      }
+      paintLook(); paintHand();
+      const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => layoutHand()) : null;
+      if (ro) ro.observe(el);
+      t = setTimeout(tick, 700);
+      return {
+        look(L) { const fxNew = L.fx !== look.fx; look = Object.assign({}, L); paintLook(); if (fxNew) setTimeout(() => playFx(disc), 50); },
+        poke() { playFx(disc); },
+        stop() { alive = false; clearTimeout(t); if (ro) ro.disconnect(); },
+      };
+    }
+
+    // ── 二级页（账本）：从右边滑进来，盖在商店上面 ──
     function openSub(html, onClick) {
       closeSub(true);
       sub = document.createElement('section');
@@ -464,70 +650,18 @@
     }
     function closeSub(now) {
       if (!sub) return;
-      const s0 = sub; sub = null; clearInterval(fxLoop);
+      const s0 = sub; sub = null;
       if (now) { s0.remove(); return; }
       s0.classList.remove('is-on'); setTimeout(() => s0.remove(), 300);
-      paintShop();
+      paintShop(true);
     }
     const subTop = (title) => '<div class="zb-top"><button type="button" class="zb-x" data-zb="back" aria-label="返回">' + BACK_SVG + '</button><h2>' + title + '</h2>' + balHtml() + '</div>';
     function openLedger() {
       const rows = d.log.length ? d.log.slice(0, 40).map((x) => '<div class="zb-row" style="padding:7px 12px"><span class="t">' + x.why + '<small>' + new Date(x.at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + '</small></span><b style="color:' + (x.amt < 0 ? '#b4392c' : '#3f7a52') + '">' + (x.amt < 0 ? '−' : '+') + fmt(x.amt) + '</b></div>').join('') : '<div class="zb-row"><span class="t" style="color:#6a6358">还没有</span></div>';
-      openSub(subTop('账本') + '<div class="zb-body">' + rows + '<div class="zb-row" style="margin-top:14px"><span class="t">清空内测账本<small>内测花的、领的全部归零，外观和存货也收回</small></span><button type="button" class="zb-btn" data-zb="reset">清空</button></div></div>', (e) => {
-        if (e.target.closest('[data-zb="reset"]')) { const keep = d.pick, tops = d.tops; d = D0(); d.pick = keep; d.tops = tops; save(); applyLook(); openLedger(); }
+      openSub(subTop('账本') + '<div class="zb-body">' + rows + '<div class="zb-row" style="margin-top:14px"><span class="t">清空内测账本<small>内测花的、领的全部归零，外观也收回</small></span><button type="button" class="zb-btn" data-zb="reset">清空</button></div></div>', (e) => {
+        if (e.target.closest('[data-zb="reset"]')) { const keep = d.pick, tops = d.tops; d = D0(); d.pick = keep; d.tops = tops; save(); applyLook(); sel = Object.assign({}, d.use); openLedger(); }
       });
     }
-    // 外观预览页：上面一张真的小牌桌（两只机器猫、牌堆、弃牌堆、我的头像和手牌），下面一排款式，点哪款牌桌当场换上；底下一颗大键 购买 / 使用 / 使用中
-    let fxLoop = 0;
-    function sceneHtml(look) {
-      const a = AVS(), bots = a && a.ROBOT ? a.ROBOT.slice(0, 2).map((x) => x.svg) : ['', ''];
-      const card = (k) => (TB() ? TB().cardHtml(k) : '');
-      return '<div class="zb-scene" style="' + feltStyle(look.felt) + '">' +
-        '<div class="zb-sc-opp l"><span class="zb-face">' + bots[0] + '</span></div><div class="zb-sc-opp r"><span class="zb-face">' + bots[1] + '</span></div>' +
-        '<div class="zb-sc-piles"><span class="zb-sc-deck">' + [2, 1, 0].map((i) => '<span style="transform:translate(' + (-i * 1.5) + 'px,' + (-i * 2) + 'px)">' + backOf(look.back) + '</span>').join('') + '</span><span class="zb-sc-disc" data-zbdisc>' + card('nope') + '</span></div>' +
-        '<div class="zb-sc-me"><span class="zb-pv av">' + myFace() + (FRAME_SVG[look.frame] || '') + '</span></div>' +
-        '<div class="zb-sc-hand">' + ['defuse', 'skip', 'favor', 'shuffle', 'calico'].map((k, i) => '<span style="transform:rotate(' + ((i - 2) * 5) + 'deg) translateY(' + Math.abs(i - 2) * 3 + 'px)">' + card(k) + '</span>').join('') + '</div></div>';
-    }
-    function openLook(cat) {
-      let sel = d.use[cat];
-      const look = () => Object.assign({}, d.use, { [cat]: sel });
-      const optsHtml = () => CAT[cat].map(([id, name, p]) => {
-        const own = d.own[cat].includes(id), use = d.use[cat] === id;
-        return '<button type="button" class="zb-opt' + (id === sel ? ' is-sel' : '') + '" data-o="' + id + '">' + previewHtml(cat, id) + '<b>' + name + '</b>' + (use ? '<i class="ok">使用中</i>' : own ? '<i>已拥有</i>' : '<i>' + FISH() + fmt(p) + '</i>') + '</button>';
-      }).join('');
-      const actHtml = () => {
-        const row = CAT[cat].find((x) => x[0] === sel), own = d.own[cat].includes(sel), use = d.use[cat] === sel;
-        if (use) return '<button type="button" class="zb-big" disabled>使用中</button>';
-        if (own) return '<button type="button" class="zb-big" data-act="use">使用</button>';
-        return '<button type="button" class="zb-big is-red" data-act="buy"' + (bal() < row[2] ? ' disabled' : '') + '>购买 ' + FISH() + fmt(row[2]) + '</button>';
-      };
-      const repaint = (all) => {
-        if (!sub) return;
-        const sc = sub.querySelector('.zb-scene-wrap');
-        if (all) sc.innerHTML = sceneHtml(look());
-        else {   // 只换这一类，场景不重建（换桌布有一点过渡）
-          const s = sc.querySelector('.zb-scene'), L = look();
-          if (cat === 'felt') s.setAttribute('style', feltStyle(L.felt));
-          if (cat === 'back') sc.querySelectorAll('.zb-sc-deck>span').forEach((x) => { x.innerHTML = backOf(L.back); });
-          if (cat === 'frame') sc.querySelector('.zb-sc-me').innerHTML = '<span class="zb-pv av">' + myFace() + (FRAME_SVG[L.frame] || '') + '</span>';
-        }
-        const ol = sub.querySelector('.zb-opts'), x = ol.scrollLeft; ol.innerHTML = optsHtml(); ol.scrollLeft = x;
-        sub.querySelector('.zb-act').innerHTML = actHtml();
-        if (cat === 'fx') playFx();
-      };
-      const playFx = () => { const el = sub && sub.querySelector('[data-zbdisc]'); if (el && sel !== 'none') burst(sel, el); };
-      openSub(subTop(CAT_NAME[cat]) + '<div class="zb-scene-wrap">' + sceneHtml(look()) + '</div><div class="zb-opts">' + optsHtml() + '</div><div class="zb-act">' + actHtml() + '</div>', (e) => {
-        const o = e.target.closest('[data-o]');
-        if (o) { sel = o.dataset.o; repaint(false); return; }
-        if (cat === 'fx' && e.target.closest('.zb-scene')) { playFx(); return; }
-        const act = e.target.closest('[data-act]');
-        if (!act || act.disabled) return;
-        if (act.dataset.act === 'use') { d.use[cat] = sel; save(); applyLook(); repaint(false); return; }
-        const row = CAT[cat].find((x) => x[0] === sel), id = sel;
-        confirmBuy({ pv: previewHtml(cat, id), name: row[1], sub: CAT_NAME[cat], price: row[2], after: () => repaint(false) }, sub.querySelector('.zb-opt.is-sel') || act, () => { book(-row[2], CAT_NAME[cat] + '「' + row[1] + '」'); d.own[cat].push(id); d.use[cat] = id; save(); applyLook(); });
-      });
-      if (cat === 'fx') { setTimeout(playFx, 450); fxLoop = setInterval(playFx, 2400); }
-    }
-
     // 主页底部加一个「商店」；猫咪档案余额旁边也放一个（2026-11-27 用户：入口太隐晦）
     function mountCover() {
       const foot = document.querySelector('.zm-cover-foot');
@@ -538,10 +672,9 @@
       foot.insertBefore(b, foot.firstChild);
     }
     const BAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M5 8.5h14l-1.2 11a1.5 1.5 0 0 1-1.5 1.3H7.7a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M9 10.5V7a3 3 0 0 1 6 0v3.5"/></svg>';
-    function mountProfileShop(b) {
-      if (b.querySelector('[data-zbpshop]')) return;
-      const host = b.querySelector('.zmp-bal') || b.querySelector('.zmp-card');
-      if (!host) return;
+    function mountProfileShop() {   // 2026-11-27 用户：放猫咪档案右上角（档案顶栏留了 .zmp-topr 空位），不放第一格里
+      const host = document.querySelector('.zmp .zmp-topr');
+      if (!host || host.querySelector('[data-zbpshop]')) return;
       const btn = document.createElement('button');
       btn.type = 'button'; btn.className = 'zb-pshop'; btn.dataset.zbpshop = '1'; btn.innerHTML = BAG + '<span>商店</span>';
       btn.addEventListener('click', (e) => { e.stopPropagation(); openShop(); });
@@ -568,30 +701,35 @@
     }
 
     // ── 单机设置单：开局道具 ──
+    /* 2026-11-27 用户第四轮：和上面规则那格同一个样子——一格一张小牌（图标）、底下名字、一条浅浅的分割线、再底下价钱；
+     * 点亮 = 这局开局当场买（钱在开局时才扣）。不再有存货角标 */
     let soloCtx = null;
     const ROLE_IDS = () => (R() && R().ROLES ? R().ROLES.map((r) => r.id) : []);
+    const ITEM_BG = { counter: '#f3e6cf', x2: '#f6e0da', role: '#efe3d0', nope: '#e9e2f0', swap: '#dcebea' };
     function solo(ctx) {
       soloCtx = ctx;
       const pick = document.querySelector('.zm-solo-pick');
       if (!pick) return;
       let row = pick.querySelector('.zb-items');
-      if (!row) { row = document.createElement('div'); row.className = 'zb-items'; pick.appendChild(row); row.addEventListener('click', onChip); }
+      if (!row) { row = document.createElement('div'); row.className = 'zb-items zr-box is-ro'; pick.appendChild(row); row.addEventListener('click', onChip); }
       const team = ctx.mode === 'team';
       const icon = (k) => (ART() && ART().icon ? ART().icon(k) : '');
-      const chips = [];
-      if (!counterDayOn()) chips.push(['counter', CTR_IC]);
-      if (!team) chips.push(['x2', '<span class="x2">×2</span>']);
+      const chips = [['counter', CTR_IC]];
+      if (!team) chips.push(['x2', X2_IC]);
       if (ctx.mode === 'roles') chips.push(['role', ART() ? (d.pick.role ? '<span class="rf">' + ART().roleFace(d.pick.role) + '</span>' : '<span class="rb">' + ART().ROLE_BACK + '</span>') : '']);   // 没挑：一张小角色牌背；挑了：那只猫的脸
       if (!team) chips.push(['nope', icon('nope')]);
       if (!team && ctx.rules && ctx.rules.swap) chips.push(['swap', icon('swap')]);
-      const label = { counter: '记牌器', x2: '加倍', role: '挑角色', nope: '作废', swap: '交换' };
-      // 有存货：角上写剩几件、点亮就用一件；没存货：写当场买的价（同商店当天价）
-      row.innerHTML = chips.map(([k, ic]) => { const on = k === 'role' ? !!d.pick.role : !!d.pick[k], n = inv(k); return '<button type="button" class="zb-chip" data-zbp="' + k + '" aria-pressed="' + on + '" aria-label="' + label[k] + '">' + ic + (n ? '<i class="inv">' + n + '</i>' : '<i>' + FISH() + fmt(priceAt(k)) + '</i>') + '</button>'; }).join('');
+      row.innerHTML = '<span class="zr-chips">' + chips.map(([k, ic]) => {
+        const free = k === 'counter' && counterDayOn(), on = free || (k === 'role' ? !!d.pick.role : !!d.pick[k]), p = priceAt(k);
+        return '<button type="button" class="zb-it2" data-zbp="' + k + '" aria-pressed="' + on + '"' + (free ? ' data-free="1"' : '') + '><i class="zr-mc" style="--bg:' + ITEM_BG[k] + '" aria-hidden="true">' + ic + '</i><small>' + ITEM_NAME[k] + '</small>' +
+          '<span class="pr">' + (free ? '今日畅用' : FISH() + fmt(p)) + '</span></button>';
+      }).join('') + '</span>';
     }
     function onChip(e) {
       const b = e.target.closest('[data-zbp]');
       if (!b) return;
       e.stopPropagation();
+      if (b.dataset.free) return;
       const k = b.dataset.zbp;
       if (k === 'role') { if (d.pick.role) { d.pick.role = null; save(); solo(soloCtx); } else rolePicker(); return; }
       d.pick[k] = !d.pick[k]; save(); solo(soloCtx);
@@ -624,9 +762,9 @@
       if (!game || game.tutorial || game.online) return;
       const s = game.state, o = { tier: ctx.tier, mode: ctx.mode, n: s.n, rules: s.rules };
       const zb = {};
-      // 先用存货，没有就按当天价当场买（买的也算进当天件数）
-      const buy = (k) => { if (inv(k) > 0) { d.inv[k]--; save(); return true; } if (bal() < priceAt(k)) return false; takeBuy(k, 1, ITEM_NAME[k] + '（开局买）'); return true; };
-      const can = (k) => inv(k) > 0 || bal() >= priceAt(k);
+      // 当场买：钱在这时才扣（2026-11-27 第四轮：不再有存货）
+      const buy = (k) => { if (bal() < priceAt(k)) return false; takeBuy(k, ITEM_NAME[k]); return true; };
+      const can = (k) => bal() >= priceAt(k);
       if (counterDayOn()) zb.counter = true;
       else if (d.pick.counter && buy('counter')) zb.counter = true;
       if (o.mode !== 'team') {
@@ -709,9 +847,9 @@
       if (fxLast && fxLast.g === g && now.dc > fxLast.dc && now.h < fxLast.h && d.use.fx !== 'none') setTimeout(() => burst(d.use.fx, $('zmDiscard')), 260);
       fxLast = now;
     }
-    function burst(kind, dc) {
+    function burst(kind, dc, host) {   // host：放在这个框里（商店那局的牌桌），坐标相对它、飞出框就裁掉
       if (!dc || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      const r = dc.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      const r = dc.getBoundingClientRect(), o = host ? host.getBoundingClientRect() : { left: 0, top: 0 }, cx = r.left - o.left + r.width / 2, cy = r.top - o.top + r.height / 2;
       const N = kind === 'fish' ? 6 : 16;
       for (let i = 0; i < N; i++) {
         const p = document.createElement('div');
@@ -722,7 +860,8 @@
         else if (kind === 'sparks') { size = 10 + Math.random() * 10; html = '<svg viewBox="0 0 10 10" width="' + size + '"><path d="M5 0l1.2 3.8L10 5 6.2 6.2 5 10 3.8 6.2 0 5l3.8-1.2z" fill="#e3b64a"/></svg>'; }
         else { size = 30; html = '<span style="display:inline-flex;width:' + size + 'px">' + FISH() + '</span>'; }
         p.innerHTML = html;
-        document.body.appendChild(p);
+        if (host) p.style.position = 'absolute';
+        (host || document.body).appendChild(p);
         const x0 = cx - size / 2, y0 = cy - size / 2, x1 = x0 + Math.cos(a) * dist, y1 = y0 + Math.sin(a) * dist + (kind === 'petals' ? 30 : 0);
         const rot = (Math.random() - 0.5) * 360;
         p.animate([{ transform: 'translate(' + x0 + 'px,' + y0 + 'px) scale(.4) rotate(0deg)', opacity: 0 }, { opacity: 1, offset: 0.12 }, { opacity: 1, offset: 0.6 }, { transform: 'translate(' + x1 + 'px,' + y1 + 'px) scale(1) rotate(' + rot + 'deg)', opacity: 0 }],
@@ -756,7 +895,7 @@
         const v = Math.min(goal, r[k] || 0), got = r.got[k] || 0;
         // 没做完：「去完成」（同今日首胜，点了关档案、打开单机 / 联机设置单），进度写在名字底下
         const right = got === 2 ? '<em>已领</em>' : got === 1 ? ad('t2:' + k, true) : v >= goal ? '<button type="button" data-zbt="' + k + '">领取</button>' : '<button type="button" class="go" data-zbgo="' + (k === 'online' ? 'online' : 'solo') + '">去完成</button>';
-        h += line(name, amt, got === 1 ? '看广告再领一份' : v < goal && goal > 1 ? v + ' / ' + goal : '', v >= goal && got < 2, right);
+        h += line(name, amt, got === 1 ? '看广告再领一份' : v < goal ? v + ' / ' + goal : '', v >= goal && got < 2, right);
       });
       if (used > r.rAd) h += line('救济翻倍', RELIEF, '今天领过 ' + used + ' 次救济', true, ad('relief', true));
       if (rl.left === 0) h += line('额外救济', RELIEF, '今天 ' + r.extra + ' / ' + EXTRA_MAX, r.extra < EXTRA_MAX, r.extra < EXTRA_MAX ? ad('extra', true) : '<em>明天再来</em>');
@@ -789,7 +928,7 @@
     // 档案每次重画 body：看到签到卡就把内测卡插在前面
     new MutationObserver(() => {
       const b = document.querySelector('.zmp .zmp-body');
-      if (b) mountProfileShop(b);
+      mountProfileShop();
       if (b && b.querySelector('.zmp-week') && !b.querySelector('[data-zbcard]')) {
         // 签到额：今天这格（已签的最后一格 / 正要签的那格）的数，看广告再领同样一份
         const days = [...b.querySelectorAll('.zmp-day')], cur = days.filter((x) => x.classList.contains('is-done')).pop();
