@@ -3405,14 +3405,19 @@
       await wait(ms(120));
       if (t !== token) return;
     }
-    const items = cs.map((c) => ({ id: +c.dataset.id, r: c.getBoundingClientRect(), w: c.offsetWidth, rot: gather ? 0 : rotOf(c), gray: els.stage.classList.contains('is-cancelled') }));
+    // 被作废的牌（2026-11-27 用户）：刚盖下去时底下那几张灰着可以；收进弃牌堆前先原地缓缓回到原彩，再原彩飞进去——不再一摞灰牌落堆
+    if (els.stage.classList.contains('is-cancelled')) {
+      els.stage.classList.remove('is-cancelled');
+      if (!fx.reduce()) { await wait(ms(280)); if (t !== token) return; }
+    }
+    const items = cs.map((c) => ({ id: +c.dataset.id, r: c.getBoundingClientRect(), w: c.offsetWidth, rot: gather ? 0 : rotOf(c) }));
     if (inner && !fx.reduce()) inner.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' });
     cs.forEach((c) => { c.style.visibility = 'hidden'; });
     setTimeout(() => { if (t === token) clearStage(true); }, 170);   // 桌沿连线留着：等牌真的拿到 / 给到再缩回
     snd('sweep');
     await Promise.all(items.map((it, i) => fx.fly({
       html: cardHtml(it.id), from: it.r, to, w: pu, s0: (it.w || it.r.width) / pu, s1: 1, r0: it.rot, r1: pileRot(it.id),
-      dur: ms(260), delay: i * ms(gather ? 18 : 45), lift: 6, swell: 0.02, cls: it.gray ? 'is-gray' : '',
+      dur: ms(260), delay: i * ms(gather ? 18 : 45), lift: 6, swell: 0.02,
     }).then(() => {
       if (t !== token || !ov) return;
       ov.discard.push(it.id);

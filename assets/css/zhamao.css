@@ -1513,8 +1513,9 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-app.is-giving.has-pick .zm-hand::before { animation: none; opacity: 0.35; transition: opacity 0.3s ease; }
 @keyframes zm-give-breathe { 0%, 100% { opacity: 0.45; transform: scaleY(0.9); } 50% { opacity: 1; transform: scaleY(1.06); } }
 @media (prefers-reduced-motion: reduce) { .zm-app.is-giving .zm-hand::before { animation: none; opacity: 0.8; } }
-/* 作废这一步（被索要、我有作废）：除了作废牌，手牌灰下去、不能挑——先决定作不作废，再进给牌 */
-.zm-app.is-favor-wait .zm-hand .zm-card:not([data-k="nope"]) { filter: grayscale(0.5) opacity(0.5); }
+/* 作废这一步（被索要、我有作废）：先决定作不作废，再进给牌。
+ * 2026-11-27 用户：整排灰下去不好看（同急救）——其余牌保持原彩、不透明，只往下沉一点；作废牌留在原位，自然就是突出的那几张 */
+.zm-app.is-favor-wait .zm-hand .zm-card:not([data-k="nope"]) { translate: 0 8px; }
 .zm-app.is-giving .zm-seat-me .zm-av { box-shadow: 0 0 0 2px #e0566e, 0 0 0 7px rgba(224, 86, 110, 0.25); }
 .zm-app.is-giving #zmPlayBtn:not(:disabled) { background: #e0566e; border-color: #e0566e; color: #fff; }
 .zm-app.is-giving #zmPlayBtn:disabled { border-color: #e0566e; color: #e0566e; }
