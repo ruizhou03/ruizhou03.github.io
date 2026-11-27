@@ -84,8 +84,12 @@
       "sha256": "8b3515f8b1fcab6276d550464fcb62ad069f3a10f05a24503e60722bf56d1efb"
     },
     {
+      "url": "/assets/js/games/guandan-music.js?v=20261127ui19",
+      "sha256": "58b92e82e9515c347b978b13e190b98e5ba8586fd4f5a1e8ce9411d806b3bf28"
+    },
+    {
       "url": "/assets/js/games/guandan-audio.js?v=20261127ui19",
-      "sha256": "40169738b4ff281d0e50696efd65ab672e651a59cdef14e6e83d4740cf174ce0"
+      "sha256": "cfc36a94d838b97159f8cb60c554b2cddb88545abe00940a7bbcdc78e7ef90f5"
     },
     {
       "url": "/assets/js/games/guandan-rules.js?v=20261127ui19",
