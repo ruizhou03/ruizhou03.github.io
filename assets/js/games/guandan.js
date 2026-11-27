@@ -1413,18 +1413,21 @@
     hand.style.setProperty('--gd-card-w', cardW + 'px');
     hand.style.setProperty('--gd-card-h', cardH + 'px');
     hand.style.setProperty('--gd-stack-step', step + 'px');
-    // 2026-11-27 用户：同点数摞得很高（掼蛋两副牌，一列能到 8~10 张）会顶到「不出 / 出牌」按钮。
-    // 一列最多占「5 张深」的高度（和按钮行的锚点一致）：超过 5 张就把这一列的错位压紧，
-    // 但至少留出点数那一角（0.24W）看得清。这样任何一列都碰不到按钮。
-    const maxSpan = 4 * step, minStep = Math.round(cardW * 0.24);
+    // 2026-11-27 用户：同点数摞得很高（两副牌一列最多 8 张，加逢人配的自定义组更高）时别压牌——
+    // 压了点数 / 花色看不清，手指也点不准。改为让按钮行跟着最高那列往上挪一点：
+    // 5 张以内按钮不动（锚在 5 张深）；6~8 张按钮随之升 1~3 档；超过 8 张（只有手动摞的超大炸弹）
+    // 按钮停在 8 张深，那一列才轻微压紧到 8 张深的高度。
+    const BAND_MIN = 5, BAND_MAX = 8;
+    let tallest = 0;
     cols.forEach(col => {
       const cards = col.querySelectorAll('.gd-card');
       const n = cards.length;
-      const colStep = n > 5 ? Math.max(minStep, Math.floor(maxSpan / (n - 1))) : step;
+      tallest = Math.max(tallest, n);
+      const colStep = n > BAND_MAX ? Math.floor((BAND_MAX - 1) * step / (n - 1)) : step;
       col.style.height = ((n - 1) * colStep + cardH) + 'px';
-      col.classList.toggle('is-tight', colStep < step);
       cards.forEach((c, i) => { c.style.top = (i * colStep) + 'px'; });
     });
+    const bandDepth = Math.max(BAND_MIN, Math.min(BAND_MAX, tallest));
     // 2026-11-27 用户：列太多一行放不下怎么办——先让列和列叠起来（每列至少露出 0.72W，点数和花色都看得见），
     // 实在还放不下，才交给 .gd-hand 横向滑动看牌。
     const colArr = [...cols];
@@ -1438,7 +1441,8 @@
     // 出牌决策带锚到「~6 张深」的高度：随卡片大小自适应，不再死留过多空白。
     // = 桌底+手牌底距 + 6 张摞高(1 张 cardH + 5 个错位 step)，再整体下移 20px(用户两次要按钮更低一点)；CSS 叠加 env(safe-bottom)。
     // 2026-11-26：微信横屏太矮，按钮行改锚到「5 张深」，给左右两家的出牌和我的闹钟腾出一行
-    document.documentElement.style.setProperty('--gd-band-bottom', Math.round(-2 + cardH + 4 * step) + 'px');
+    // 2026-11-27：手里最高那列超过 5 张时跟着升（见上面 bandDepth），最多升到 8 张深
+    document.documentElement.style.setProperty('--gd-band-bottom', Math.round(-2 + cardH + (bandDepth - 1) * step) + 'px');
   }
 
   function renderPlayArea(seat) {
@@ -1503,7 +1507,34 @@
         row.appendChild(lab);
       }
       slot.appendChild(row);
+      if (seat === 1 || seat === 3) fitSideRow(seat, row);
     }
+  }
+  // 2026-11-27 模拟极端情况：上家 / 下家打出 9~10 张的大炸弹时，那一排会伸到中间「不出 / 提示 / 出牌」
+  // 按钮下面。这里量一下：这一排最多只能伸到按钮行外沿再空 10px，超了就把这一排的牌叠紧一点（不缩牌）。
+  const BAND_HALF_W = 3 * 80 / 2 + 10 + 10;   // 三颗 80px 按钮 + 两道 10px 缝的一半，再留 10px
+  function fitSideRow(seat, row) {
+    const cards = [...row.querySelectorAll('.gd-card')];
+    if (cards.length < 2 || !els.table) return;
+    const tr = els.table.getBoundingClientRect();
+    if (!tr.width) return;
+    const cx = tr.left + tr.width / 2;
+    cards.forEach(c => { c.style.marginLeft = ''; });
+    // 量的时候先停掉炸弹那一下「弹」（scale 会把量到的宽度放大），量完再放回去（动画照常从头播）。
+    // 出牌槽里这一排可能是居中的：叠紧后整排会往回缩一半，所以量—压—再量，最多六遍。
+    row.style.animation = 'none';
+    for (let pass = 0; pass < 6; pass++) {
+      const rs = cards.map(c => c.getBoundingClientRect());
+      const left = Math.min(...rs.map(r => r.left)), right = Math.max(...rs.map(r => r.right));
+      const over = seat === 3 ? right - (cx - BAND_HALF_W) : (cx + BAND_HALF_W) - left;
+      if (over <= 0.5) break;
+      const extra = over / (cards.length - 1);
+      for (let i = 1; i < cards.length; i++) {
+        const cur = parseFloat(getComputedStyle(cards[i]).marginLeft) || 0;
+        cards[i].style.marginLeft = (cur - extra).toFixed(1) + 'px';
+      }
+    }
+    row.style.animation = '';
   }
 
   // 局终摊牌：把某座剩余整手牌摊到专用可展开出牌槽。普通桌面均分两行；200% zoom
@@ -5906,6 +5937,7 @@
       lab.textContent = ['小', '中', '大'][i];
       box.appendChild(lab);
       if (m === state.cardSizeMult) box.className = 'on';
+      else if (m < state.cardSizeMult) box.className = 'under';   // 被真牌盖住的小框不标字（同炸弹猫）
       ruler.appendChild(box);
     });
     ruler.appendChild(card(cardId(12, 1, 0), 'position:absolute;left:0;bottom:0'));   // 红桃 A
@@ -6101,6 +6133,8 @@
     btn('上家·同花顺', () => demoOtherPlay(3, [C(0,R['4']),C(0,R['5']),C(0,R['6']),C(0,R['7']),C(0,R['8'])], '同花顺'));
     btn('下家·六炸', () => demoOtherPlay(1, [C(0,R['J']),C(1,R['J']),C(2,R['J']),C(3,R['J']),C(0,R['J']) + 54,C(1,R['J']) + 54], '六炸'));
     btn('上家·八炸', () => demoOtherPlay(3, [0,1,2,3].flatMap(su => [C(su,R['6']), C(su,R['6']) + 54]), '八炸'));
+    // 极端情况（2026-11-27 用户要求模拟）：8 张 + 两张逢人配 = 十张的炸弹，看会不会伸到中间按钮下面
+    btn('上家·十炸', () => demoOtherPlay(3, [0,1,2,3].flatMap(su => [C(su,R['6']), C(su,R['6']) + 54]).concat([C(1,R['2']), C(1,R['2']) + 54]), '十炸'));
     btn('对家·天王炸', () => demoOtherPlay(2, [SJ, SJ + 54, BJ, BJ + 54], '天王炸'));
     btn('逢人配替牌', () => demoOtherPlay(2, [C(0,R['9']),C(1,R['2']),C(0,R['J']),C(0,R['Q']),C(0,R['K'])], '逢人配替10'));
 
