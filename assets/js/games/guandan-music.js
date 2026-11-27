@@ -1,16 +1,15 @@
 /* 掼蛋 · 背景音乐（window.GuandanMusic）
- * 2026-11-27 用户：照炸弹猫的做法，要一小段有记忆点的 motif。一天里改了四版：
- *   一版民乐被否（不要刻意中国风、要冲击力）；二版 D 小调 3+3+2 影子，用户觉得节奏不错；三版转 D 大调，听着像《欢乐颂》/ 儿歌，
- *   等桌又改得太平静。四版照炸弹猫的经验重写——炸弹猫抓耳在于：小调琶音一下跳满八度、半音「抖一下」的怪音（D#→E）、
- *   和声里带调外音（E 大三和弦），每版一个鲜明的曲风对一种情绪、各有一两样招牌声音，主页那版是放克，不是安静的。
+ * 2026-11-27 用户：照炸弹猫的做法，要一小段有记忆点的 motif。第一版（民乐）听完被否：不用刻意中国风，要像炸弹猫那样有冲击力、
+ * 耳目一新；茶馆底下那层拨弦琶音「瘪」、断断续续还抢戏；炸场翻高八度那段音色单薄。第二版整个重写（下面这版）。
+ * 之后试过 D 大调（像儿歌）、布鲁斯怪音（太怪）都被否；用户从四段方向短样里挑回这一版的影子 + 干净放克（「明显比其他三个更好」）。
+ * 等桌只改后半段：原来 B 段换铜管吹短促连音、听着「一抓一抓」，现在颤音琴一直唱、闷音小号轻轻叠上，律动照旧（别改得太静）。
  *
- * 影子（D 混合利底亚 + 布鲁斯，两小节）：保留用户认可的「咚——咚——咚嗒嗒嗒」3+3+2 节奏；
- *   咚 D → 咚 A（跳五度）→ 咚 C（降七级，一听就不是儿歌）→ 嗒嗒往下 → F→F#「布鲁斯三音」抖一下滑上去 → 当！A 停住；
- *   第二小节落到 C 和弦（bVII，摇滚 / 放克的味道），同样 Eb→E 抖一下。答句在 G 上翻到 D6，A#→B 半音抖（同炸弹猫的 D#→E）。
- * 和声：A 段 D7–C–G–D / D7–C–G–A7；B 段 Em7–A7 来回（放克 vamp，绷着）→ G–A7 → 借来的 Bb（用户点名喜欢的离调）→ A7 上全队齐奏三下砸回开头。
- *   等桌  112 拍  牌桌外：爵士放克——闷音小号吹影子（颤音琴高八度叠一层），切分的克拉维琴切和弦、拍击贝斯、响指 + 摇摆踩镲。有律动、有点「导火索」的张力，不催人
- *   开打  140 拍  一局里：斯卡（ska）大乐队——铜管齐奏（叠低八度），吉他 / 和弦在每个反拍「嚓」一下切，走步低音、军鼓；影子停在长音上，铜管「嗒、嗒」应两声
- *   炸场  160 拍  有人出炸弹：电子——厚锯齿主奏 + 铜管，四拍底鼓、反拍开镲、十六分芯片琶音、低音一拍一泵；放满一圈没人再炸就回「开打」
+ * 影子（D 小调两小节）：「咚——咚——咚嗒嗒嗒」3+3+2 的切分节奏（像把牌往桌上一掼），三个音一路往上冲到 A，
+ * 打个转往下走；第二小节同一个节奏落到属和弦上、停在半空。整首 16 小节，A 段：影子 / 答句（高一级再来一遍）/ 影子 / 收尾，
+ * B 段：同音连打的「副歌」两句 + 换尾巴再来 + 最后一小节全队齐奏三下（又是 3+3+2）掼回开头。三版共用这套旋律和和弦，换版不断。
+ *   等桌  108 拍  牌桌外（开始页、房间、结算）：颤音琴从头唱到尾、B 段闷音小号轻轻叠上，电钢琴整小节垫和弦、低音提琴走步、刷子 + 响指，慵懒摇摆
+ *   开打  132 拍  一局里常驻：铜管齐奏（叠低八度更厚）+ 清音吉他，切分低音跟着 3+3+2，军鼓 / 拍手、反拍和弦切音
+ *   炸场  156 拍  有人出炸弹：厚锯齿主奏 + 铜管，四拍底鼓、反拍开镲、十六分芯片琶音、低音一拍一泵；放满一圈没人再炸就回「开打」
  * 进 / 出一局马上换；炸弹进「炸场」在下一小节就变身；回「开打」等到一段的段尾、两小节慢慢变回去（同 zhamao-music.js）。
  * 全部 Web Audio 现场合成，没有素材文件。GuandanAudio 建好上下文后接到它的音乐总线上。 */
 (function (root) {
@@ -25,34 +24,34 @@
   const up = (n, k) => freq(n) * Math.pow(2, k / 12);
 
   /* ───── 旋律（16 分音符一格；一句两小节 32 格）───── */
-  // 影子：咚 D —— 咚 A —— 咚 C，嗒嗒往下，F→F# 抖一下，当！A；第二小节落在 C 上，Eb→E 再抖一下
-  const MOTIF = [[0,3,'D5'],[3,3,'A5'],[6,2,'C6'],[8,1,'B5'],[9,1,'A5'],[10,1,'F5'],[11,1,'F#5'],[12,4,'A5'],
-    [16,3,'G5'],[19,3,'E5'],[22,2,'C5'],[24,1,'D5'],[25,1,'Eb5'],[26,2,'E5'],[28,4,'G5']];
-  // 答句：同样的节奏在 G 上一路翻到 D6，A#→B 半音抖；第二小节回到 D
-  const ANSWER = [[0,3,'B4'],[3,3,'G5'],[6,2,'D6'],[8,1,'C6'],[9,1,'B5'],[10,1,'A#5'],[11,1,'B5'],[12,4,'D6'],
-    [16,3,'A5'],[19,3,'F#5'],[22,2,'D5'],[24,1,'E5'],[25,1,'F5'],[26,2,'F#5'],[28,4,'A5']];
-  // 收尾：G 上再冲一次，落到 A7 上、往上扫到 A 停住，钩着 B 段
-  const ENDING = [[0,3,'D5'],[3,3,'G5'],[6,2,'B5'],[8,1,'A5'],[9,1,'B5'],[10,1,'C6'],[11,1,'B5'],[12,4,'G5'],
-    [16,3,'E5'],[19,3,'G5'],[22,2,'C#6'],[24,1,'B5'],[25,1,'A5'],[26,1,'G5'],[27,1,'E5'],[28,4,'A5']];
-  // B 段：Em7–A7 来回的放克短句，句中留空让鼓和和弦接话
-  const B1 = [[0,1,'E5'],[1,1,'G5'],[2,2,'B5'],[6,1,'A5'],[7,1,'B5'],[8,2,'D6'],[10,2,'B5'],[12,4,'A5'],
-    [16,1,'C#5'],[17,1,'E5'],[18,2,'G5'],[22,1,'F#5'],[23,1,'G5'],[24,2,'A5'],[26,2,'G5'],[28,4,'E5']];
-  const B2 = [[0,1,'E5'],[1,1,'G5'],[2,2,'B5'],[6,1,'A5'],[7,1,'B5'],[8,2,'D6'],[10,2,'B5'],[12,4,'A5'],
-    [16,1,'C#5'],[17,1,'E5'],[18,2,'G5'],[22,1,'A5'],[23,1,'Bb5'],[24,8,'B5']];
-  // 第三句：G 上同样 3+3+2，往上推到 A7 的高音 E
-  const B3 = [[0,3,'B5'],[3,3,'G5'],[6,2,'D5'],[8,1,'E5'],[9,1,'G5'],[10,2,'A5'],[12,4,'B5'],
-    [16,3,'C#6'],[19,3,'A5'],[22,2,'E5'],[24,1,'G5'],[25,1,'A5'],[26,2,'C#6'],[28,4,'E6']];
-  // 爬回去：借来的 Bb 大三和弦（离调最提神——用户 2026-11-27 点名喜欢这里），再落到 A7 上全队齐奏：咚——咚——咚（3+3+2）掼回开头
-  const B4 = [[0,1,'Bb4'],[1,1,'D5'],[2,1,'F5'],[3,1,'A5'],[4,4,'Bb5'],[8,1,'A5'],[9,1,'G5'],[10,1,'F5'],[11,1,'E5'],[12,4,'F5'],
+  // 影子：咚——咚——咚 嗒嗒嗒（3+3+2），D F A 往上冲、打个转下来；第二小节同一个节奏落在 A 和弦上，停在 E 上没说完
+  const MOTIF = [[0,3,'D5'],[3,3,'F5'],[6,2,'A5'],[8,1,'G5'],[9,1,'A5'],[10,2,'G5'],[12,2,'F5'],[14,2,'E5'],
+    [16,3,'E5'],[19,3,'C#5'],[22,2,'A4'],[24,1,'B4'],[25,1,'C#5'],[26,2,'D5'],[28,4,'E5']];
+  // 答句：同一句高一级（Bb → C），冲到 A 上
+  const ANSWER = [[0,3,'D5'],[3,3,'F5'],[6,2,'Bb5'],[8,1,'A5'],[9,1,'Bb5'],[10,2,'A5'],[12,2,'G5'],[14,2,'F5'],
+    [16,3,'G5'],[19,3,'E5'],[22,2,'C5'],[24,1,'E5'],[25,1,'F5'],[26,2,'G5'],[28,4,'A5']];
+  // 收尾：Gm 上再来一次，往下落进 A，留个钩子给 B 段
+  const ENDING = [[0,3,'D5'],[3,3,'G5'],[6,2,'Bb5'],[8,1,'A5'],[9,1,'G5'],[10,2,'F5'],[12,2,'E5'],[14,2,'C#5'],
+    [16,3,'E5'],[19,3,'C#5'],[22,2,'A4'],[24,2,'E5'],[26,2,'C#5'],[28,4,'A4']];
+  // B 段「副歌」：同音连打两下 + 往下走，两句一问一答
+  const B1 = [[0,1,'A5'],[2,1,'A5'],[4,2,'G5'],[6,2,'F5'],[8,1,'C6'],[10,1,'A5'],[12,4,'G5'],
+    [16,1,'G5'],[18,1,'G5'],[20,2,'F5'],[22,2,'E5'],[24,1,'C5'],[26,1,'E5'],[28,4,'G5']];
+  const B2 = [[0,1,'F5'],[2,1,'F5'],[4,2,'E5'],[6,2,'D5'],[8,1,'A5'],[10,1,'F5'],[12,4,'E5'],
+    [16,1,'E5'],[17,1,'F5'],[18,1,'E5'],[19,1,'D5'],[20,2,'C#5'],[22,2,'E5'],[24,8,'A5']];
+  // 第三句：副歌换个尾巴（往上翻到 C6 再下来），不再整句翻高八度（第一版那样太单薄）
+  const B3 = [[0,1,'A5'],[2,1,'A5'],[4,2,'G5'],[6,2,'F5'],[8,1,'C6'],[10,1,'A5'],[12,4,'G5'],
+    [16,1,'G5'],[18,1,'A5'],[20,2,'C6'],[22,2,'A5'],[24,2,'G5'],[26,2,'F5'],[28,4,'E5']];
+  // 爬回去 + 全队齐奏：咚——咚——咚（3+3+2）掼回开头
+  const B4 = [[0,1,'Bb4'],[1,1,'D5'],[2,1,'F5'],[3,1,'Bb5'],[4,4,'Bb5'],[8,1,'A5'],[9,1,'G5'],[10,1,'F5'],[11,1,'E5'],[12,4,'F5'],
     [16,2,'A4'],[19,2,'A4'],[22,2,'C#5'],[24,1,'E5'],[25,1,'G5'],[26,2,'A5']];
   function song() { return [MOTIF, ANSWER, MOTIF, ENDING, B1, B2, B3, B4]; }
-  // 和弦（根音 + 排好声部的和弦音，全放在旋律下面、和弦之间走最近的音）
+  // 和弦（根音 + 排好声部的和弦音，全放在旋律下面、和弦之间走最近的音，垫着不抢戏）
   const CH = {
-    D7: ['D', ['F#3','A3','C4']], C: ['C', ['E3','G3','C4']], G: ['G', ['D3','G3','B3']], D: ['D', ['F#3','A3','D4']],
-    A7: ['A', ['E3','G3','C#4']], Em7: ['E', ['D3','G3','B3']], Bb: ['Bb', ['F3','Bb3','D4']],
+    Dm: ['D', ['F3','A3','D4']], A: ['A', ['E3','A3','C#4']], Bb: ['Bb', ['F3','Bb3','D4']], C: ['C', ['E3','G3','C4']],
+    Gm: ['G', ['D3','G3','Bb3']], F: ['F', ['F3','A3','C4']],
   };
-  const PROG = ['D7','C','G','D','D7','C','G','A7',   'Em7','A7','Em7','A7','G','A7','Bb','A7'];
-  const BASSN = { D: 'D2', C: 'C2', G: 'G1', A: 'A1', E: 'E2', Bb: 'Bb1' };
+  const PROG = ['Dm','A','Bb','C','Dm','A','Gm','A',   'F','C','Dm','A','F','C','Bb','A'];
+  const BASSN = { D: 'D2', A: 'A1', Bb: 'Bb1', C: 'C2', G: 'G1', F: 'F1' };
   // 齐奏小节（B4 第二小节）：全队跟着旋律的三下砸，其余停
   const HIT_BAR = 15, HITS = [0, 3, 6];
 
@@ -119,11 +118,8 @@
   const INST = {
     // 铜管：三层锯齿 + 滤波器「哇」地打开；高音自动收一点亮度，不刺耳
     brass(t, f, dur, v = 1) { const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 2.5; const top = Math.min(3400, f * 5); lp.frequency.setValueAtTime(top * 0.18, t); lp.frequency.exponentialRampToValueAtTime(top, t + 0.05); lp.frequency.exponentialRampToValueAtTime(top * 0.45, t + 0.3); const g = ac.createGain(); env(g, t, 0.018, 0.12 * v, 0.12, 0.62, 0.06, t + dur); [-7, 0, 7].forEach((dt) => osc('sawtooth', f, t, t + dur, dt).connect(lp)); lp.connect(g); out(g, { delay: 0.18, verb: 0.25 }, 0.12); },
-    // 闷音小号：同一副铜管、滤波压得低，带一点颤
-    mute(t, f, dur, v = 1) { const lp = ac.createBiquadFilter(); lp.type = 'bandpass'; lp.Q.value = 1.6; lp.frequency.setValueAtTime(Math.min(2400, f * 2.2), t); lp.frequency.exponentialRampToValueAtTime(Math.min(1800, f * 1.6), t + 0.2); const g = ac.createGain(); env(g, t, 0.015, 0.32 * v, 0.1, 0.65, 0.07, t + dur); [-5, 5].forEach((dt) => { const o = osc('sawtooth', f, t, t + dur, dt); vibrato(o.detune, t, 5.2, 14, 0.2, dur + 1); o.connect(lp); }); lp.connect(g); out(g, { delay: 0.22, verb: 0.3 }, 0.1); },
-    vibeHi(t, f, dur, v = 1) { INST.vibe(t, f * 2, dur, 0.3 * v); },
-    // 克拉维琴：短促、带「哇」的切音和弦
-    clav(t, fs, dur, v = 1) { const g = ac.createGain(); env(g, t, 0.002, 0.16 * v, 0.07, 0.25, 0.03, t + Math.min(dur, 0.12)); const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 3; bp.frequency.setValueAtTime(2600, t); bp.frequency.exponentialRampToValueAtTime(900, t + 0.1); fs.forEach((f) => { osc('square', f * 2, t, t + 0.3).connect(bp); osc('sawtooth', f * 4, t, t + 0.3, 4).connect(bp); }); bp.connect(g); out(g, { verb: 0.15 }, -0.35); },
+    // 闷音小号：滤波压得低、带一点颤，柔和地叠在颤音琴上
+    mute(t, f, dur, v = 1) { const lp = ac.createBiquadFilter(); lp.type = 'bandpass'; lp.Q.value = 1.6; lp.frequency.setValueAtTime(Math.min(2400, f * 2.2), t); lp.frequency.exponentialRampToValueAtTime(Math.min(1800, f * 1.6), t + 0.2); const g = ac.createGain(); env(g, t, 0.03, 0.2 * v, 0.1, 0.7, 0.1, t + dur); [-5, 5].forEach((dt) => { const o = osc('sawtooth', f, t, t + dur, dt); vibrato(o.detune, t, 5.2, 14, 0.2, dur + 1); o.connect(lp); }); lp.connect(g); out(g, { delay: 0.22, verb: 0.35 }, 0.15); },
     brassLow(t, f, dur, v = 1) { INST.brass(t, f / 2, dur, 0.55 * v); },
     // 厚锯齿主奏（炸场）：五层错开一点的锯齿 + 低八度方波垫底，亮度随音高收
     saw(t, f, dur, v = 1) { const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 1.5; const top = Math.min(5200, f * 6); lp.frequency.setValueAtTime(top, t); lp.frequency.exponentialRampToValueAtTime(top * 0.55, t + 0.25); const g = ac.createGain(); env(g, t, 0.008, 0.085 * v, 0.1, 0.75, 0.07, t + dur * 0.95); [-16, -7, 0, 7, 16].forEach((dt) => { const o = osc('sawtooth', f, t, t + dur, dt); vibrato(o.detune, t, 5.5, 12, 0.18, dur + 1); o.connect(lp); }); const sub = ac.createGain(); sub.gain.value = 0.5; osc('square', f / 2, t, t + dur).connect(sub); sub.connect(lp); lp.connect(g); out(g, { delay: 0.3, verb: 0.2 }, -0.08); },
@@ -149,7 +145,7 @@
     clap(t, v = 1) { for (let i = 0; i < 3; i++) { const tt = t + i * 0.011; const src = ac.createBufferSource(); src.buffer = noise(); const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1300; bp.Q.value = 0.9; const g = ac.createGain(); env(g, tt, 0.001, 0.3 * v, i === 2 ? 0.13 : 0.02, 0.001, 0.02, tt); src.connect(bp); bp.connect(g); out(g, { verb: 0.35 }); src.start(tt); src.stop(tt + 0.2); } },
     rim(t, v = 1) { const o = ac.createOscillator(); o.frequency.value = 1700; const g = ac.createGain(); env(g, t, 0.001, 0.12 * v, 0.03, 0.001, 0.01, t); o.connect(g); const src = ac.createBufferSource(); src.buffer = noise(); const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 3000; const g2 = ac.createGain(); env(g2, t, 0.001, 0.1 * v, 0.03, 0.001, 0.01, t); src.connect(bp); bp.connect(g2); g2.connect(g); out(g, { verb: 0.35 }); o.start(t); o.stop(t + 0.08); src.start(t); src.stop(t + 0.08); },
     hat(t, v = 1, open) { const src = ac.createBufferSource(); src.buffer = noise(); const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 8000; const g = ac.createGain(); env(g, t, 0.001, 0.11 * v, open ? 0.22 : 0.035, 0.001, 0.02, t); src.connect(hp); hp.connect(g); out(g, null, 0.2); src.start(t, Math.random() * 0.5); src.stop(t + 0.3); },
-    snap(t, v = 1) { const src = ac.createBufferSource(); src.buffer = noise(); const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2200; bp.Q.value = 2.5; const g = ac.createGain(); env(g, t, 0.001, 0.32 * v, 0.03, 0.001, 0.02, t); src.connect(bp); bp.connect(g); out(g, { verb: 0.5 }, 0.3); src.start(t, Math.random() * 0.5); src.stop(t + 0.1); },
+    snap(t, v = 1) { const src = ac.createBufferSource(); src.buffer = noise(); const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2200; bp.Q.value = 2.5; const g = ac.createGain(); env(g, t, 0.001, 0.28 * v, 0.03, 0.001, 0.02, t); src.connect(bp); bp.connect(g); out(g, { verb: 0.5 }, 0.3); src.start(t, Math.random() * 0.5); src.stop(t + 0.1); },
     brush(t, v = 1) { const src = ac.createBufferSource(); src.buffer = noise(); const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 5000; bp.Q.value = 0.7; const g = ac.createGain(); env(g, t, 0.01, 0.06 * v, 0.09, 0.001, 0.03, t); src.connect(bp); bp.connect(g); out(g, null, -0.2); src.start(t, Math.random() * 0.5); src.stop(t + 0.2); },
     crash(t, v = 1) { const src = ac.createBufferSource(); src.buffer = noise(); const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 5000; const g = ac.createGain(); env(g, t, 0.002, 0.15 * v, 1.2, 0.001, 0.2, t); src.connect(hp); hp.connect(g); out(g, { verb: 0.4 }); src.start(t); src.stop(t + 1.6); },
     tom(t, f, v = 1) { const o = ac.createOscillator(); o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 0.6, t + 0.2); const g = ac.createGain(); env(g, t, 0.002, 0.4 * v, 0.2, 0.001, 0.03, t); o.connect(g); out(g, { verb: 0.3 }); o.start(t); o.stop(t + 0.3); },
@@ -161,20 +157,20 @@
   /* ───── 三个版本 ─────
    * 每版：bpm、swing、lead（A 段）/ leadB（B 段）主奏、bass/drums/comp 伴奏写法。HIT_BAR 那一小节各声部只跟着三下齐奏 */
   const VERSIONS = [
-    { id: 'lounge', name: '等桌', tag: '112 拍 · 爵士放克', desc: '牌桌外：闷音小号吹影子、颤音琴高八度轻轻叠着；克拉维琴切分着切和弦，拍击贝斯满地跑，响指打二四拍，摇摆踩镲。有律动、带点张力，但不催人。',
-      bpm: 112, swing: 0.2, lead: ['mute', 'vibeHi'],
-      bass(bar, ch, add) { const r = BASSN[ch[0]]; if (bar === HIT_BAR) { HITS.forEach((s) => add(s, 2, 'slap', up(r, 12), 0.8)); return; } [[0, 2, 12], [3, 1, 12], [6, 1, 24], [8, 2, 12], [10, 1, 19], [11, 1, 22], [14, 2, 12]].forEach(([s, l, k]) => add(s, l, 'slap', up(r, k), 0.75)); },
-      drums(bar, sec, add) { if (bar === HIT_BAR) { HITS.forEach((s) => { add(s, 'kick', 0.8); add(s, 'snap', 0.9); }); return; } add(0, 'kick', 0.7); add(7, 'kick', 0.45); add(10, 'kick', 0.6); add(4, 'snap'); add(12, 'snap'); add(12, 'rim', 0.5); for (let s = 0; s < 16; s++) add(s, 'hat', s % 2 ? 0.25 : 0.5); if (bar % 4 === 3) add(14, 'hat', 0.6, true); },
-      comp(bar, ch, add) { const fs = ch[1].map(freq); if (bar === HIT_BAR) { HITS.forEach((s) => add(s, 1, 'clav', fs, 1.2)); return; } [2, 5, 10, 13].forEach((s) => add(s, 1, 'clav', fs, s === 2 || s === 10 ? 1 : 0.7)); add(0, 16, 'rhodes', fs, 0.5); },
-      extra(bar, add) { if (bar === 0) add(0, 'crash', 0.5); } },
-    { id: 'play', name: '开打', tag: '140 拍 · 斯卡大乐队', desc: '一局里：铜管齐奏影子（叠低八度更厚）+ 清音吉他同奏；吉他和和弦在每个反拍「嚓」一下切（斯卡），走步低音、军鼓打二四拍；影子停在长音上，铜管「嗒、嗒」应两声。',
-      bpm: 140, swing: 0, lead: ['brass', 'brassLow', 'gtr'],
-      bass(bar, ch, add) { const r = BASSN[ch[0]]; if (bar === HIT_BAR) { HITS.forEach((s) => add(s, 2, 'slap', up(r, 12))); return; } [[0, 12], [4, 19], [8, 24], [12, 22]].forEach(([s, k]) => add(s, 3, 'upright', up(r, k), 1.05)); },
-      drums(bar, sec, add) { if (bar === HIT_BAR) { HITS.forEach((s) => { add(s, 'kick', 1.1); add(s, 'crash', 0.6); }); [10, 11, 12, 13, 14, 15].forEach((s, i) => add(s, 'snare', 0.35 + i * 0.1)); return; } add(0, 'kick'); add(8, 'kick', 0.8); add(4, 'snare'); add(12, 'snare'); for (let s = 0; s < 16; s += 2) add(s, 'hat', 0.55); if (bar % 4 === 3) [13, 14, 15].forEach((s, i) => add(s, 'tom', 220 - i * 40, 0.8)); },
-      comp(bar, ch, add) { const fs2 = ch[1].map((n) => freq(n) * 2); if (bar === HIT_BAR) { HITS.forEach((s) => add(s, 1, 'stab', fs2, 1.1)); return; } [2, 6, 10, 14].forEach((s) => { add(s, 1, 'stab', fs2, 1.2); add(s, 1, 'clav', ch[1].map(freq), 1); }); if (bar === 1 || bar === 3 || bar === 5) [13, 14].forEach((st) => add(st, 1, 'stab', fs2, 1.3)); },
-      extra(bar, add) { if (bar === 0 || bar === 8) add(0, 'crash', 0.7); if (bar === 1 || bar === 3 || bar === 5) { add(13, 'snare', 0.7); add(14, 'snare', 0.9); } } },
-    { id: 'bomb', name: '炸场', tag: '160 拍 · 电子冲击', desc: '有人出炸弹：厚锯齿主奏 + 铜管，四拍底鼓、拍手、反拍开镲，十六分芯片琶音在上面闪，低音一拍一泵；最后一小节噪音蓄力，三下齐奏砸回开头。',
-      bpm: 160, swing: 0, lead: ['saw', 'brass'],
+    { id: 'lounge', name: '等桌', tag: '108 拍 · 慵懒摇摆', desc: '牌桌外：颤音琴从头唱到尾，B 段闷音小号轻轻叠上；电钢琴整小节垫和弦，低音提琴走步，刷子 + 边击 + 响指，摇摆着等人。',
+      bpm: 108, swing: 0.2, lead: ['vibe'], leadB: ['vibe', 'mute'],
+      bass(bar, ch, add) { const r = BASSN[ch[0]]; if (bar === HIT_BAR) { HITS.forEach((s) => add(s, 2, 'upright', up(r, 12))); return; } [[0, 12], [4, 19], [8, 24], [12, 22]].forEach(([s, k]) => add(s, 3, 'upright', up(r, k))); },
+      drums(bar, sec, add) { if (bar === HIT_BAR) { HITS.forEach((s) => { add(s, 'kick', 0.7); add(s, 'rim', 0.8); }); add(12, 'tom', 170, 0.5); add(14, 'tom', 130, 0.5); return; } add(0, 'kick', 0.55); add(10, 'kick', 0.4); add(4, 'rim', 0.8); add(12, 'rim', 0.8); add(4, 'snap', 0.7); add(12, 'snap', 0.7); for (let s = 0; s < 16; s += 2) add(s, 'brush', s % 4 ? 0.8 : 1.1); [6, 14].forEach((s) => add(s + 1, 'hat', 0.35)); },
+      comp(bar, ch, add) { if (bar === HIT_BAR) { HITS.forEach((s) => add(s, 2, 'rhodes', ch[1].map(freq), 1)); return; } add(0, 14, 'rhodes', ch[1].map(freq), 1); add(11, 4, 'rhodes', ch[1].map(freq), 0.45); },
+      extra(bar, add) { if (bar === 0) add(0, 'crash', 0.4); } },
+    { id: 'play', name: '开打', tag: '132 拍 · 铜管切分', desc: '一局里：铜管齐奏影子（叠低八度更厚）+ 清音吉他同奏，低音跟着 3+3+2 切分，军鼓 + 拍手打二四拍，反拍和弦切音，电钢琴轻垫。',
+      bpm: 132, swing: 0, lead: ['brass', 'brassLow', 'gtr'],
+      bass(bar, ch, add) { const r = BASSN[ch[0]]; if (bar === HIT_BAR) { HITS.forEach((s) => add(s, 2, 'slap', up(r, 12))); return; } [[0, 2, 12], [3, 2, 12], [6, 1, 24], [8, 2, 12], [10, 1, 19], [12, 2, 12], [14, 1, 22]].forEach(([s, l, k]) => add(s, l, 'slap', up(r, k))); },
+      drums(bar, sec, add) { if (bar === HIT_BAR) { HITS.forEach((s) => { add(s, 'kick', 1.1); add(s, 'crash', 0.6); }); [10, 11, 12, 13, 14, 15].forEach((s, i) => add(s, 'snare', 0.35 + i * 0.1)); return; } add(0, 'kick'); add(6, 'kick', 0.8); add(8, 'kick', 0.7); add(4, 'snare'); add(12, 'snare'); add(12, 'clap', 0.6); for (let s = 0; s < 16; s++) add(s, 'hat', s % 2 ? 0.3 : 0.6); if (bar % 4 === 3) [13, 14, 15].forEach((s, i) => add(s, 'tom', 220 - i * 40, 0.8)); },
+      comp(bar, ch, add) { if (bar === HIT_BAR) { HITS.forEach((s) => add(s, 1, 'stab', ch[1].map((n) => freq(n) * 2), 1.1)); return; } [2, 6, 10, 14].forEach((s) => add(s, 1, 'stab', ch[1].map((n) => freq(n) * 2), 0.75)); add(0, 16, 'rhodes', ch[1].map(freq), 0.45); },
+      extra(bar, add) { if (bar === 0 || bar === 8) add(0, 'crash', 0.7); } },
+    { id: 'bomb', name: '炸场', tag: '156 拍 · 电子冲击', desc: '有人出炸弹：厚锯齿主奏 + 铜管，四拍底鼓、拍手、反拍开镲，十六分芯片琶音在上面闪，低音一拍一泵；最后一小节噪音蓄力，三下齐奏砸回开头。',
+      bpm: 156, swing: 0, lead: ['saw', 'brass'],
       bass(bar, ch, add) { const r = BASSN[ch[0]]; if (bar === HIT_BAR) { HITS.forEach((s) => add(s, 2, 'synthBass', up(r, 12), 1.2)); return; } for (let s = 0; s < 16; s += 2) add(s, 2, 'synthBass', s % 4 === 2 ? up(r, 24) : up(r, 12)); },
       drums(bar, sec, add) { if (bar === HIT_BAR) { HITS.forEach((s) => add(s, 'boom', 0.8)); add(8, 'riser', 0.5); return; } [0, 4, 8, 12].forEach((s) => add(s, 'kick')); add(4, 'clap'); add(12, 'clap'); [2, 6, 10, 14].forEach((s) => add(s, 'hat', 0.9, true)); [1, 3, 5, 7, 9, 11, 13, 15].forEach((s) => add(s, 'hat', 0.4)); },
       comp(bar, ch, add) { if (bar === HIT_BAR) return; const notes = ch[1].map((n) => freq(n) * 4); for (let s = 0; s < 16; s++) add(s, 1, 'arp', notes[s % 3] * (s % 6 >= 3 ? 2 : 1), 0.9); add(0, 16, 'pad', ch[1].map((n) => freq(n) * 2), 0.8); },
@@ -189,11 +185,7 @@
     for (let p = 0; p < 8; p++) {
       const base = p * 32;
       const lead = (p >= 4 && v.leadB) ? v.leadB : v.lead;
-      const ph = phrases[p];
-      for (let i = 0; i < ph.length; i++) {
-        const [s, l0, n] = ph[i];
-        // 连起来唱：B 段每个音一直拖到下一个音（最长两拍），不再一下一下地点
-        const l = (p >= 4 && v.legatoB) ? Math.min(8, (i + 1 < ph.length ? ph[i + 1][0] : 32) - s) : l0;
+      for (const [s, l, n] of phrases[p]) {
         const f = freq(n), at = base + s;
         lead.forEach((ins, li) => ev.push({ s: sw(at), fn: (t, st) => INST[ins](t, f, l * st, li ? 0.85 : 1) }));
       }
@@ -277,7 +269,7 @@
 
   /* ───── 播放器：提前 1.2 秒一小节一小节排 ───── */
   const P = { on: false, cur: null, bar: 0, nextT: 0, timer: null, stopAt: 0, cut: false };
-  const LEVELS = { lounge: 1.1, play: 1, bomb: 0.85 };
+  const LEVELS = { lounge: 1.25, play: 1, bomb: 0.85 };
   const bridgeLen = (want) => (want === 'bomb' ? 1 : 2);
   // 进炸场：哪一小节都行（但别踩在齐奏小节上）；回开打：一段的段尾
   const bridgeOk = (bar, want) => (want === 'bomb' ? bar !== HIT_BAR : bar % 4 === 2);
