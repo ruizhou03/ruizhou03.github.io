@@ -1783,6 +1783,7 @@
     if (t !== token) return;
     if (prev === 'peektop' && e.rule !== 'peektop' && ov && faceTop(game.state) == null) await closeTopFace(t);   // 透视换走：顶上那张原地翻回牌背
     if (t !== token) return;
+    if (e.rule === 'peektop' && prev !== 'peektop') game.faceOpening = true;   // 透视刚换上：顶上那张完整地抬起、翻开、放回
     if (ov && (e.rule === 'peektop' || prev === 'peektop' || prev === 'exact')) { ov.topFace = faceTop(game.state); renderPiles(); }   // 掀顶生效：顶上那张翻起来；换走：盖回去
     el = document.getElementById('zmFlux');
     if (!el) return;
@@ -1800,29 +1801,38 @@
   /* 透视被换成别的规则（2026-11-26 用户：以前顶上那张一下子没了，像融进了牌堆，不像「翻开的牌合上」）：
    * 就在牌堆顶原地翻回去——正面转到侧立，换成牌背再转平，落下和牌堆顶那张牌背严丝合缝，然后才收掉 */
   async function closeTopFace(t) {
-    /* 2026-11-27 用户第二次：还是像翻着翻着融进牌堆——原地转到侧立时，底下一模一样的牌背露出来，看着就是两张叠在一起化掉了。
-     * 现在像手把顶上那张拿起来翻个面再放回去：① 轻轻抬起（离开牌堆、影子变大）② 抬着翻面 ③ 落回原位、牌堆跟着一沉——
-     * 一直是「最上面那一张」，落下后和牌堆严丝合缝 */
     const stack = els.deck.querySelector('.zm-deck-stack'), fc = stack && stack.querySelector('.zm-deck-face');
     if (!fc || !fc.firstElementChild || fx.reduce()) return;
-    const up = { translate: '0 -14%', scale: '1.06' }, flat = { translate: '0 0', scale: '1' },   // 用独立的 translate / scale：牌面层自己的 transform（按牌堆高度错开）不动
-    shUp = 'drop-shadow(0 10px 10px rgba(29,27,24,.28))', shDown = 'drop-shadow(0 1px 1px rgba(29,27,24,.18))';
+    await liftFlip(fc, backHtml(), t);
+  }
+  /* 牌堆顶那张翻面（2026-11-27 用户：透视换走那样，凡是牌堆顶的明牌翻回去 / 牌背翻起来都用同一套）：
+   * 像手把顶上那张拿起来翻个面再放回去——① 轻轻抬起（离开牌堆、影子变大）② 抬着翻面 ③ 落回原位、牌堆跟着一沉。
+   * 以前原地转到侧立时，底下一模一样的牌背露出来，看着像两张叠在一起化掉了（「融进牌堆」）。
+   * fc = 牌堆顶那层（.zm-deck-face）；html = 翻过来以后的那面；quick = 每摸一张都要演的那种，短一点 */
+  async function liftFlip(fc, html, t, quick, delay) {
+    if (!fc || !fc.firstElementChild) return;
+    if (fx.reduce()) { fc.innerHTML = html; return; }
+    if (delay) { await wait(delay); if (!fc.isConnected) return; }   // 摸牌时：等被摸走的那张离开牌堆上方，下一张再翻，免得两张叠着一起抬
+    const k = quick ? 0.75 : 1;
+    const up = { translate: '0 ' + (quick ? -10 : -14) + '%', scale: quick ? '1.04' : '1.06' }, flat = { translate: '0 0', scale: '1' };   // 用独立的 translate / scale：牌面层自己的 transform（按牌堆高度错开）不动
+    const shUp = 'drop-shadow(0 10px 10px rgba(29,27,24,.28))', shDown = 'drop-shadow(0 1px 1px rgba(29,27,24,.18))';
     fc.style.zIndex = '3';
-    await fc.animate([Object.assign({ filter: shDown }, flat), Object.assign({ filter: shUp }, up)], { duration: ms(200), easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' }).finished.catch(() => {});
-    if (t !== token || !fc.isConnected) return;
+    await fc.animate([Object.assign({ filter: shDown }, flat), Object.assign({ filter: shUp }, up)], { duration: ms(200 * k), easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' }).finished.catch(() => {});
+    if ((t != null && t !== token) || !fc.isConnected) return;
     snd('flip');
-    await fc.firstElementChild.animate([{ transform: 'perspective(700px) rotateY(0deg)' }, { transform: 'perspective(700px) rotateY(90deg)', filter: 'brightness(.9)' }], { duration: ms(150), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
-    if (t !== token || !fc.isConnected) return;
-    fc.innerHTML = backHtml();
-    const back = fc.firstElementChild;
-    if (!back) return;
-    back.style.boxShadow = 'none';   // 牌背不要透视那圈金边
-    await back.animate([{ transform: 'perspective(700px) rotateY(-90deg)', filter: 'brightness(.9)' }, { transform: 'perspective(700px) rotateY(0deg)', filter: 'none' }], { duration: ms(170), easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' }).finished.catch(() => {});
-    if (t !== token || !fc.isConnected) return;
-    await fc.animate([Object.assign({ filter: shUp }, up), { translate: '0 1%', scale: '.995', filter: shDown, offset: 0.8 }, Object.assign({ filter: shDown }, flat)], { duration: ms(220), easing: 'cubic-bezier(.5,0,.6,1)', fill: 'forwards' }).finished.catch(() => {});
-    if (t !== token) return;
-    snd('thud');
-    stack.animate([{ translate: '0 0' }, { translate: '0 1.5px', offset: 0.35 }, { translate: '0 0' }], { duration: 200, easing: 'ease-out' });
+    await fc.firstElementChild.animate([{ transform: 'perspective(700px) rotateY(0deg)' }, { transform: 'perspective(700px) rotateY(90deg)', filter: 'brightness(.9)' }], { duration: ms(150 * k), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
+    if ((t != null && t !== token) || !fc.isConnected) return;
+    fc.innerHTML = html;
+    const nf = fc.firstElementChild;
+    if (!nf) return;
+    if (nf.classList.contains('is-back')) nf.style.boxShadow = 'none';   // 牌背不要透视那圈金边
+    await nf.animate([{ transform: 'perspective(700px) rotateY(-90deg)', filter: 'brightness(.9)' }, { transform: 'perspective(700px) rotateY(0deg)', filter: 'none' }], { duration: ms(170 * k), easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' }).finished.catch(() => {});
+    if ((t != null && t !== token) || !fc.isConnected) return;
+    await fc.animate([Object.assign({ filter: shUp }, up), { translate: '0 1%', scale: '.995', filter: shDown, offset: 0.8 }, Object.assign({ filter: shDown }, flat)], { duration: ms(220 * k), easing: 'cubic-bezier(.5,0,.6,1)', fill: 'forwards' }).finished.catch(() => {});
+    if ((t != null && t !== token) || !fc.isConnected) return;
+    if (!quick) snd('thud');
+    const stack = fc.parentElement;
+    if (stack) stack.animate([{ translate: '0 0' }, { translate: '0 1.5px', offset: 0.35 }, { translate: '0 0' }], { duration: 200, easing: 'ease-out' });
   }
   /* 火眼被换成别的规则（2026-11-16 用户：换走以后露着的炸弹猫还一直明着）：歪着露出的那几张摆正、塞回原来那层、翻成牌背；
    * 最上面翻着的那张（它刚好到了顶上）也翻回去。之后谁也不再看得到它们在哪（就像没有火眼时一样） */
@@ -1837,7 +1847,7 @@
     if (fx.reduce() || (!kits.length && !faceKit)) return;
     snd('flip');
     const anims = kits.map((c) => { const sx = c.parentElement && c.parentElement.classList.contains('is-left') ? -1 : 1; return c.animate([{ translate: (24 * sx) + '% 6%', rotate: (7 * sx) + 'deg', opacity: 1 }, { translate: '0 0', rotate: '0deg', opacity: 1, offset: 0.6 }, { translate: '0 0', rotate: '0deg', opacity: 0 }], { duration: ms(460), easing: 'cubic-bezier(.4,0,.3,1)', fill: 'forwards' }).finished.catch(() => {}); });
-    if (faceKit && faceKit.firstElementChild) anims.push(faceKit.firstElementChild.animate([{ transform: 'perspective(400px) rotateY(0deg)' }, { transform: 'perspective(400px) rotateY(90deg)' }], { duration: ms(260), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {}));
+    if (faceKit && faceKit.firstElementChild) anims.push(liftFlip(faceKit, backHtml(), t));   // 顶上露着的炸弹猫：和透视换走一样，抬起、翻回牌背、放回（2026-11-27 用户）
     await Promise.all(anims);
     if (t !== token) return;
     stack.querySelectorAll('.zm-deck-kit').forEach((k) => k.remove());
@@ -2259,7 +2269,7 @@
           if (slant) slant.remove();
           // 2026-11-22 用户：摸牌和摆正错开——上面那张基本被拿走了（推出去、捏起来那一下之后），炸弹猫才推正；之前保持歪着
           if (kt) { if (!fx.reduce()) fc.firstElementChild.animate([{ translate: (24 * kt.sx) + '% 6%', rotate: (7 * kt.sx) + 'deg' }, { translate: (-3 * kt.sx) + '% -1%', rotate: (-1 * kt.sx) + 'deg', offset: 0.75 }, { translate: '0 0', rotate: '0deg' }], { duration: ms(460), delay: ov ? ms(danger() >= 0.2 ? 820 : 520) : 0, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'backwards' }); }
-          else if (!fx.reduce() && !quiet) fc.firstElementChild.animate([{ transform: 'perspective(400px) rotateY(90deg)', filter: 'brightness(.8)' }, { transform: 'perspective(400px) rotateY(0deg)', filter: 'none' }], { duration: ms(320), easing: 'cubic-bezier(.3,.7,.3,1)' });
+          else if (!fx.reduce() && !quiet) { const face = fc.innerHTML; fc.innerHTML = backHtml(); fc.firstElementChild.style.boxShadow = 'none'; const full = !!game.faceOpening; game.faceOpening = false; liftFlip(fc, face, null, !full, !full && ov ? (danger() >= 0.2 ? 950 : 650) : 0); }   // 牌背翻成正面：同一套抬起、翻面、放回（透视刚换上时完整演，每摸一张翻下一张时短一点）
         }
         fc.style.transform = top.style.transform;
       }
@@ -10873,6 +10883,9 @@
       catsavebot: () => { s.flux = 'catsave'; s.saveUsed = s.hands.map(() => false); s.hands[bot] = s.hands[bot].filter((id) => R.KIND_OF[id] !== R.DEFUSE); give(bot, 'cow'); give(bot, 'cow'); top(R.BOOM); s.turn = bot; apply(bot, { type: 'draw' }); },
       // 转盘跟着出牌方向（2026-11-26）：fluxccw = 出牌方向 1（桌上逆时针），fluxcw = -1（顺时针）；机器猫打出一张百变
       peekoff: () => { s.flux = 'peektop'; s.fluxDeck = ['mute']; renderAll(); const d0 = s.dir; setTimeout(() => plays.fluxDir(d0), 1500); },   // 百变「透视」换走：牌堆顶那张翻回牌背
+      exactclose: () => { s.flux = 'exact'; onTop(R.BOOM); const kid = s.deck[0]; game.openKits = new Set([kid]); if (s.memo && s.memo[0] && s.memo[0].deck.indexOf(kid) < 0) s.memo[0].deck.unshift(kid); renderAll(); const tk = token; setTimeout(async () => { if (tk !== token) return; s.flux = 'mute'; await tuckKits(tk); renderAll(); }, 1200); },   // 火眼换走：顶上露着的炸弹猫翻回去
+      peekopen: () => { s.flux = 'mute'; renderAll(); const tk = token; setTimeout(() => { if (tk !== token) return; s.flux = 'peektop'; game.faceOpening = true; renderAll(); }, 900); },   // 透视换上：顶上那张翻起来
+      peekdraw: () => { s.flux = 'peektop'; game.faceQuiet = null; renderAll(); const tk = token; setTimeout(() => { if (tk === token) plays.draw(); }, 1200); },   // 透视里摸走一张：下一张翻起来
       peekclose: () => { s.flux = 'peektop'; renderAll(); const tk = token; setTimeout(async () => { if (tk !== token) return; s.flux = 'mute'; await closeTopFace(tk); renderAll(); }, 1200); },   // 只看「透视换走、顶上那张翻回去」这一下
       fluxccw: () => plays.fluxDir(1), fluxcw: () => plays.fluxDir(-1),
       fluxDir: (d) => { s.dir = d; const id = R.KIND_OF.findIndex((k, i) => k === R.FLUX && s.hands.every((h) => h.indexOf(i) < 0)); [s.deck, s.discard, s.removed].forEach((a) => { const j = a.indexOf(id); if (j >= 0) a.splice(j, 1); }); s.hands[bot].push(id); s.turn = bot; renderAll(); apply(bot, { type: 'play', cards: [id] }); },
