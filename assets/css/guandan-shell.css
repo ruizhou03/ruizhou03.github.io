@@ -765,6 +765,7 @@ body.gd-game-fullscreen .guandan-wrap .gd-band-hint { display: none !important; 
   background: repeating-linear-gradient(45deg, #b8392e 0 3px, #a12c24 3px 6px);
   border: 2px solid #fbf7ee; box-shadow: 0 2px 5px rgba(29, 27, 24, 0.3);
 }
+.gd-deal-back.gd-deal-deck { transform: translate(-50%, -50%); box-shadow: 1px 1px 0 #fbf7ee, 2px 2px 0 #a12c24, 3px 3px 0 #fbf7ee, 4px 4px 0 #a12c24, 0 4px 8px rgba(29, 27, 24, 0.3); transition: opacity 0.25s; }
 
 /* R3-8. 进 / 还贡标签：不再是金块 / 蓝块，改成压在牌底的一条细飘带（进贡朱砂、还贡墨色），和「级」飘带一个路数 */
 .guandan-wrap .gd-played-row.gd-tribute-row { position: relative; }

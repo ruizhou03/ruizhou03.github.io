@@ -1997,7 +1997,7 @@
 
   // 发牌动画（2026-11-27 用户）：新一局开打时，牌从桌心一摞飞出——我的手牌一列列落到底下，
   // 另三家各飞几张牌背到头像。纯视觉，不改牌局状态；跑的这 ~1.3s 里 AI / 倒计时往后挪（见 dealFxRemaining）。
-  const dealFx = { pending: false, until: 0, revealShown: false };
+  const dealFx = { pending: false, until: 0, countUntil: 0, revealShown: false };
   function queueDealFx() {
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     dealFx.pending = true;
@@ -2039,6 +2039,9 @@
     });
   }
   function dealFxRemaining() { return Math.max(0, dealFx.until - Date.now()); }
+  // 2026-11-27 用户：发牌动画太敷衍、和实际拿到的牌没关系。改成真的一张张发：桌心一摞，按 我→下家→对家→上家
+  // 一圈一圈发 27 轮；我这边每张就是手里那张真牌，飞到它在手牌里的位置，列一张张长高；
+  // 另三家每轮飞一张牌背，头像上的张数跟着 1、2、3……数上去。
   function runDealFx() {
     dealFx.pending = false;
     const table = els.table;
@@ -2046,45 +2049,75 @@
     const tr = table.getBoundingClientRect();
     if (!tr.width) { dealFx.until = 0; return; }
     const cx = tr.left + tr.width / 2, cy = tr.top + tr.height * 0.4;
-    const cols = [...els.hand.querySelectorAll('.gd-rank-col')];
-    const n = Math.max(1, cols.length);
-    const step = Math.min(70, 900 / n);
-    cols.forEach((col, i) => {
-      const r = col.getBoundingClientRect();
+    const mine = [...els.hand.querySelectorAll('.gd-card')];
+    const rounds = Math.max(mine.length, ...[1, 2, 3].map(s => (state.hands[s] || []).length), 1);
+    const step = Math.min(56, 1500 / rounds);
+    const T0 = 140;
+    // 发到手里的先后：真牌是洗乱后发的，这里随机排一个到达顺序（纯视觉）
+    const order = mine.map((_, i) => i);
+    for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+    order.forEach((idx, k) => {
+      const el = mine[idx];
+      const r = el.getBoundingClientRect();
       const dx = cx - (r.left + r.width / 2), dy = cy - (r.top + r.height / 2);
-      col.animate([
-        { transform: `translate(${dx}px, ${dy}px) scale(0.35) rotate(-8deg)`, opacity: 0 },
-        { opacity: 1, offset: 0.25 },
+      el.animate([
+        { transform: `translate(${dx}px, ${dy}px) scale(0.5) rotate(-14deg)`, opacity: 0 },
+        { transform: `translate(${dx}px, ${dy}px) scale(0.5) rotate(-14deg)`, opacity: 1, offset: 0.06 },
+        { transform: 'translate(0, -6px) scale(1.04) rotate(0deg)', opacity: 1, offset: 0.82 },
         { transform: 'none', opacity: 1 },
-      ], { duration: 420, delay: 120 + i * step, easing: 'cubic-bezier(0.2, 0.8, 0.25, 1)', fill: 'backwards' });
+      ], { duration: 360, delay: T0 + k * step, easing: 'cubic-bezier(0.25, 0.75, 0.3, 1)', fill: 'backwards' });
     });
-    // 另三家：每家 5 张牌背，交错飞向头像
     const layer = document.createElement('div');
     layer.className = 'gd-deal-layer';
     layer.setAttribute('aria-hidden', 'true');
     table.appendChild(layer);
+    // 桌心那一摞：随发随薄
+    const deck = document.createElement('i');
+    deck.className = 'gd-deal-back gd-deal-deck';
+    deck.style.left = (cx - tr.left) + 'px'; deck.style.top = (cy - tr.top) + 'px';
+    layer.appendChild(deck);
     let last = 0;
-    for (let k = 0; k < 5; k++) {
-      for (const seat of [1, 2, 3]) {
-        const av = seatEls[seat] && seatEls[seat].av;
-        if (!av) continue;
-        const ar = av.getBoundingClientRect();
+    for (const seat of [1, 2, 3]) {
+      const av = seatEls[seat] && seatEls[seat].av;
+      if (!av) continue;
+      const ar = av.getBoundingClientRect();
+      const tx = ar.left + ar.width / 2 - cx, ty = ar.top + ar.height / 2 - cy;
+      const rot = seat === 1 ? 90 : seat === 3 ? -90 : 0;
+      const n = (state.hands[seat] || []).length;
+      for (let k = 0; k < n; k++) {
         const back = document.createElement('i');
         back.className = 'gd-deal-back';
         back.style.left = (cx - tr.left) + 'px'; back.style.top = (cy - tr.top) + 'px';
         layer.appendChild(back);
-        const delay = 120 + (k * 3 + seat) * 62;
+        const delay = T0 + k * step + seat * step / 4;
         last = Math.max(last, delay);
         back.animate([
-          { transform: 'translate(-50%, -50%) scale(1) rotate(0deg)', opacity: 1 },
-          { transform: `translate(calc(-50% + ${ar.left + ar.width / 2 - cx}px), calc(-50% + ${ar.top + ar.height / 2 - cy}px)) scale(0.55) rotate(${seat === 1 ? 90 : seat === 3 ? -90 : 0}deg)`, opacity: 0.9, offset: 0.85 },
-          { transform: `translate(calc(-50% + ${ar.left + ar.width / 2 - cx}px), calc(-50% + ${ar.top + ar.height / 2 - cy}px)) scale(0.4)`, opacity: 0 },
-        ], { duration: 380, delay, easing: 'cubic-bezier(0.3, 0.7, 0.3, 1)', fill: 'both' });
+          { transform: 'translate(-50%, -50%) scale(0.9) rotate(0deg)', opacity: 1 },
+          { transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0.55) rotate(${rot}deg)`, opacity: 0.95, offset: 0.85 },
+          { transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0.45) rotate(${rot}deg)`, opacity: 0 },
+        ], { duration: 320, delay, easing: 'cubic-bezier(0.3, 0.7, 0.3, 1)', fill: 'both' });
       }
     }
-    const total = Math.max(120 + n * step + 420, last + 400);
+    // 头像上的张数从 0 数上去（我自己的也一样）
+    const total = Math.max(T0 + rounds * step + 360, last + 340);
+    dealFx.countUntil = Date.now() + total;
+    const counts = [0, 1, 2, 3].map(s => (s === 0 ? mine.length : (state.hands[s] || []).length));
+    for (let s = 0; s < 4; s++) { const c = seatEls[s] && seatEls[s].cnt; if (c) c.textContent = '0'; }
+    for (let k = 0; k < rounds; k++) {
+      setTimeout(() => {
+        for (let s = 0; s < 4; s++) {
+          const c = seatEls[s] && seatEls[s].cnt;
+          if (c && Date.now() < dealFx.countUntil + 50) c.textContent = String(Math.min(counts[s], k + 1));
+        }
+        if (k === rounds - 1 && deck.isConnected) deck.style.opacity = '0';
+      }, T0 + k * step + 300);
+    }
     dealFx.until = Date.now() + total;
-    setTimeout(() => layer.remove(), total + 60);
+    setTimeout(() => {
+      layer.remove();
+      dealFx.countUntil = 0;
+      for (let s = 0; s < 4; s++) { const c = seatEls[s] && seatEls[s].cnt; if (c && !c.hidden) c.textContent = String(state.hands[s].length); }
+    }, total + 60);
   }
 
   function renderAll() {
@@ -2120,7 +2153,7 @@
       } else {
         se.rk.hidden = true;
         se.cnt.hidden = false;
-        se.cnt.textContent = handLen;
+        if (!(dealFx.countUntil > Date.now())) se.cnt.textContent = handLen;   // 发牌动画里张数自己往上数
         // 报牌：≤10 张持续红色警示
         se.cnt.classList.toggle('warn', handLen > 0 && handLen <= 10);
       }
