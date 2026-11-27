@@ -584,25 +584,28 @@ body.gd-game-fullscreen .guandan-wrap .gd-table { --gd-hand-l: 62px; --gd-hand-r
 body.gd-game-fullscreen .guandan-wrap .gd-hand { padding-bottom: 2px; }
 body.gd-game-fullscreen .guandan-wrap .gd-table { padding-bottom: calc(2px + env(safe-area-inset-bottom, 0px)); }
 /* 2026-11-27 用户：下家出 5 张就被叠成一摞。出牌槽原来居中，整排离按钮近、一挤就叠；改成贴着各自头像往桌心长 */
-body.gd-game-fullscreen .guandan-wrap #gdPlay1:not(.gd-revealing) { align-items: flex-end; }
-body.gd-game-fullscreen .guandan-wrap #gdPlay3:not(.gd-revealing) { align-items: flex-start; }
+body.gd-game-fullscreen .guandan-wrap #gdPlay1 { align-items: flex-end; }
+body.gd-game-fullscreen .guandan-wrap #gdPlay3 { align-items: flex-start; }
+body.gd-game-fullscreen .guandan-wrap #gdPlay1 .gd-reveal-wrap { align-items: flex-end; }
+body.gd-game-fullscreen .guandan-wrap #gdPlay3 .gd-reveal-wrap { align-items: flex-start; }
 /* 2026-11-27 用户：手牌整体再往下一丢丢。iPhone 横屏底部安全区约 21px（微信里牌离底边空了一大截），
    手牌只让出其中四成（~8px，避开 Home 条），按钮行跟着一起下移；头像 / 理牌按钮不动。 */
 body.gd-game-fullscreen .guandan-wrap .gd-table { --gd-sab: calc(env(safe-area-inset-bottom, 0px) * 0.4); padding-bottom: calc(2px + var(--gd-sab)); }
 body.gd-game-fullscreen .guandan-wrap .gd-play-band { bottom: calc(var(--gd-band-bottom, 200px) + var(--gd-sab)); }
 
 /* 10. 局终摊牌：就在各家出牌区摊开，小一号、一张张滑出来，不另开一幕 */
-.guandan-wrap .gd-played.gd-revealing { --gd-card-w: calc(var(--u, 46px) * 0.74); --gd-card-h: calc(var(--u, 46px) * 0.74 * 1.44); min-height: 0; }
-.guandan-wrap .gd-played.gd-revealing .gd-played-row .gd-card.size-full { margin-left: calc(var(--u, 46px) * -0.48); }
-.guandan-wrap .gd-played.gd-revealing .gd-played-row .gd-card.size-full:first-child { margin-left: 0; }
+/* 2026-11-27 用户：摊开的剩牌要和正常出牌一样大（原来缩到 0.74，显得小气）——牌宽、叠法都照出牌区 */
+.guandan-wrap .gd-played.gd-revealing { min-height: 0; }
 .guandan-wrap .gd-reveal-wrap { gap: 0; }
 .guandan-wrap .gd-reveal-row + .gd-reveal-row { margin-top: calc(var(--u, 46px) * -0.55); }
 .guandan-wrap .gd-played.gd-revealing .gd-card { opacity: 0; }
 /* 展开：整行先叠在起点那张上，然后一张接一张滑开（--dx 由 JS 量出，--i 是展开顺序） */
-.guandan-wrap .gd-reveal-wrap.is-fanning .gd-card { opacity: 1; animation: gd-reveal-fan 0.62s cubic-bezier(0.22, 0.75, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 38ms); }
+/* 2026-11-27 用户：有时看不到展开——原来 0.6s 一下就完、又常被「头游」大字盖着。改成先叠成一摞停一下，再慢慢摊开 */
+.guandan-wrap .gd-reveal-wrap.is-fanning .gd-card { opacity: 1; animation: gd-reveal-fan 1.05s cubic-bezier(0.22, 0.75, 0.2, 1) both; animation-delay: calc(0.25s + var(--i, 0) * 55ms); }
 @keyframes gd-reveal-fan {
   0% { opacity: 0; transform: translateX(var(--dx, 0)); }
-  12% { opacity: 1; transform: translateX(var(--dx, 0)); }
+  10% { opacity: 1; transform: translateX(var(--dx, 0)); }
+  30% { opacity: 1; transform: translateX(var(--dx, 0)); }
   100% { opacity: 1; transform: none; }
 }
 body.gd-game-fullscreen .guandan-wrap .gd-table.gd-showing-reveal > * { visibility: visible !important; pointer-events: auto; }
@@ -843,3 +846,59 @@ body.gd-game-fullscreen .guandan-wrap .gd-btn:not([hidden]),
   content: ''; position: absolute; inset: 0; z-index: 5; pointer-events: none; border-radius: inherit;
   background: rgba(29, 27, 24, 0.24); box-shadow: inset 0 0 0 2px var(--gd-accent, #1d1b18);
 }
+
+/* ===== 第五轮（2026-11-27 用户） ===== */
+/* R5-1. 被压过的那手不再变淡：四家出的牌、不出都在同一亮度 */
+.guandan-wrap .gd-played.is-stale .gd-played-row { opacity: 1; }
+/* R5-2. 上家 / 下家出的牌离自己头像再远一点（原来只隔 12px，看着挤）；「不出」跟着一起挪，和出牌起点对齐 */
+body.gd-game-fullscreen .guandan-wrap #gdPlay1 { padding-right: 16px; }
+body.gd-game-fullscreen .guandan-wrap #gdPlay3 { padding-left: 16px; }
+.guandan-wrap #gdSeat3 .gd-pass-tag { left: calc(100% + 28px); }
+.guandan-wrap #gdSeat1 .gd-pass-tag { right: calc(100% + 28px); }
+/* R5-3. 对家的「不出」和我的「不出」、两家的出牌区都落在桌子正中那条竖线上（原来对家的「不出」对着头像中心，偏左 16px） */
+.guandan-wrap #gdSeat2 .gd-pass-tag { left: 50%; }
+/* R5-4. 手牌数：头像右下角一张小牌（照百变小咪），上面写数字；≤10 张变朱砂。打完了同一个位置换成名次 */
+.guandan-wrap .gd-av-cnt { position: absolute; right: -9px; bottom: -6px; z-index: 3; display: flex; pointer-events: none; }
+.guandan-wrap .gd-av-cnt .gd-count:not([hidden]) {
+  display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
+  min-width: 19px; height: 25px; padding: 0 2px; border-radius: 4px; margin: 0;
+  background: var(--gd-paper, #fbf6ec); color: var(--gd-ink); border: 1.5px solid var(--gd-ink);
+  font: 700 12px/1 var(--gd-num); letter-spacing: -0.02em;
+  box-shadow: 2px 2px 0 -0.5px var(--gd-paper, #fbf6ec), 2px 2px 0 1px rgba(29, 27, 24, 0.55);   /* 后面再垫一张，像一小叠牌 */
+}
+.guandan-wrap .gd-av-cnt .gd-count.warn:not([hidden]) { background: var(--gd-seal); border-color: var(--gd-seal); color: var(--gd-seal-ink, #fff); }
+.guandan-wrap .gd-av-cnt .gd-rank-badge:not([hidden]) {
+  display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 10px; margin: 0; white-space: nowrap;
+  background: var(--gd-ink); color: var(--gd-paper); font: 700 11px/1 var(--gd-serif); letter-spacing: 0.04em; box-shadow: 0 0 0 1.5px var(--gd-paper);
+}
+.guandan-wrap .gd-av-cnt .gd-rank-badge.r1:not([hidden]) { background: var(--gd-seal); }
+/* 原来的张数行 / 自己头像上的圆角标都不用了 */
+body.gd-game-fullscreen .guandan-wrap .gd-self-meta .gd-seat-cnt { display: none; }
+body.gd-game-fullscreen .guandan-wrap .gd-seat-meta .gd-seat-cnt:empty,
+body.gd-game-fullscreen .guandan-wrap .gd-side .gd-seat > div[style]:empty { display: none; }
+
+/* R5-5. 机器人头像（百变小咪那套，按难度分池） */
+.guandan-wrap .gd-avatar.has-face { background: none; }
+.guandan-wrap .gd-avatar.has-face .gd-avatar-icon { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; display: block; }
+.guandan-wrap .gd-avatar.has-face .gd-avatar-icon svg { width: 100%; height: 100%; display: block; }
+
+/* R5-6. 托管：点头像直接切换，不再弹「托管」按钮；托管中头像左下角挂一个小机器人章 */
+body.gd-game-fullscreen .guandan-wrap .gd-self-meta .gd-autopilot-chip { display: none !important; }
+.guandan-wrap .gd-self-bar.is-auto #gdAv0::after {
+  content: ''; position: absolute; left: -7px; bottom: -5px; width: 22px; height: 22px; border-radius: 50%; z-index: 3;
+  background: var(--gd-ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='5' y='8' width='14' height='10' rx='3' fill='%23fbf6ec'/%3E%3Ccircle cx='9.5' cy='13' r='1.5' fill='%231d1b18'/%3E%3Ccircle cx='14.5' cy='13' r='1.5' fill='%231d1b18'/%3E%3Cpath d='M12 8V5' stroke='%23fbf6ec' stroke-width='1.6' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='4.5' r='1.3' fill='%23b4392c'/%3E%3C/svg%3E") center / 18px no-repeat;
+  box-shadow: 0 0 0 1.5px var(--gd-paper, #fbf6ec);
+  animation: gd-pass-in 0.22s cubic-bezier(0.2, 0.8, 0.25, 1.3) both;
+}
+/* R5-7. 看队友手牌：不写「正在查看队友手牌」，改成——手牌整体退一点色（像隔着一层看）、
+   底下亮起一圈和对家同队色的暖光，左下我的头像淡出一点（我已经打完了） */
+.guandan-wrap .gd-hand.is-spectating::after { content: none; display: none; }
+body.gd-game-fullscreen .guandan-wrap .gd-hand.is-spectating { padding-bottom: 2px; }
+.guandan-wrap .gd-hand.is-spectating .gd-rank-col { filter: saturate(0.55) brightness(0.97); }
+.guandan-wrap .gd-hand.is-spectating::before {
+  content: ''; position: absolute; left: 4%; right: 4%; bottom: 0; height: 80px; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 100%, rgba(201, 169, 110, 0.55) 0%, rgba(201, 169, 110, 0.22) 38%, transparent 70%);
+  animation: gd-spectate-glow 2.8s ease-in-out infinite alternate;
+}
+@keyframes gd-spectate-glow { from { opacity: 0.65; } to { opacity: 1; } }
+body.gd-game-fullscreen .guandan-wrap #gdSeat2 .gd-seat-meta { margin-left: 10px; }

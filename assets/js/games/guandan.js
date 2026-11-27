@@ -948,8 +948,14 @@
   };
 
   // 当前“打的级牌”label：行动方（actingTeam）的级牌
+  // 2026-11-27 用户 bug：上一局剩三张 3，这一局一打完、还没结算，那三张 3 就被标成级牌了——
+  // 因为结算时 levels / actingTeam 已经换成下一局的。局终（摊牌 / 结算面板）期间一律沿用这一局打的级。
+  let roundLevelMemo = null;
   function currentLevelLabel() {
-    return LEVEL_SEQ[state.levels[state.actingTeam]];
+    const live = LEVEL_SEQ[state.levels[state.actingTeam]];
+    if (state.phase === PHASE.PLAYING || state.phase === PHASE.TRIBUTE) { roundLevelMemo = live; return live; }
+    if ((state.revealHands || state.phase === PHASE.ROUND_END || state.phase === PHASE.MATCH_END) && roundLevelMemo) return roundLevelMemo;
+    return live;
   }
 
   // ---- DOM ----
@@ -1004,6 +1010,18 @@
     rk: $('gdRk' + i),
     play: i === 0 ? $('gdPlay0Center') : $('gdPlay' + i),
   }));
+  // 2026-11-27 用户：手牌数照百变小咪挂到头像右下角，画成一张小牌、上面写数字。
+  // 把张数 / 名次两个角标挪进头像里（.gd-keep：换头像时不被清掉）；右上角留给联机的状态点。
+  for (const se of seatEls) {
+    if (!se.av || !se.cnt) continue;
+    const tag = document.createElement('span');
+    tag.className = 'gd-av-cnt gd-keep';
+    const oldRow = se.cnt.parentElement;
+    tag.appendChild(se.cnt);
+    if (se.rk) tag.appendChild(se.rk);
+    se.av.appendChild(tag);
+    if (oldRow && !oldRow.children.length) oldRow.style.display = 'none';
+  }
 
   function persist() {
     STORAGE.writeJson(STORE_KEY, {
@@ -1647,10 +1665,12 @@
 
   function renderRevealedHand(seat) {
     // 2026-11-26 用户：局终不另开一幕，像欢乐斗地主那样在牌桌上把各家剩牌摊开（小一号的牌、逐张滑入）
+    // 2026-11-27 用户：摊开的牌要和正常出牌一样大 → 牌不缩，改成按张数分行：左右两家一行最多 12 张、对家 16 张
     const n = state.hands[seat].length;
-    const rowCount = n > 14 ? 2 : 1;
-    const sideMax = Math.max(140, (window.innerWidth - 220) / 2);
-    const maxWidth = Math.min(REVEAL_MAX_W, seat === 2 ? window.innerWidth * 0.46 : sideMax);
+    const perRow = seat === 2 ? 16 : 12;
+    const rowCount = Math.min(3, Math.ceil(n / perRow));
+    const sideMax = Math.max(160, Math.min(300, (window.innerWidth - 260) / 2));
+    const maxWidth = seat === 2 ? Math.min(400, window.innerWidth * 0.46) : sideMax;
     fillRevealedHand(seatEls[seat].play, seat, rowCount, maxWidth);
   }
 
@@ -1905,11 +1925,13 @@
     if (se.av.dataset.avatarMarker === marker && se.av.querySelector('.gd-avatar-icon')) return;
     se.av.dataset.avatarMarker = marker;
     for (const child of [...se.av.childNodes]) {
-      if (child !== se.clk && !(child.classList && child.classList.contains('gd-ring'))) child.remove();
+      if (child !== se.clk && !(child.classList && (child.classList.contains('gd-ring') || child.classList.contains('gd-keep')))) child.remove();
     }
     const host = document.createElement('span');
     host.className = 'gd-avatar-icon';
-    host.textContent = marker;
+    se.av.classList.toggle('has-face', marker.startsWith('<svg'));
+    if (marker.startsWith('<svg')) host.innerHTML = marker;   // 机器人头像（gongzhu-avatars 的 SVG）
+    else host.textContent = marker;
     se.av.insertBefore(host, se.clk || null);
     if (window.ZirconIcons) window.ZirconIcons.hydrate(host);
   }
@@ -1937,9 +1959,29 @@
       const dx = anchor - col.getBoundingClientRect().left;
       col.animate([
         { transform: `translateX(${dx}px)`, opacity: i ? 0 : 1 },
-        { transform: `translateX(${dx}px)`, opacity: 1, offset: 0.12 },
+        { transform: `translateX(${dx}px)`, opacity: 1, offset: 0.1 },
+        { transform: `translateX(${dx}px)`, opacity: 1, offset: 0.3 },
         { transform: 'none', opacity: 1 },
-      ], { duration: 620, delay: i * 38, easing: 'cubic-bezier(0.22, 0.75, 0.2, 1)', fill: 'backwards' });
+      ], { duration: 1050, delay: 250 + i * 55, easing: 'cubic-bezier(0.22, 0.75, 0.2, 1)', fill: 'backwards' });
+    });
+  }
+  let lastViewSeat = 0;
+  function flyPartnerHandIn() {
+    if (!els.hand || typeof Element.prototype.animate !== 'function') return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const av = seatEls[2] && seatEls[2].av;
+    if (!av) return;
+    const ar = av.getBoundingClientRect();
+    const ax = ar.left + ar.width / 2, ay = ar.top + ar.height / 2;
+    const cols = [...els.hand.querySelectorAll('.gd-rank-col')];
+    cols.forEach((col, i) => {
+      const r = col.getBoundingClientRect();
+      const dx = ax - (r.left + r.width / 2), dy = ay - (r.top + r.height / 2);
+      col.animate([
+        { transform: `translate(${dx}px, ${dy}px) scale(0.35)`, opacity: 0 },
+        { transform: `translate(${dx * 0.15}px, ${dy * 0.15}px) scale(0.95)`, opacity: 1, offset: 0.7 },
+        { transform: 'none', opacity: 1 },
+      ], { duration: 620, delay: 200 + i * 45, easing: 'cubic-bezier(0.2, 0.7, 0.25, 1)', fill: 'backwards' });
     });
   }
   function dealFxRemaining() { return Math.max(0, dealFx.until - Date.now()); }
@@ -2037,6 +2079,14 @@
     refreshAutopilotBtn();
     renderHand();
     if (dealFx.pending) runDealFx();
+    // 2026-11-27 用户：我打完、切到看对家手牌时太突兀 → 对家的牌从对家头像那儿一列列「递」下来
+    {
+      const vs = viewSeat();
+      if (vs !== lastViewSeat) {
+        if (vs === 2 && lastViewSeat === 0 && state.phase === PHASE.PLAYING) flyPartnerHandIn();
+        lastViewSeat = vs;
+      }
+    }
     // 局终摊牌时我自己没出完的牌：底下那手也跟别家一样，从左往右「展开」一次
     if (state.revealHands && !dealFx.revealShown) { dealFx.revealShown = true; fanOwnHand(); }
     else if (!state.revealHands) dealFx.revealShown = false;
@@ -3230,6 +3280,7 @@
     // 这盘进行中（含局与局之间）engine 只读 matchOptions，改 PGO 设置要等下一盘才生效。
     state.matchOptions = normalizeOptions(state.options);
     state.matchAiLevel = state.aiLevel;
+    resetSoloBots();                  // 新一盘重抽三个机器人的名字和头像
     state.activeStrategyId = AI_STRATEGIES
       ? (AI_STRATEGIES[state.matchAiLevel] || AI_STRATEGIES.normal).id : null;
     state.levels = [0, 0];           // 都从 '2'
@@ -3385,9 +3436,36 @@
     const serverSeat = (s + onlineState.mySeat) % 4;
     return (onlineState.players || []).find(p => typeof p.seat === 'number' && p.seat === serverSeat) || null;
   }
+  // 2026-11-27 用户：单机机器人也要有名字和头像，照百变小咪那套——按难度分池（gongzhu-avatars.js 的 BOT_TIERS）：
+  // 高手 = 北斗星名 + 深色金眼；普通 = 希腊字母 + 四色机器人；入门 = 零一…零九 + 马卡龙大眼睛。
+  // 一盘之内固定（开新一盘重抽），存在 localStorage，刷新续局名字不变。联机座位仍以服务端为准（见 seatName）。
+  const SOLO_BOTS_KEY = 'gd.soloBots.v1';
+  let soloBots = null;
+  function drawSoloBots(level) {
+    const AV = window.GongzhuAvatars;
+    const BT = AV && AV.BOT_TIERS && (AV.BOT_TIERS[level] || AV.BOT_TIERS.normal);
+    if (!BT) return null;
+    const names = BT.nicks.slice(), faces = BT.faces.map(f => f.id);
+    const take = arr => arr.splice((Math.random() * arr.length) | 0, 1)[0];
+    const bots = [null];
+    for (let i = 1; i < 4; i++) bots.push({ nick: take(names), avatar: take(faces) });
+    return { level, bots };
+  }
+  function resetSoloBots() {
+    soloBots = drawSoloBots(state.matchAiLevel || state.aiLevel);
+    try { if (soloBots) localStorage.setItem(SOLO_BOTS_KEY, JSON.stringify(soloBots)); } catch (_) {}
+  }
+  function soloBotFor(s) {
+    if (s === 0) return null;
+    const lv = state.matchAiLevel || state.aiLevel;
+    if (!soloBots) { try { soloBots = JSON.parse(localStorage.getItem(SOLO_BOTS_KEY) || 'null'); } catch (_) { soloBots = null; } }
+    if (!soloBots || soloBots.level !== lv || !soloBots.bots || !soloBots.bots[s]) resetSoloBots();
+    return soloBots && soloBots.bots[s];
+  }
   function seatName(s) {
     const p = netPlayerForLocalSeat(s);
     if (p) return s === 0 ? '你' : p.nick;   // 本地座 0 恒为我
+    if (s !== 0 && !isNetworked()) { const b = soloBotFor(s); if (b && b.nick) return b.nick; }
     // 单机（或联机玩家信息暂缺）：按方位称呼（规格 D2）。本地座位已旋转成自视角，
     // 座 1 恒为我的下家（右）、2 对家（上）、3 上家（左）。
     return ['你', '下家', '对家', '上家'][s];
@@ -3397,6 +3475,10 @@
     if (s === 0) return '[[zi:user]]';
     const p = netPlayerForLocalSeat(s);
     if (p) return playerAvatarOf(p, false);   // 与大厅同一套稳定头像（真人按服务端下标、AI🤖）
+    if (!isNetworked()) {
+      const b = soloBotFor(s), AV = window.GongzhuAvatars;
+      if (b && AV && AV.byId[b.avatar]) return AV.byId[b.avatar].svg;
+    }
     return '[[zi:bot]]';
   }
 
@@ -3658,8 +3740,11 @@
 
   // 一张牌从一个 play slot 飞到另一个 play slot，~700ms
   function flyCardBetweenSlots(card, fromSlot, toSlot, level, onDone) {
-    const fromR = fromSlot.getBoundingClientRect();
-    const toR = toSlot.getBoundingClientRect();
+    // 2026-11-27 用户：交换时牌会「瞬移」——原来起终点取的是出牌槽的正中，可左右两家的牌是贴着头像摆的、不在槽正中。
+    // 改成从这张牌在桌上的真实位置起飞，落到对方那张牌现在的位置（交换后新牌正好摆在那儿）。
+    const cardIn = slot => slot.querySelector('.gd-played-row .gd-card') || slot;
+    const fromR = cardIn(fromSlot).getBoundingClientRect();
+    const toR = cardIn(toSlot).getBoundingClientRect();
     // 空 slot 的 BoundingClientRect 可能宽高=0；用 seat 头像作为 fallback 让动画起点不至于卡在角落
     const fromCx = (fromR.width > 0 ? fromR.left + fromR.width / 2 : fromR.left);
     const fromCy = (fromR.height > 0 ? fromR.top + fromR.height / 2 : fromR.top);
@@ -4085,7 +4170,7 @@
   // 本局是否结束：当一支队伍两名成员都已出完 → 立即结束（不必打到最后一人）
   // 触发结算前停 1s，让用户看清最后一手 + 结果，不要直接弹结算面板
   const END_ROUND_DELAY_MS = 1000;
-  const REVEAL_HOLD_MS = 3000;   // 局终摊牌后停留这么久再弹结算面板，让人看清各家剩牌
+  const REVEAL_HOLD_MS = 4000;   // 局终摊牌后停留这么久再弹结算面板，让人看清各家剩牌
   function checkRoundOver() {
     if (state.out.length >= 3) {
       // 第 3 名确定后第 4 名自动确定
@@ -4833,6 +4918,8 @@
     els.autopilotBtn.disabled = !eligible;
     // 纯机器人图标，不再改文字；托管中靠 .on 的橙色高亮表示，点一下即切换。
     els.autopilotBtn.classList.toggle('on', !!state.autopilot);
+    const selfBar = document.querySelector('.gd-self-bar');
+    if (selfBar) selfBar.classList.toggle('is-auto', !!state.autopilot);
     const apText = els.autopilotBtn.querySelector('.gd-autopilot-tx');
     if (apText) apText.textContent = state.autopilot ? '托管中' : '托管';
     els.autopilotBtn.title = state.autopilot ? '正在托管中 · 点一下取消' : '托管：让 AI 替你打牌';
@@ -5669,10 +5756,16 @@
       clearTimeout(popTimer);
       if (open) popTimer = setTimeout(() => setPop(false), 3200);
     };
+    // 2026-11-27 用户：不要先弹「托管」再点——点头像直接进托管，再点一下就退出（照百变小咪）。
+    // 托管中头像左下角挂一个小机器人章（右下角是手牌数）。
+    const toggleAuto = () => {
+      if (els.autopilotBtn && !els.autopilotBtn.disabled) els.autopilotBtn.click();
+    };
     if (selfAv) {
-      selfAv.addEventListener('click', (e) => { e.stopPropagation(); setPop(!selfBar.classList.contains('is-pop')); });
-      selfAv.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPop(!selfBar.classList.contains('is-pop')); } });
-      document.addEventListener('click', (e) => { if (selfBar && selfBar.classList.contains('is-pop') && !selfBar.contains(e.target)) setPop(false); });
+      selfAv.setAttribute('aria-label', '我的头像，点一下托管 / 取消托管');
+      selfAv.removeAttribute('aria-haspopup');
+      selfAv.addEventListener('click', (e) => { e.stopPropagation(); toggleAuto(); });
+      selfAv.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleAuto(); } });
     }
     if (els.autopilotBtn) els.autopilotBtn.addEventListener('click', () => setPop(false));
   }

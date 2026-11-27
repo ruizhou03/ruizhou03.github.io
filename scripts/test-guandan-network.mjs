@@ -72,7 +72,7 @@ assert.match(js, /searchParams\.set\('room',\s*onlineState\.inviteCode \|\| onli
   '房主分享链接优先带完整邀请码');
 assert.match(js, /new URLSearchParams\(location\.search\)\.get\('room'\)/,
   '自动加入必须安全解析 URLSearchParams 中的完整邀请码');
-assert.match(html, /guandan\.min\.js\?v=20261127ui20/,
+assert.match(html, /guandan\.min\.js\?v=20261127ui21/,
   '生产页面必须引用本次安全协议压缩构建标记');
 
 console.log('guandan network contracts: ok');

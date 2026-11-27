@@ -36,6 +36,7 @@ const corePaths = [
   'assets/js/games/guandan-ui.js',
   'assets/js/games/guandan-debug.js',
   'assets/js/games/guandan-ai-contract.js',
+  'assets/js/games/gongzhu-avatars.js',
   'assets/js/games/guandan.min.js',
   'toolbox/guandan/manifest.json',
   'assets/audio/guandan-voice.mp3',
