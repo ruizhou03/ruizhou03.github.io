@@ -1414,6 +1414,7 @@
     }
     adaptHandSize();
     if (keepScroll) { els.hand.scrollLeft = keepScroll; syncHandScrollEdges(); }
+    refreshSfBar();
   }
 
   function classifyType(cards, level) {
@@ -2498,6 +2499,78 @@
   window.addEventListener('touchend', onHandPointerUp);
   // 跨出 hand 时也要兜底（防止指针离开导致 ghost marker）
   window.addEventListener('touchcancel', onHandPointerUp);
+
+  // ── 同花顺四花色键 ──
+  // 按 ♠♥♣♦ 竖排在「重排」上方。该花色手里凑得出同花顺（逢人配可补）就显示，凑不出就空着（位置不动）；
+  // 轮到我压牌时只算压得过的。点一下选中最小的一条，再点换下一条，转一圈回到第一条。
+  const SF_ORDER = [0, 1, 3, 2];
+  var sfBar = { el: document.getElementById('gdSfBar'), key: '', lists: [[], [], [], []], idx: [-1, -1, -1, -1], btns: [] };
+  if (sfBar.el) {
+    for (const suit of SF_ORDER) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'gd-sf-btn suit-' + suit;
+      b.dataset.suit = suit;
+      b.setAttribute('aria-label', SUIT_LABELS[suit] + ' 同花顺');
+      b.innerHTML = suitSVG(suit);
+      b.addEventListener('click', (e) => { e.stopPropagation(); pickStraightFlush(suit); });
+      sfBar.el.appendChild(b);
+      sfBar.btns[suit] = b;
+    }
+  }
+  function straightFlushLists() {
+    const level = currentLevelLabel();
+    const hand = (state.hands[0] || []).filter(c => c >= 0);
+    const tb = state.trick && state.trick.best;
+    const prev = (tb && state.trick.bestSeat !== 0 && state.turn === 0) ? tb : null;
+    const key = level + '|' + hand.slice().sort((a, b) => a - b).join(',') + '|' + (prev ? prev.type + ':' + prev.key + ':' + (prev.bombStrength || 0) : '');
+    if (key === sfBar.key) return sfBar.lists;
+    sfBar.key = key;
+    const lists = [[], [], [], []];
+    const seen = new Set();
+    let moves = [];
+    try { moves = genMoves(hand, null, level); } catch (e) { moves = []; }
+    for (const m of moves) {
+      const cb = m.combo || classify(m.cards, level);
+      if (!cb || cb.type !== T.STR_FLUSH) continue;
+      if (prev && !beats(cb, prev)) continue;
+      const nat = m.cards.find(c => !isWild(c, level));
+      if (nat == null) continue;
+      const k = m.cards.map(c => c % 54).sort((a, b) => a - b).join(',');
+      if (seen.has(k)) continue;
+      seen.add(k);
+      lists[Math.floor((nat % 54) / 13)].push({ cards: m.cards.slice(), key: cb.key || 0 });
+    }
+    lists.forEach(l => l.sort((a, b) => a.key - b.key));
+    sfBar.lists = lists;
+    sfBar.idx = [-1, -1, -1, -1];
+    return lists;
+  }
+  function refreshSfBar() {
+    if (!sfBar || !sfBar.el) return;   // 初始化早期（sfBar 还没建好）直接跳过
+    const show = state.phase === PHASE.PLAYING && !isSpectating() && !state.out.includes(0) && !orderMode;
+    const lists = show ? straightFlushLists() : null;
+    const any = !!lists && lists.some(l => l.length);
+    sfBar.el.hidden = !any;
+    if (!any) return;
+    for (const suit of SF_ORDER) sfBar.btns[suit].classList.toggle('is-off', !lists[suit].length);
+  }
+  function pickStraightFlush(suit) {
+    if (state.phase !== PHASE.PLAYING || isSpectating()) return;
+    const lists = straightFlushLists();
+    const list = lists[suit];
+    if (!list.length) return;
+    // 当前选中的正好是这一条 → 换下一条；否则从第一条开始
+    const sel = [...state.selected].sort((a, b) => a - b).join(',');
+    let i = sfBar.idx[suit];
+    const cur = i >= 0 && list[i] ? list[i].cards.slice().sort((a, b) => a - b).join(',') : null;
+    i = (cur === sel) ? (i + 1) % list.length : 0;
+    sfBar.idx[suit] = i;
+    state.selected = new Set(list[i].cards);
+    renderHand();
+    updateSelHint();
+    updateActions();
+  }
 
   function updateOrderStatus() {
     if (!els.orderStatus) return;

@@ -1036,3 +1036,23 @@ body.gd-game-fullscreen .guandan-wrap .gd-hand.is-scrollable.more-right { -webki
 body.gd-game-fullscreen .guandan-wrap .gd-hand.is-scrollable.more-left { -webkit-mask-image: linear-gradient(90deg, transparent, #000 26px); mask-image: linear-gradient(90deg, transparent, #000 26px); }
 body.gd-game-fullscreen .guandan-wrap .gd-hand.is-scrollable.more-left.more-right { -webkit-mask-image: linear-gradient(90deg, transparent, #000 26px, #000 calc(100% - 26px), transparent); mask-image: linear-gradient(90deg, transparent, #000 26px, #000 calc(100% - 26px), transparent); }
 body.gd-game-fullscreen .guandan-wrap .gd-hand .gd-card.is-hold { transform: translateY(-6px); transition: transform 0.12s ease-out; box-shadow: 0 6px 12px rgba(29, 27, 24, 0.25); }
+
+/* 同花顺四花色键：「重排」正上方竖排 ♠♥♣♦，凑不出的那格空着（不置灰） */
+.guandan-wrap .gd-sf-bar { position: absolute; z-index: 7; display: flex; flex-direction: column; gap: 4px; align-items: center; }
+.guandan-wrap .gd-sf-bar[hidden] { display: none; }
+body.gd-game-fullscreen .guandan-wrap .gd-sf-bar { right: calc(6px + env(safe-area-inset-right, 0px) + 9px); bottom: calc(14px + env(safe-area-inset-bottom, 0px) + 52px); }
+.guandan-wrap .gd-sf-btn {
+  width: 27px; height: 27px; min-width: 0; min-height: 0; flex: 0 0 auto; box-sizing: border-box; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center;
+  background: var(--gd-paper, #fbf6ec); border: 1.5px solid var(--gd-ink, #1d1b18); color: var(--gd-ink, #1d1b18);
+  box-shadow: 0 2px 0 rgba(29, 27, 24, 0.18); cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.guandan-wrap .gd-sf-btn.suit-1, .guandan-wrap .gd-sf-btn.suit-2 { color: var(--gd-seal, #b4392c); }
+.guandan-wrap .gd-sf-btn .suit-svg { width: 16px; height: 16px; fill: currentColor; }
+.guandan-wrap .gd-sf-btn.is-off { visibility: hidden; }
+.guandan-wrap .gd-sf-btn:active { transform: translateY(1px); box-shadow: none; }
+@media (max-height: 360px) {
+  .guandan-wrap .gd-sf-bar { gap: 3px; }
+  .guandan-wrap .gd-sf-btn { width: 24px; height: 24px; }
+  .guandan-wrap .gd-sf-btn .suit-svg { width: 14px; height: 14px; }
+}
+.guandan-wrap .gd-sf-btn.suit-0 .suit-svg, .guandan-wrap .gd-sf-btn.suit-3 .suit-svg { transform: scale(1.4); }

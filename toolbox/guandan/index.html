@@ -241,6 +241,8 @@ body_class: gd-game-fullscreen
       <button class="gd-btn" id="gdSortMainBtn" type="button"><svg class="gd-btn-ic" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><rect x="3.2" y="9" width="9.6" height="12.2" rx="1.8" fill="var(--gd-card-bg)" stroke="currentColor" stroke-width="1.4"/><rect x="7.2" y="6" width="9.6" height="12.2" rx="1.8" fill="var(--gd-card-bg)" stroke="currentColor" stroke-width="1.4"/><rect x="11.2" y="3" width="9.6" height="12.2" rx="1.8" fill="var(--gd-card-bg)" stroke="currentColor" stroke-width="1.4"/></svg><span class="gd-btn-tx" id="gdSortMainTx">重排</span></button>
       <button class="gd-btn" id="gdSortMoreBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="gdSortMenu" aria-label="更多理牌操作"><span aria-hidden="true">⋯</span></button>
     </div>
+    <!-- 同花顺快捷键（2026-11-27 用户，照腾讯）：哪种花色凑得出同花顺（含逢人配）哪个就亮，点一下选中那条，再点换下一条 -->
+    <div class="gd-sf-bar" id="gdSfBar" role="group" aria-label="同花顺" hidden></div>
     <div class="gd-order-actions" id="gdOrderActions" aria-label="调整手牌顺序">
       <div class="gd-order-status" id="gdOrderStatus">先选一张牌，再向左或向右移动整列。</div>
       <button class="gd-btn" id="gdOrderLeft" type="button" aria-label="向左移动所选牌列">← 左移</button>
