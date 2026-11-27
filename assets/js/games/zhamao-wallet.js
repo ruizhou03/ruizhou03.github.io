@@ -102,7 +102,11 @@
   const ymd = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   const dayAt = (t) => ymd(new Date((t == null ? Date.now() : t) - DAY_CUT));
   const today = () => dayAt();
+  /* 几个请求同时在路上（开局：买道具几笔 + 门票）时，回来的先后不一定：只有最后发出的那个请求回来的余额才摆上去，
+   * 早发的晚回来就不改余额（不然左上角会先跳回中间某一步的数再落下来——2026-11-27 用户：扣完又弹一下） */
+  let postSeq = 0;
   async function post(action, body, sync) {
+    const mySeq = ++postSeq;
     const b = Object.assign({ day: today(), tz: new Date().getTimezoneOffset() }, body || {});   // tz：服务器记下手机时区，联机结算时也按当地日期算首胜（2026-11-24）
     const opts = { method: 'POST', headers: { 'Content-Type': 'application/json' } };
     let res;
@@ -122,7 +126,7 @@
     if (!res.ok) { const e = new Error(j.error || 'http_' + res.status); e.status = res.status; throw e; }
     if (me !== who()) { const e = new Error('who_changed'); e.status = 0; throw e; }   // 半路登录 / 登出了：这份是旧身份的，不摆
     quiet = !!sync;
-    try { remember(j); } finally { quiet = false; }
+    try { remember(mySeq === postSeq || !state || state.bal == null ? j : Object.assign({}, j, { bal: state.bal })); } finally { quiet = false; }
     return j;
   }
 
@@ -286,28 +290,32 @@
    * 余额不够：先弹「小鱼干不够了」（救济、签到都在里面自己点），凑够了点「开始」才往下走；关掉 = 不开（resolve false）。
    * 不知道余额（连不上服务器）/ 没开动画：直接 resolve true（照旧开局，服务器那边不够就不计分） */
   let fxGen = 0;   // 每收一次动画 +1：放到一半被收掉的扣票，不能再接着开局
+  /* 开局道具（内测 zhamao-beta.js pickCost）：点「开始」那一下门票和挑着的道具一起往下滚（2026-11-27 用户：以前只先扣门票，进局一会儿才扣道具钱）。
+   * 道具钱真正记账还是开局时（beta onDeal），这里只让显示的数一步到位；门票本机先记上 */
+  const extraOf = (o) => { try { return root.ZhamaoBeta && root.ZhamaoBeta.pickCost ? Math.max(0, root.ZhamaoBeta.pickCost(o) || 0) : 0; } catch (_) { return 0; } };
   function pay(o) {
     const p = price(o.tier, o.mode, o.n);
-    if (state && state.bal != null && vb() < p) return shortDialog(o, p).then((ok) => (ok ? fishPay(p, o.from, o.to) : false));
-    return fishPay(p, o.from, o.to);
+    if (state && state.bal != null && vb() < p) return shortDialog(o, p).then((ok) => (ok ? fishPay(p, o.from, o.to, extraOf(o)) : false));
+    return fishPay(p, o.from, o.to, extraOf(o));
   }
-  function fishPay(p, from, to) {
+  function fishPay(p, from, to, extra) {
+    extra = extra || 0;
     const fx = FX();
     if (!fx || !fxOn() || !from || !to || from.offsetParent === null || !state || state.bal == null) return Promise.resolve(true);
     cancelFx();
     const gen = fxGen, b = from.querySelector('b') || from;
     const bal = from === chip ? (shown != null ? shown : vb()) : (Number(String(b.textContent).replace(/[^\d]/g, '')) || vb());   // 结算页：从它上面显示的数往下滚
-    if (from === chip) shown = bal - p;
-    if (from === tchip) { tGen++; tShown = bal - p; held = false; }
+    if (from === chip) shown = bal - p - extra;
+    if (from === tchip) { tGen++; tShown = bal - p - extra; held = false; }
     // 本机先记上（主页面「开始」和牌桌「再来一局」都是）：进牌桌时左上角就是扣完票的数，不等服务器的门票回来（2026-11-27 用户：进局余额没马上变）
     if (state && (from === chip || from === tchip)) state = Object.assign({}, state, { bal: state.bal - p });   // 本机先记上：开新局时左上角别先弹回旧数再被门票扣下来   // 牌桌左上角（结算页「再来一局」）：还没放完的进账一律收掉，从现在显示的数往下扣
-    fx.roll(b, bal, bal - p, 520, { delay: 120 });
-    const n = Math.min(5, 2 + Math.round(Math.log10(Math.max(10, p)) - 1));
+    fx.roll(b, bal, bal - p - extra, 520, { delay: 120 });
+    const n = Math.min(5, 2 + Math.round(Math.log10(Math.max(10, p + extra)) - 1));
     return fx.school(FISH, from, to, n, { spread: 14, gap: 70, dur: 700, lift: 30, size: 28, toPoint: center(to) }).then(() => gen === fxGen);
   }
   const center = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
   // 旧名字（zhamao.js 的「开始」键还在用）
-  function playTicket(tier, mode, n) { return pay({ tier, mode, n, from: chip, to: document.querySelector('[data-cover="start"]') }); }
+  function playTicket(tier, mode, n, rules) { return pay({ tier, mode, n, rules, from: chip, to: document.querySelector('[data-cover="start"]') }); }
 
   /* 小鱼干不够了：余额 / 门票并排，下面一张今天的任务单（2026-11-23 用户定：只列主流的三项，不写给多少）——
    *   领取救济（第一次亏空 +3,000，之后每天三次 +1,000）/ 每日签到 / 对局获胜（每天第一次赢）

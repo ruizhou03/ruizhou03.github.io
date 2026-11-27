@@ -8088,9 +8088,9 @@
     const seed = ((Math.random() * 2 ** 31) | 0) || 1;
     const st = R.createGame(n, seed, settings.rules);
     game = { state: st, bots: drawBots(n, settings.tier), tiers: [null].concat(Array(n - 1).fill(settings.tier)), tutorial: false };
-    if (WAL && WAL.tableStart) WAL.tableStart(game);
     if (HL) HL.start(game, st, seed);
     if (window.ZhamaoBeta && window.ZhamaoBeta.onDeal) window.ZhamaoBeta.onDeal(game, { tier: settings.tier, mode: curMode() });   // 内测：开局道具（挑角色 / 保证拿牌 / 记牌器 / 加倍）
+    if (WAL && WAL.tableStart) WAL.tableStart(game);   // 放在买道具之后：牌桌左上角一出来就是门票 + 道具都扣完的数（2026-11-27 用户）
     if (WAL) {
       // 2026-11-26 用户：开局后（发牌 / 抽角色还没放完）退出再回来，没有「接着打上一局」、门票白扣——以前要等发完牌走第一步才存档。
       // 现在一开局就存；服务器发的门票号回来后再存一次（门票号没存上，接回来这局结算不了）

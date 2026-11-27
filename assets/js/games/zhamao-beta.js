@@ -762,6 +762,21 @@
       });
       return true;
     }
+    /* 点「开始」时这局会买下的开局道具一共多少钱（同 onDeal 的买法：按顺序、买得起才买）——钱包扣门票的动画把它一起滚下去 */
+    function pickCost(o) {
+      if (!o || root.ZM_SHOW) return 0;
+      const g = TB() && TB().game ? TB().game() : null;
+      const rules = o.rules || (soloCtx && soloCtx.rules) || (g && g.state && g.state.rules) || {};
+      const kinds = chipsFor({ mode: o.mode, rules }).map(([k]) => k);
+      let room = known() ? bal() - ticketOf(o) : Infinity, sum = 0;
+      ['counter', 'x2', 'role', 'nope', 'swap'].forEach((k) => {
+        const on = k === 'role' ? !!d.pick.role : !!d.pick[k];
+        if (!on || !kinds.includes(k) || (k === 'counter' && counterDayOn())) return;
+        const p = priceAt(k);
+        if (p <= room) { room -= p; sum += p; }
+      });
+      return sum;
+    }
     function boxHtml(chips, pk, attr, ctx) {
       let cost = 0;
       const tk = ctrTaker(attr);
@@ -1292,6 +1307,6 @@
       }
     }).observe(document.body, { childList: true, subtree: true });
 
-    root.ZhamaoBeta = { on: true, solo, onDeal, blockStart, openShop, rewarded, bal, data: () => d };
+    root.ZhamaoBeta = { on: true, solo, onDeal, blockStart, pickCost, openShop, rewarded, bal, data: () => d };
   }
 })(window);
