@@ -9537,11 +9537,11 @@
       : order.map((seat) => ({ me: seat === 0 && !game.spectator, face: avatarHtml(seat), nick: nameOf(seat) }));
     const teamW = teamGame() ? (g.winners || 1) : 0;   // 组队：赢的那一队都算赢，不上领奖台，用队伍名单
     openDialog((host ? '<button type="button" class="zm-icbtn zm-rank-edit is-corner" data-edit aria-label="' + T('ui.host.edit', '调座位 / 请人离开') + '" title="' + T('ui.host.edit', '调座位 / 请人离开') + '">' + HOST_IC.swap + '</button>' : '') +
-      (teamW ? teamRankHtml(order, teamW, !game.spectator && order.slice(0, teamW).indexOf(0) >= 0) + (WAL && g.pay && !game.spectator && !g.pay.refund ? WAL.slot() : '') : podiumHtml(items, WAL && g.pay && !game.spectator && !g.pay.refund ? WAL.slot() : '')) +
-      recordHtml(st && st.record, 2) +
+      rankPages(teamW ? teamRankHtml(order, teamW, !game.spectator && order.slice(0, teamW).indexOf(0) >= 0) + (WAL && g.pay && !game.spectator && !g.pay.refund ? WAL.slot() : '') : podiumHtml(items, WAL && g.pay && !game.spectator && !g.pay.refund ? WAL.slot() : ''), rec, face) +
       (readyPhaseOk(st) ? readyRowHtml(st) : '') +
       '<div class="zm-actions' + (readyPhaseOk(st) && readyMine(st) === 'on' ? ' is-ready' : '') + '"><button type="button" class="zm-btn" data-leave>' + T('ui.leaveRoom', '离开房间') + '</button>' + (host ? '<button type="button" class="zm-btn" data-again>' + T('ui.room.backShort', '回房间') + '</button>' : '') + (readyPhaseOk(st) ? readyBtnHtml(st, true) : '') + '</div>', (d) => {
       if (!teamW) { d.classList.add('is-podium'); animPodium(d); }
+      wireRankPages(d);
       if (WAL) { const mi = teamW ? -1 : items.findIndex((x) => x.me); WAL.fillOnline(d, !game.spectator && g.pay ? Object.assign({}, g.pay, mi >= 0 ? { rank: mi + 1 } : {}) : null, game); }
       d.querySelector('[data-leave]').addEventListener('click', () => { closeDialog(); leaveOnline(true); });
       const a = d.querySelector('[data-again]');
@@ -9553,8 +9553,28 @@
       if (ed) ed.addEventListener('click', () => { closeDialog(); enterEdit('table'); });
     });
   }
+  /* 排行榜分两页（2026-11-27 用户选）：第二局起顶上一个小切换「这一局 · 本房间」，左右滑也能切（横向滚动吸附，原生手感）；
+   * 默认这一局。本房间 = 每局名次表（按平均名次，前三挂奖牌；不再放第二个领奖台，免得卡片长到底下按钮看不见）。两页一样高（并排放在一行里，高的撑开），切换时底下按钮不跳 */
+  function rankPages(cur, rec, face) {
+    if (!rec || !rec.rows || !rec.matches || rec.matches.length < 2) return cur;
+    void face;
+    return '<div class="zm-rk-tabs" role="tablist"><button type="button" role="tab" data-rkp="0" aria-selected="true">' + T('ui.rank.thisGame', '这一局') + '</button><button type="button" role="tab" data-rkp="1" aria-selected="false">' + T('ui.rank.room', '本房间') + '</button><i class="bar"></i></div>' +
+      '<div class="zm-rk-pages"><div class="zm-rk-page" data-p="0">' + cur + '</div><div class="zm-rk-page is-room" data-p="1">' + recordHtml(rec, 2, true) + '</div></div>';
+  }
+  function wireRankPages(d) {
+    const box = d.querySelector('.zm-rk-pages'), tabs = d.querySelector('.zm-rk-tabs');
+    if (!box || !tabs) return;
+    const set = (k) => { tabs.querySelectorAll('[data-rkp]').forEach((b) => b.setAttribute('aria-selected', String(+b.dataset.rkp === k))); tabs.style.setProperty('--k', k); };
+    tabs.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-rkp]'); if (!b) return;
+      e.stopPropagation();
+      const k = +b.dataset.rkp; set(k); snd('tap');
+      box.scrollTo({ left: k * box.clientWidth, behavior: fx.reduce() ? 'auto' : 'smooth' });
+    });
+    box.addEventListener('scroll', () => { set(Math.round(box.scrollLeft / Math.max(1, box.clientWidth))); }, { passive: true });
+  }
   /* 本房间战绩表（2026-11-14 用户：连着打很多局，按「平均名次」排）：名次 / 名字 / 平均名次 / 赢的局数 / 打的局数 / 最近几局各第几 */
-  function recordHtml(rec, minMatches) {
+  function recordHtml(rec, minMatches, medals) {
     if (!rec || !rec.rows || !rec.matches || rec.matches.length < (minMatches || 1)) return '';
     // 2026-11-14 用户：一局里赢的只有一个，「赢了几局」没意义——只列平均名次和每一局各第几（从第一局一路排到现在）
     const me = online && online.st ? online.st.me : null;
@@ -9562,7 +9582,7 @@
     const ms = rec.matches;
     return '<div class="zm-record"><div class="zm-record-h">' + T('ui.record.title', '本房间战绩 · {n} 局', { n: ms.length }) + '<small>' + T('ui.record.by', '按平均名次') + '</small></div><div class="zm-record-scroll">' +
       '<table><thead><tr><th></th><th class="nm"></th><th>' + T('ui.record.avg', '平均名次') + '</th>' + ms.map((m, i) => '<th class="rk">' + (i + 1) + '</th>').join('') + '</tr></thead><tbody>' +
-      rec.rows.map((r, i) => '<tr class="' + (r.id === me ? 'is-me' : '') + '"><td class="pos">' + (i + 1) + '</td><td class="nm"><span class="mini">' + face(r) + '</span><span>' + esc(r.nick) + '</span></td>' +
+      rec.rows.map((r, i) => '<tr class="' + (r.id === me ? 'is-me' : '') + '"><td class="pos">' + (medals && i < 3 ? medal(i) : i + 1) + '</td><td class="nm"><span class="mini">' + face(r) + '</span><span>' + esc(r.nick) + '</span></td>' +
         '<td class="avg">' + r.avg.toFixed(1) + '</td>' +
         ms.map((m) => { const x = r.ranks.find((k) => k.m === m); return '<td class="rk' + (x && x.r === 1 ? ' is-win' : '') + '">' + (x ? x.r : '–') + '</td>'; }).join('') + '</tr>').join('') +
       '</tbody></table></div></div>';
@@ -10790,5 +10810,5 @@
   // 联机的「这步不对」：机器猫的动作取自服务器发下来的事件流（不暂停），发事件序号给服务器，由它找回是第几步（2026-11-20）
   const fbOnline = () => (online && online.st && online.st.game && game && game.online ? { log: online.st.game.log || [], me: online.st.mySeat, loc: locOf, over: !!online.st.game.over } : null);
   const fbSend = (n, why) => (online && NET ? NET.act(online.code, online.token, 'fb', { n, why }).catch(() => {}) : null);
-  window.ZhamaoTable = { profile: () => profile, setProfile, cardHtml, backHtml, roleCardHtml, rulesHtml, game: () => game, hold: fbHold, resume: fbResume, canPause: () => canPause(), online: fbOnline, sendFb: fbSend };
+  window.ZhamaoTable = { act: (a, b) => (online && NET ? NET.act(online.code, online.token, a, b || {}).then((r) => { if (r && r.state) onState(r.state, r._rtt); return r; }, () => null) : null), onlineSt: () => (online && online.st) || null, profile: () => profile, setProfile, cardHtml, backHtml, roleCardHtml, rulesHtml, game: () => game, hold: fbHold, resume: fbResume, canPause: () => canPause(), online: fbOnline, sendFb: fbSend };
 })();

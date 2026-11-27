@@ -91,12 +91,14 @@
     // 桌布（2026-11-27 用户：太素，看不出用起来多好看）：底色 + 一层纹样 + 四周一圈暗角；纹样都很淡，牌和字照样清楚
     const svgUrl = (x) => 'url("data:image/svg+xml,' + encodeURIComponent(x) + '")';
     const sakuraFlower = (x, y, r, rot, o) => '<g transform="translate(' + x + ' ' + y + ') rotate(' + rot + ')" opacity="' + o + '">' + [0, 72, 144, 216, 288].map((a) => '<ellipse cx="0" cy="' + (-r * 0.55) + '" rx="' + (r * 0.36) + '" ry="' + (r * 0.55) + '" fill="#e48fa0" transform="rotate(' + a + ')"/>').join('') + '<circle r="' + (r * 0.18) + '" fill="#d9a441"/></g>';
-    const FELT = { paper: '', celadon: '#dbe7df', sakura: '#f8e5e3', bamboo: '#e2ead6', indigo: '#dde4ef' };
+    const FELT = { paper: '', celadon: '#d3e4d9', sakura: '#f8e5e3', bamboo: '#e2ead6', indigo: '#dfe6f0' };
     const FELT_PAT = {
-      celadon: svgUrl('<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140"><g fill="none" stroke="#5f8a76" stroke-opacity=".22" stroke-width="1"><path d="M0 34 L22 40 L41 28 L66 37 L84 22 L110 30 L140 26"/><path d="M22 40 L26 66 L12 92 L18 120 L8 140"/><path d="M66 37 L72 61 L58 84 L70 108 L64 140"/><path d="M110 30 L106 58 L124 80 L116 104 L128 140"/><path d="M26 66 L48 72 L72 61 L96 70 L106 58"/><path d="M12 92 L36 98 L58 84"/><path d="M70 108 L92 114 L116 104"/><path d="M84 22 L80 0 M41 28 L46 0 M140 82 L124 80 M0 98 L12 92"/></g></svg>'),
+      /* 青瓷乙：细冰裂 + 两处釉光（11-27 用户选） */
+      celadon: svgUrl('<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220"><defs><radialGradient id="g"><stop offset="0" stop-color="#ffffff" stop-opacity=".35"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient></defs><circle cx="60" cy="70" r="46" fill="url(#g)"/><circle cx="170" cy="160" r="38" fill="url(#g)"/><path d="M25.6 29.0Q51.5 18.8 77.6 10.8M25.6 29.0Q29.3 51.3 30.6 78.8M25.6 29.0Q42.5 45.3 65.1 58.6M30.6 78.8Q29.0 101.0 29.0 122.3M29.0 122.3Q16.8 139.2 8.3 153.0M29.0 122.3Q43.1 133.1 51.9 145.8M8.3 153.0Q27.7 150.9 51.9 145.8M8.3 153.0Q23.8 174.9 34.9 202.3M8.3 153.0Q35.3 131.6 67.3 112.1M34.9 202.3Q46.3 208.8 59.6 210.1M34.9 -17.7Q29.1 4.6 25.6 29.0M34.9 202.3Q29.1 224.6 25.6 249.0M77.6 10.8Q74.4 32.7 65.1 58.6M65.1 58.6Q91.3 55.5 118.6 55.5M65.1 58.6Q68.1 85.1 67.3 112.1M67.3 112.1Q87.5 105.6 113.4 99.2M67.3 112.1Q57.3 130.4 51.9 145.8M67.3 112.1Q82.2 140.2 95.5 164.8M51.9 145.8Q54.5 177.7 59.6 210.1M51.9 145.8Q78.8 170.6 101.6 189.7M59.6 210.1Q82.0 199.8 101.6 189.7M59.6 -9.9Q68.0 -1.7 77.6 10.8M59.6 210.1Q68.0 218.3 77.6 230.8M117.7 12.1Q143.6 22.5 168.0 32.8M117.7 12.1Q115.7 32.4 118.6 55.5M117.7 12.1Q140.8 1.0 159.5 -8.5M117.7 232.1Q140.8 221.0 159.5 211.5M118.6 55.5Q134.4 68.4 147.9 79.4M118.6 55.5Q115.2 78.6 113.4 99.2M113.4 99.2Q135.4 105.9 155.1 115.2M113.4 99.2Q105.4 132.5 95.5 164.8M95.5 164.8Q121.5 165.6 145.4 166.8M95.5 164.8Q99.4 179.0 101.6 189.7M101.6 189.7Q132.5 199.7 159.5 211.5M101.6 -30.3Q111.9 -7.9 117.7 12.1M101.6 189.7Q111.9 212.1 117.7 232.1M101.6 189.7Q126.2 178.4 145.4 166.8M168.0 32.8Q160.6 56.0 147.9 79.4M147.9 79.4Q172.3 65.9 194.0 56.3M147.9 79.4Q152.0 98.3 155.1 115.2M155.1 115.2Q172.2 107.6 187.7 97.4M145.4 166.8Q169.9 162.7 192.2 157.0M145.4 166.8Q164.9 129.4 187.7 97.4M-10.6 16.2Q8.2 23.1 25.6 29.0M209.4 16.2Q228.2 23.1 245.6 29.0M209.4 16.2Q204.1 33.2 194.0 56.3M-26.0 56.3Q-0.0 69.6 30.6 78.8M194.0 56.3Q220.0 69.6 250.6 78.8M194.0 56.3Q188.1 77.5 187.7 97.4M-32.3 97.4Q-1.2 112.6 29.0 122.3M187.7 97.4Q218.8 112.6 249.0 122.3M187.7 97.4Q189.5 129.1 192.2 157.0M-27.8 157.0Q-11.9 155.6 8.3 153.0M192.2 157.0Q208.1 155.6 228.3 153.0M192.2 157.0Q190.6 182.9 183.6 203.2M-36.4 203.2Q1.6 199.8 34.9 202.3M183.6 203.2Q221.6 199.8 254.9 202.3" fill="none" stroke="#4f7f6a" stroke-opacity="0.16" stroke-width="0.6" stroke-linecap="round"/></svg>'),
       sakura: svgUrl('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160">' + sakuraFlower(28, 34, 13, 10, 0.32) + sakuraFlower(112, 58, 9, 40, 0.25) + sakuraFlower(70, 126, 11, 70, 0.28) + sakuraFlower(146, 140, 7, 20, 0.2) + '<g fill="#e48fa0" opacity=".22"><ellipse cx="62" cy="76" rx="3" ry="5" transform="rotate(30 62 76)"/><ellipse cx="132" cy="102" rx="2.6" ry="4.4" transform="rotate(-20 132 102)"/><ellipse cx="18" cy="118" rx="2.6" ry="4.2" transform="rotate(60 18 118)"/></g></svg>'),
       bamboo: svgUrl('<svg xmlns="http://www.w3.org/2000/svg" width="180" height="200"><g fill="#6f8f57" fill-opacity=".14"><rect x="22" y="0" width="9" height="200" rx="3"/><rect x="118" y="0" width="7" height="200" rx="3"/></g><g stroke="#6f8f57" stroke-opacity=".22" stroke-width="2"><path d="M20 52h13M20 128h13M116 86h11M116 168h11"/></g><g fill="#6f8f57" fill-opacity=".16"><path d="M31 52c18-6 30-2 40 8-16 2-28-1-40-8z"/><path d="M31 56c14 6 22 16 24 30-12-6-20-16-24-30z"/><path d="M118 86c-18-8-32-6-44 2 16 4 30 4 44-2z"/><path d="M125 168c16-10 30-10 42-4-14 6-28 8-42 4z"/><path d="M125 172c10 8 14 18 12 30-8-8-12-18-12-30z"/></g></svg>'),
-      indigo: svgUrl('<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><g fill="none" stroke="#2f4a6d"><path d="M48 18 L78 48 L48 78 L18 48 Z" stroke-opacity=".16" stroke-width="5"/><path d="M48 32 L64 48 L48 64 L32 48 Z" stroke-opacity=".12" stroke-width="3"/></g><circle cx="48" cy="48" r="3" fill="#2f4a6d" fill-opacity=".16"/><g fill="#2f4a6d" fill-opacity=".09"><circle cx="0" cy="0" r="9"/><circle cx="96" cy="0" r="9"/><circle cx="0" cy="96" r="9"/><circle cx="96" cy="96" r="9"/></g></svg>'),
+      /* 扎染乙：柔和同心晕染圈（11-27 用户选） */
+      indigo: svgUrl('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><defs><filter id="b" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.6"/></filter></defs><g filter="url(#b)" fill="none" stroke="#2f4a7a"><circle cx="40" cy="40" r="26.0" stroke-opacity="0.20" stroke-width="3.2"/><circle cx="40" cy="40" r="17.7" stroke-opacity="0.16" stroke-width="2.4"/><circle cx="40" cy="40" r="9.9" stroke-opacity="0.12" stroke-width="1.6"/><circle cx="120" cy="120" r="26.0" stroke-opacity="0.20" stroke-width="3.2"/><circle cx="120" cy="120" r="17.7" stroke-opacity="0.16" stroke-width="2.4"/><circle cx="120" cy="120" r="9.9" stroke-opacity="0.12" stroke-width="1.6"/><circle cx="120" cy="40" r="14.0" stroke-opacity="0.20" stroke-width="3.2"/><circle cx="120" cy="40" r="9.5" stroke-opacity="0.16" stroke-width="2.4"/><circle cx="120" cy="40" r="5.3" stroke-opacity="0.12" stroke-width="1.6"/><circle cx="40" cy="120" r="14.0" stroke-opacity="0.20" stroke-width="3.2"/><circle cx="40" cy="120" r="9.5" stroke-opacity="0.16" stroke-width="2.4"/><circle cx="40" cy="120" r="5.3" stroke-opacity="0.12" stroke-width="1.6"/></g></svg>'),
     };
     const VIGNETTE = 'radial-gradient(120% 90% at 50% 45%, rgba(255,255,255,0) 55%, rgba(29,27,24,.07) 100%)';
     function feltStyle(id) {
@@ -107,12 +109,27 @@
     const P = (deg, r) => [32 + Math.cos((deg * Math.PI) / 180) * r, 32 + Math.sin((deg * Math.PI) / 180) * r].map((v) => +v.toFixed(2));
     const around = (n, r, off, fn) => Array.from({ length: n }, (_, i) => { const a = off + (360 / n) * i, [x, y] = P(a, r); return fn(x, y, a, i); }).join('');
     const FRAME_SVG = {
-      fishbone: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29.8" fill="none" stroke="#7d7466" stroke-width="2"/>' + around(26, 0, -90, (_x, _y, a, i) => { if (i < 2 || i > 24) return ''; const [x1, y1] = P(a, 27), [x2, y2] = P(a, 32.8); return '<path d="M' + x1 + ' ' + y1 + 'L' + x2 + ' ' + y2 + '" stroke="#7d7466" stroke-width="1.4" stroke-linecap="round"/>'; }) +
-        '<path d="M25 2.2c3.5-2.6 10.5-2.6 14 0l-1.3 4.6c-3.6 1.6-7.8 1.6-11.4 0z" fill="#efe8dc" stroke="#7d7466" stroke-width="1.3" stroke-linejoin="round"/><circle cx="35" cy="4" r="1.2" fill="#1d1b18"/><path d="M29 2.8v3.4" stroke="#7d7466" stroke-width=".9"/></svg>',
+      /* 鱼骨（11-27 重画）：素净米色骨环 + 一圈小人字，头顶别一整条小鱼骨当发夹 */
+      fishbone: (() => {
+          const C = '#7d7466', B = '#f4ecdd';
+          let chev = '';
+          for (let i = 0; i < 28; i++) { const a = -90 + (360 / 28) * i; const [x, y] = P(a, 29.8); chev += '<path d="M' + P(a - 3.2, 31.3).join(' ') + 'L' + x + ' ' + y + 'L' + P(a - 3.2, 28.3).join(' ') + '"/>'; }
+          const fish = '<g transform="translate(32 .8) rotate(-8) scale(1.35)"><path d="M-8.2 0H5" stroke="' + C + '" stroke-width="1.2" stroke-linecap="round"/>' +
+            [-5.6, -3, -.4, 2.2].map((x) => '<path d="M' + (x + 1.2) + ' -2.6Q' + x + ' 0 ' + (x + 1.2) + ' 2.6" fill="none" stroke="' + C + '" stroke-width="1" stroke-linecap="round"/>').join('') +
+            '<path d="M4 -3.4C7.6-3.4 10-1.4 10.6 0 10-.0 10 0 10.6 0 10 1.4 7.6 3.4 4 3.4 4.8 1.2 4.8-1.2 4-3.4Z" fill="' + B + '" stroke="' + C + '" stroke-width="1.05" stroke-linejoin="round"/><circle cx="7.4" cy="-.7" r=".85" fill="#1d1b18"/>' +
+            '<path d="M-8 0-11.4-3.2Q-10.2 0-11.4 3.2Z" fill="' + B + '" stroke="' + C + '" stroke-width="1.05" stroke-linejoin="round"/></g>';
+          return '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29.8" fill="none" stroke="' + C + '" stroke-width="4.6"/><circle cx="32" cy="32" r="29.8" fill="none" stroke="' + B + '" stroke-width="3"/><g fill="none" stroke="' + C + '" stroke-width=".7" stroke-linecap="round" stroke-linejoin="round" opacity=".75">' + chev + '</g>' + fish + '</svg>';
+      })(),
       bell: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29.8" fill="none" stroke="#b4392c" stroke-width="4.2"/><circle cx="32" cy="32" r="29.8" fill="none" stroke="#f0b8a8" stroke-width=".7" stroke-dasharray="2 2"/>' +
         '<g transform="translate(0 -3)"><path d="M28 60.6h8l-1 3h-6z" fill="#8a6a2a"/><circle cx="32" cy="64.5" r="5.2" fill="#e3b64a" stroke="#8a6a2a" stroke-width="1"/><path d="M27.4 63.6h9.2" stroke="#8a6a2a" stroke-width=".9"/><circle cx="32" cy="66.3" r="1.1" fill="#5a4318"/><path d="M32 66.3v2.6" stroke="#5a4318" stroke-width=".9"/><circle cx="30" cy="62.6" r="1" fill="#fff6d8" opacity=".9"/></g></svg>',
-      qinghua: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29.6" fill="none" stroke="#fbfaf5" stroke-width="5.6"/><circle cx="32" cy="32" r="32.2" fill="none" stroke="#2b4f8c" stroke-width="1.1"/><circle cx="32" cy="32" r="27" fill="none" stroke="#2b4f8c" stroke-width="1.1"/>' +
-        around(12, 29.6, -90, (x, y, a) => '<g transform="translate(' + x + ' ' + y + ') rotate(' + (a + 90) + ')"><path d="M-3.4 .8c0-2.2 1.6-3 2.8-2.2 1 .7.6 2-.4 1.8" fill="none" stroke="#2b4f8c" stroke-width="1" stroke-linecap="round"/><path d="M3.4 .8c0-2.2-1.6-3-2.8-2.2-1 .7-.6 2 .4 1.8" fill="none" stroke="#2b4f8c" stroke-width="1" stroke-linecap="round"/><circle cy="1.2" r=".7" fill="#4a72b0"/></g>') + '</svg>',
+      /* 青花乙：白瓷边 + 青色缠枝藤绕一圈、八朵小花（11-27 用户选） */
+      qinghua: (() => {
+          const C = '#284f92';
+          let d = '';
+          for (let t = 0; t <= 360; t += 2) { const r = 29.7 + 1.3 * Math.sin((t * 8 * Math.PI) / 180); const [x, y] = P(t, r); d += (t ? 'L' : 'M') + x + ' ' + y; }
+          const flower = (a) => { const [x, y] = P(a, 29.7); return '<g transform="translate(' + x + ' ' + y + ')">' + [0, 72, 144, 216, 288].map((r) => '<ellipse cx="0" cy="-1.5" rx="1" ry="1.6" fill="' + C + '" transform="rotate(' + r + ')"/>').join('') + '<circle r=".8" fill="#f8fafc"/></g>'; };
+          return '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29.7" fill="none" stroke="#f8fafc" stroke-width="6.4"/><circle cx="32" cy="32" r="33" fill="none" stroke="' + C + '" stroke-width="1.1"/><circle cx="32" cy="32" r="26.4" fill="none" stroke="' + C + '" stroke-width=".9"/><path d="' + d + 'Z" fill="none" stroke="' + C + '" stroke-width=".7" stroke-opacity=".85"/>' + [22.5, 67.5, 112.5, 157.5, 202.5, 247.5, 292.5, 337.5].map(flower).join('') + '</svg>';
+      })(),
       ears: '<svg viewBox="0 0 64 64"><path d="M9.5 14.5 6 -3.5 24 4.5Z" fill="#2b2723" stroke="#2b2723" stroke-width="2" stroke-linejoin="round"/><path d="M10.8 10.8 9.4 1.2 18.6 5.4Z" fill="#f2a7b5"/><path d="M54.5 14.5 58 -3.5 40 4.5Z" fill="#2b2723" stroke="#2b2723" stroke-width="2" stroke-linejoin="round"/><path d="M53.2 10.8 54.6 1.2 45.4 5.4Z" fill="#f2a7b5"/>' +
         '<circle cx="32" cy="32" r="29.8" fill="none" stroke="#2b2723" stroke-width="3.2"/><g stroke="#2b2723" stroke-width="1" stroke-linecap="round"><path d="M-1.5 36l6-1M-1 41l5.6-.2M65.5 36l-6-1M65 41l-5.6-.2"/></g></svg>',
     };
@@ -208,7 +225,6 @@
 .zb-cf-btns{display:flex;gap:10px;margin-top:12px}
 .zb-cf-btns .zb-btn{height:40px;padding:0 18px;font-size:15px}
 
-.zb-x2s{display:inline-flex;align-items:center;justify-content:center;margin-left:6px;font-size:12px;font-weight:700;color:#fbf6ec;background:#b4392c;border-radius:50%;width:24px;height:24px;transform:rotate(-12deg);vertical-align:middle}
 .zb-frame{position:absolute;inset:-6px;pointer-events:none;z-index:2}
 .zb-frame svg{width:100%;height:100%;overflow:visible!important;border-radius:0!important}
 .zb-pv.av>svg{overflow:visible;border-radius:0}
@@ -293,10 +309,6 @@
 .zb-ck-amt{font:700 26px/1.2 'ZM Num',Georgia,serif;color:#b4392c;margin-top:2px}
 .zb-ck-btns{display:flex;gap:10px;justify-content:center;margin-top:14px}
 .zb-ck-btns .zb-btn{height:40px;font-size:15px;padding:0 16px}
-.zb-tline{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
-.zb-tline .zb-seal{margin:0}
-.zb-tline .zb-bal{font-size:14px}
-.zb-tline .zb-bal svg{width:22px;height:14px}
 .zb-sub{display:block;margin-top:3px;font-size:11.5px;font-weight:400;color:#8a8275}
 .zb-shop{display:flex;flex-direction:column}
 .zb-shop .zb-scene-wrap{padding:10px 12px 0;flex:1;min-height:0;display:flex}
@@ -336,6 +348,23 @@
 .zb-ih em{font-style:normal;color:#8a8274;display:inline-flex;align-items:center;gap:2px}
 .zb-ih em.on{color:#b4392c;font-family:'ZM Num','ZM Serif',serif}
 .zb-ih em svg{width:15px;height:9px}
+.zb-mt{--zm-ink:#1d1b18;--zm-card:#fffdf8;--u:30px;position:relative;height:156px;margin:0 0 10px;border-radius:10px;border:1px solid #1d1b18;outline:1px solid rgba(29,27,24,.3);outline-offset:-4px;overflow:hidden;transition:background-color .3s}
+.zb-mt-rim{position:absolute;left:12%;right:12%;top:20px;bottom:50px;border:1.5px solid rgba(201,162,74,.38);border-radius:16px}
+.zb-mt-av{position:absolute;width:26px;height:26px;border-radius:50%;background:#ebe5d8;box-shadow:0 0 0 1.2px #1d1b18}
+.zb-mt-av .zb-face,.zb-mt-av .zb-face svg{display:block;width:100%;height:100%;border-radius:50%;overflow:hidden}
+.zb-mt-av>svg{position:absolute;inset:-11%;width:122%;height:122%;overflow:visible}
+.zb-mt-av.o0{left:38%;top:7px;transform:translateX(-50%)}.zb-mt-av.o1{left:62%;top:7px;transform:translateX(-50%)}
+.zb-mt-av.me{width:32px;height:32px;left:calc(12% - 12px);bottom:40px}
+.zb-mt-deck{position:absolute;left:calc(50% - 34px);top:44px;width:28px;height:39px}
+.zb-mt-deck>i{position:absolute;inset:0;display:block}
+.zb-mt-deck>i:first-child{transform:translate(1.5px,2px)}
+.zb-mt-deck .zm-card,.zb-mt-dc .zm-card{width:100%!important;position:relative}
+.zb-mt-hand .zm-card{width:34px!important;flex:none;position:relative}
+.zb-mt-deck svg{width:100%;height:auto;display:block}
+.zb-mt-dc{position:absolute;left:calc(50% + 8px);top:44px;width:28px;transform:rotate(6deg)}
+.zb-mt-hand{position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);display:flex}
+.zb-mt-hand>*{width:34px;flex:none}
+.zb-mt-hand>*+*{margin-left:-6px}
 .zb-dress{padding:9px 10px 11px!important}
 .zb-dr-h{font-size:14px;margin:0 2px 8px}
 .zb-dr-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
@@ -363,6 +392,11 @@
 .zb-it2 small{font-size:11.5px;color:#6a6358;white-space:nowrap}
 .zb-it2 .pr{align-self:stretch;border-top:1px solid rgba(29,27,24,.13);padding-top:4px;display:inline-flex;align-items:center;justify-content:center;gap:1px;font-size:11.5px;color:#6a6358;white-space:nowrap;font-family:'ZM Num','ZM Serif',serif}
 .zb-it2 .pr svg{width:15px;height:9px}
+.zb-it2{position:relative}
+.zb-it2 .pr:empty::after{content:'\\00a0'}
+.zb-by{position:absolute;top:-7px;left:calc(50% + 9px);width:19px;height:19px;border-radius:50%;overflow:hidden;background:#ebe5d8;box-shadow:0 0 0 1.5px #fffdf8,0 0 0 2.6px #1d1b18;display:flex;align-items:center;justify-content:center;font-size:10px;color:#1d1b18}
+.zb-by svg{width:100%;height:100%;display:block}
+.zb-x2r{font-style:normal;font-size:.62em;margin-left:2px;font-weight:700;opacity:.85;letter-spacing:0}
 .zb-it2[aria-pressed=true] .zr-mc{box-shadow:0 0 0 2px #b4392c,0 2px 5px rgba(29,27,24,.25);transform:translateY(-2px)}
 .zb-it2[aria-pressed=true] small{color:#1d1b18;font-weight:700}
 .zb-it2[aria-pressed=true] .pr{color:#b4392c;border-top-color:rgba(180,57,44,.35)}
@@ -667,14 +701,24 @@
     }
     /* 11-27 第六轮（用户：玩家不知道这些能点起来带进这局；内容偏上、下面空得多）：
      * 顶上一行和规则格（左「游戏规则」右「设置规则 ›」）同一个样子——左边「开局道具」，右边「点选使用」；挑了以后换成「合计 🐟N」（11-27 用户：右上角要简洁、正式） */
+    // 联机准备阶段：记牌器已经有别人带了 → 那个人（players 里的一项）
+    const faceOfP = (p) => { const a = AVS(); return p && p.avatar && a && a.byId && a.byId[p.avatar] ? a.byId[p.avatar].svg : '<span class="zb-by-t">' + String((p && p.nick) || '?').slice(0, 1).replace(/[<>&"]/g, '') + '</span>'; };
+    function ctrTaker(attr) {
+      if (attr !== 'data-zbo') return null;
+      const st = OST();
+      if (!st || !st.ctrBy || st.ctrBy === st.me || !oPhaseOk(st)) return null;
+      return (st.players || []).find((p) => p.id === st.ctrBy) || { nick: '?' };
+    }
     function boxHtml(chips, pk, attr) {
       let cost = 0;
-      chips.forEach(([k]) => { if (!(k === 'counter' && counterDayOn()) && (k === 'role' ? !!pk.role : !!pk[k])) cost += priceAt(k); });
+      const tk = ctrTaker(attr);
+      chips.forEach(([k]) => { if (!(k === 'counter' && (counterDayOn() || tk)) && (k === 'role' ? !!pk.role : !!pk[k])) cost += priceAt(k); });
       return '<span class="zb-ih"><b>开局道具</b>' + (cost ? '<em class="on">合计 ' + FISH() + fmt(cost) + '</em>' : '<em>点选使用</em>') + '</span>' +
         '<span class="zr-chips">' + chips.map(([k, ic]) => {
-        const free = k === 'counter' && counterDayOn(), on = free || (k === 'role' ? !!pk.role : !!pk[k]), p = priceAt(k);
-        return '<button type="button" class="zb-it2" ' + attr + '="' + k + '" aria-pressed="' + on + '"' + (free ? ' data-free="1"' : '') + '><i class="zr-mc" style="--bg:' + ITEM_BG[k] + '" aria-hidden="true">' + ic + '</i><small>' + ITEM_NAME[k] + '</small>' +
-          '<span class="pr">' + (free ? '今日畅用' : FISH() + fmt(p)) + '</span></button>';
+        const by = k === 'counter' && tk;   // 别人带了：亮着、不写价、角上挂他的小头像
+        const free = k === 'counter' && (counterDayOn() || !!by), on = free || (k === 'role' ? !!pk.role : !!pk[k]), p = priceAt(k);
+        return '<button type="button" class="zb-it2' + (by ? ' is-by' : '') + '" ' + attr + '="' + k + '" aria-pressed="' + on + '"' + (free ? ' data-free="1"' : '') + (by ? ' aria-label="' + ITEM_NAME[k] + '，' + String(tk.nick || '').replace(/[<>&"]/g, '') + ' 已带"' : '') + '><i class="zr-mc" style="--bg:' + ITEM_BG[k] + '" aria-hidden="true">' + ic + '</i>' + (by ? '<span class="zb-by" aria-hidden="true">' + faceOfP(tk) + '</span>' : '') + '<small>' + ITEM_NAME[k] + '</small>' +
+          '<span class="pr">' + (by ? '' : counterDayOn() && k === 'counter' ? '今日畅用' : FISH() + fmt(p)) + '</span></button>';
       }).join('') + '</span>';
     }
     function solo(ctx) {
@@ -787,7 +831,8 @@
     function paintCounter(g) {
       const s = g.state;
       const zb = zbOf(g);
-      if (!zb || !zb.counter || g.spectator || s.phase === 'over') { if (ctrEl) { ctrEl.remove(); ctrEl = null; } closeCtr(); return; }
+      const on = (zb && zb.counter) || (g.online && ctrShared());   // 联机：桌上有人买了，全桌（含观战）都亮
+      if (!on || s.phase === 'over') { if (ctrEl) { ctrEl.remove(); ctrEl = null; } closeCtr(); return; }
       const c = {}, add = (id) => { const k = kindOf(id); c[k] = (c[k] || 0) + 1; };
       s.deck.forEach(add);
       for (let k = 1; k < s.n; k++) if (s.alive[k]) s.hands[k].forEach(add);
@@ -832,28 +877,94 @@
       let x = pay;
       if (x > 0) x = Math.min(x, bal()); else if (x < 0) x = -Math.min(-x, bal());
       if (x) book(x, '加倍（' + (x > 0 ? '多赢' : '多扣') + '）' + (g.online ? '·联机' : ''));
-      if (!line.parentNode.querySelector('.zb-x2s')) { const sp = document.createElement('span'); sp.className = 'zb-x2s'; sp.textContent = '×2'; line.parentNode.insertBefore(sp, line.nextSibling); }
     }
     const zbOf = (g) => g.zb || (g.state && g.state.zb) || null;
     /* 联机开局（2026-11-27 用户同意：联机只开记牌器和加倍，作废 / 交换 / 挑角色不开——会改发牌、影响别人）：
      * 房间页底下一格开局道具，开局那一刻当场买。刷新 / 断线回来同一局不重复扣：按「这局刚发的手牌」认是不是新的一局 */
+    const ctrShared = () => { const st = TB() && TB().onlineSt ? TB().onlineSt() : null; return !!(st && st.counter); };
     function onlineStart(g) {
       if (!g.online || g.spectator || g.zb !== undefined) return;
-      const s = g.state;
-      if (!s || !s.hands || !s.hands[0] || !s.discard) return;
-      const fresh = s.discard.length === 0, key = (g.matchNo || 0) + ':' + s.hands[0].slice().sort((a, b) => a - b).join(',');
-      if (!fresh) { g.zb = d.onl && d.onl.m === g.matchNo && Date.now() - d.onl.at < 3 * 3600e3 && !d.onl.done ? d.onl.zb : null; return; }
-      if (d.onl && d.onl.key === key) { g.zb = d.onl.done ? null : d.onl.zb; return; }
-      const zb = {};
-      if (counterDayOn()) zb.counter = true;
-      else if (d.opick && d.opick.counter && bal() >= priceAt('counter')) { takeBuy('counter', '记牌器（联机）'); zb.counter = true; }
-      const team = s.teams && s.teams.length;
-      if (!team && d.opick && d.opick.x2 && bal() >= priceAt('x2')) { takeBuy('x2', '加倍（联机）'); zb.x2 = true; }
-      g.zb = Object.keys(zb).length ? zb : null;
-      d.onl = { key, m: g.matchNo, at: Date.now(), zb: g.zb };
-      if (d.opick) d.opick = { counter: false, x2: false };   // 一局一买
+      onlineSync();
+      g.zb = d.onl && d.onl.m === g.matchNo && Date.now() - d.onl.at < 3 * 3600e3 && !d.onl.done ? d.onl.zb : null;
+    }
+    /* 联机道具（2026-11-27 用户定）：每局选、只管一局；点「准备 / 再来一局」那一刻和门票一起扣，没开成（取消准备、离开、改规则…）整笔退。
+     * 记牌器全桌一份：先点准备、带着记牌器的那个人报给服务器认领（ctrBy），只扣他的；晚到的不扣、格子变成「已有人带」。加倍各付各的。
+     * d.ohold = { code, counter, x2 }：这会儿替准备垫着的钱；看到这局开了就认掉（记进 d.onl），选的那几样留着当下一局的默认 */
+    const OST = () => (TB() && TB().onlineSt ? TB().onlineSt() : null);
+    const oPhaseOk = (st) => !!(st && !st.spectator && st.mySeat >= 0 && (st.phase === 'lobby' || (st.game && st.game.over)));
+    let oClaimAt = 0, oLast = null;
+    function oRelease(k, why) {
+      const h = d.ohold, amt = h && h[k];
+      if (h) delete h[k];
+      if (amt > 0) book(amt, ITEM_NAME[k] + (why || '退回（没开局）'));
+    }
+    function oReleaseAll(why) { if (!d.ohold) return; ['counter', 'x2'].forEach((k) => oRelease(k, why)); d.ohold = null; save(); }
+    function onlineSync() {
+      const st = OST();
+      if (!st) { if (d.ohold && Date.now() - (d.ohold.t || 0) > 8000) oReleaseAll(); return; }   // 断线重连那几秒不退
+      if (d.ohold) d.ohold.t = Date.now();
+      if (d.ohold && d.ohold.code !== st.code) oReleaseAll();
+      if (st.spectator || st.mySeat < 0) { oReleaseAll(); return; }
+      const g = st.game;
+      // 开局了：垫着的钱认掉
+      if (g && !g.over && st.phase !== 'lobby') {
+        if (d.ohold) {
+          const h = d.ohold, zb = {};
+          if ('counter' in h) { zb.counter = true; ctrSpent(); d.ctr.n += h.counter | 0; if (d.ctr.n >= BASE.counterDay) d.counterDay = today(); }
+          if ('x2' in h) zb.x2 = true;
+          d.onl = { m: g.matchNo, at: Date.now(), zb: Object.keys(zb).length ? zb : null };
+          d.ohold = null; save();
+        }
+        return;
+      }
+      if (!oPhaseOk(st)) return;
+      const me = st.me, ready = (st.ready || []).includes(me), pk = d.opick || {};
+      const team = !!(g && g.teams && g.teams.length) || !!(st.config && st.config.rules && st.config.rules.mode === 'team');
+      const h = d.ohold || (d.ohold = { code: st.code, t: Date.now() });
+      // 加倍：准备了、勾着 → 垫上；否则退
+      if (ready && pk.x2 && !team) { if (!('x2' in h) && bal() >= priceAt('x2')) { h.x2 = priceAt('x2'); book(-h.x2, '加倍（联机）'); } }
+      else if ('x2' in h) oRelease('x2');
+      // 记牌器：准备了、勾着、桌上还没人认 → 报给服务器；服务器认的是我才垫钱，认的是别人就退
+      const wantC = ready && pk.counter;
+      if (wantC && !st.ctrBy && performance.now() - oClaimAt > 1500 && (counterDayOn() || bal() >= priceAt('counter'))) { oClaimAt = performance.now(); if (TB().act) TB().act('counter', {}); }
+      if (wantC && st.ctrBy === me) { if (!('counter' in h)) { h.counter = priceAt('counter'); if (h.counter > 0) book(-h.counter, '记牌器（联机·全桌）'); } }
+      else if ('counter' in h) oRelease('counter');
+      if (!('x2' in h) && !('counter' in h)) d.ohold = null;
       save();
     }
+    /* 「再来一局 / 准备」上的小签：门票 + 我勾的道具（记牌器别人带了不算） */
+    function oItemsCost(st) {
+      const pk = d.opick || {};
+      let c = 0;
+      if (pk.counter && !counterDayOn() && !(st.ctrBy && st.ctrBy !== st.me)) c += (d.ohold && d.ohold.counter != null) ? d.ohold.counter : priceAt('counter');
+      if (pk.x2) c += (d.ohold && d.ohold.x2 != null) ? d.ohold.x2 : priceAt('x2');
+      return c;
+    }
+    function oTag(st) {
+      document.querySelectorAll('[data-ready] .zmw-tag').forEach((t) => {
+        const raw = Number((t.textContent || '').replace(/[^\d]/g, '')) || 0;
+        if (t.__zbOut !== raw) t.__zbBase = raw;   // 钱包刚重写过：记下门票
+        const out = (t.__zbBase || 0) + (oPhaseOk(st) ? oItemsCost(st) : 0);
+        if (raw !== out && t.lastChild) t.lastChild.textContent = fmt(out);
+        t.__zbOut = out;
+      });
+    }
+    // 结算页：开了加倍，我台子上 / 我那行刻的数字（单机结算页那行同理）后面跟个小「×2」，不加字（11-27 起替掉原来那颗红圆章）
+    function resX2() {
+      const g = TB() && TB().game ? TB().game() : null, zb = g && zbOf(g);
+      if (!zb || !zb.x2) return;
+      document.querySelectorAll('#zmDialog .zmw-ln.is-main > b').forEach((b) => {
+        if (!b.querySelector('.zb-x2r')) b.insertAdjacentHTML('beforeend', '<i class="zb-x2r">×2</i>');
+      });
+    }
+    setInterval(() => {
+      try {
+        const st = OST();
+        if (st !== oLast) { oLast = st; onlineSync(); if (st && oPhaseOk(st)) repaintPicks(); }
+        if (st) oTag(st);
+        resX2();
+      } catch (_) { /* 内测：别拖垮牌局 */ }
+    }, 300);
     /* 开局道具格放在哪（2026-11-27 用户：联机没有单机那张开局单；排行榜点「再来一局 / 下一局」直接开，也没地方买）：
      *   单机：开局单 + 单机结算页（「再来一局」上面）
      *   联机：房间页（「离开房间 / 开始」上面）+ 联机排行榜（房主「下一局」、客人「等房主开下一局」上面）
@@ -929,8 +1040,20 @@
     /* 设置里的「装扮」卡（11-27 用户：装扮不只在商店里能换，常规设置里也要能改；对局里也允许，只列已有的款、不放去商店）：
      * 插在「作废」开关那张卡下面。一排四格是正在用的那一身；点一格展开这一类已有的款式，点一下当场换上 */
     let dressCat = null;
+    /* 小牌桌预览（11-27 用户：装扮卡要像牌面大小那样有个和牌桌一样的预览）：桌布、桌沿线、两只机器猫、牌堆（牌背）、
+     * 弃牌堆、我的头像（头像框）、一手牌；换哪样当场换，换出牌特效在弃牌堆上放一下 */
+    function miniTable() {
+      const a = AVS(), bots = a && a.ROBOT ? [a.ROBOT[3], a.ROBOT[1]] : [{ svg: '' }, { svg: '' }];
+      const card = (k) => (TB() && TB().cardHtml ? TB().cardHtml(k) : '');
+      const av = (svg, cls, frame) => '<span class="zb-mt-av ' + cls + '"><span class="zb-face">' + svg + '</span>' + (frame && FRAME_SVG[frame] ? FRAME_SVG[frame] : '') + '</span>';
+      return '<div class="zb-mt" style="' + feltStyle(d.use.felt).replace(/"/g, '&quot;') + '"><i class="zb-mt-rim"></i>' +
+        av(bots[0].svg, 'o0') + av(bots[1].svg, 'o1') +
+        '<span class="zb-mt-deck"><i>' + backOf(d.use.back) + '</i><i>' + backOf(d.use.back) + '</i></span><span class="zb-mt-dc">' + card('skip') + '</span>' +
+        av(myFace().replace(/^<span class="zb-face">|<\/span>$/g, ''), 'me', d.use.frame !== 'none' ? d.use.frame : '') +
+        '<span class="zb-mt-hand">' + ['defuse', 'attack', 'orange', 'nope'].map(card).join('') + '</span></div>';
+    }
     function dressHtml(inGame) {
-      const head = '<div class="zb-dr-h"><b>装扮</b></div><div class="zb-dr-row">' + CATS_ORDER.map((c) => '<button type="button" class="zb-dr-c" data-drc="' + c + '" aria-pressed="' + (dressCat === c) + '"><span class="zb-dr-pv">' + previewHtml(c, d.use[c]) + '</span><small>' + CAT_NAME[c] + '</small></button>').join('') + '</div>';
+      const head = '<div class="zb-dr-h"><b>装扮</b></div>' + miniTable() + '<div class="zb-dr-row">' + CATS_ORDER.map((c) => '<button type="button" class="zb-dr-c" data-drc="' + c + '" aria-pressed="' + (dressCat === c) + '"><span class="zb-dr-pv">' + previewHtml(c, d.use[c]) + '</span><small>' + CAT_NAME[c] + '</small></button>').join('') + '</div>';
       if (!dressCat) return head;
       const c = dressCat;
       const opts = CAT[c].filter(([id]) => owns(c, id)).map(([id, name]) => '<button type="button" class="zb-dr-o" data-dro="' + id + '" aria-pressed="' + (d.use[c] === id) + '">' + (d.use[c] === id ? USE_MARK : '') + '<span class="zb-dr-pv">' + previewHtml(c, id) + '</span><small>' + name + '</small></button>').join('');
@@ -954,7 +1077,12 @@
         const c = e.target.closest('[data-drc]');
         if (c) { dressCat = dressCat === c.dataset.drc ? null : c.dataset.drc; paint(); return; }
         const o = e.target.closest('[data-dro]');
-        if (o && dressCat) { d.use[dressCat] = o.dataset.dro; save(); applyLook(); paintFrame(); paint(); return; }
+        if (o && dressCat) {
+          d.use[dressCat] = o.dataset.dro; save(); applyLook(); paintFrame(); paint();
+          const mt = sec.querySelector('.zb-mt');
+          if (dressCat === 'fx' && d.use.fx !== 'none' && mt) setTimeout(() => burst(d.use.fx, mt.querySelector('.zb-mt-dc'), mt), 60);
+          return;
+        }
         if (e.target.closest('[data-drshop]')) openShop();
       });
       after.after(sec);

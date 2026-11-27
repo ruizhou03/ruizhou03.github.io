@@ -5,8 +5,8 @@
  * 思源宋体截成只含游戏用字（scripts/zhamao-fonts.py，加了新字要重跑；tests/zhamao-fonts.test.js 查漏字）+ Gelasio 数字（Georgia 的开源替身）。
  * 放在每个字体列表最前面，苹果 / 安卓 / 电脑一个样；页面在字体到之前不显示游戏（index.html 开头），最多等 3 秒再退回系统字体。
  * 玩家自己打的字（昵称、聊天）里不在字表的字，逐字退回后面的系统宋体 / 思源宋体 CDN */
-@font-face { font-family: 'ZM Serif'; font-weight: 400; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-serif-400.woff2?v=edc534155f') format('woff2'); }
-@font-face { font-family: 'ZM Serif'; font-weight: 700; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-serif-700.woff2?v=d41416a32b') format('woff2'); }
+@font-face { font-family: 'ZM Serif'; font-weight: 400; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-serif-400.woff2?v=04e9f29173') format('woff2'); }
+@font-face { font-family: 'ZM Serif'; font-weight: 700; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-serif-700.woff2?v=9b4c2e490b') format('woff2'); }
 @font-face { font-family: 'ZM Num'; font-weight: 700; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-num-700.woff2?v=73242cd6c8') format('woff2'); }
 
 body.zm-fullscreen { margin: 0; background: #f3eee3; overflow: hidden; }
@@ -2145,3 +2145,18 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zm-rank li > .zmw-res.is-inline .zmw-ln > b .zmw-fish { width: 28px; height: 18px; }
 .zm-rank-rest.is-grid li > .zmw-res.is-inline .zmw-ln > b { font-size: 14px; }
 .zm-rank-rest.is-grid li > .zmw-res.is-inline .zmw-ln > b .zmw-fish { width: 20px; height: 13px; }
+
+/* 排行榜两页（2026-11-27）：这一局 · 本房间 */
+.zm-rk-tabs { position: relative; display: inline-flex; margin: -10px auto 12px; left: 50%; transform: translateX(-50%); padding: 3px; border-radius: 999px; background: var(--zm-wash); --k: 0; }
+.zm-rk-tabs button { position: relative; z-index: 1; border: 0; background: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--zm-ink-mute); padding: 5px 14px; border-radius: 999px; cursor: pointer; transition: color 0.2s; letter-spacing: 0.04em; }
+.zm-rk-tabs button[aria-selected="true"] { color: var(--zm-ink); }
+.zm-rk-tabs .bar { position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: 999px; background: var(--zm-paper); box-shadow: 0 1px 3px rgba(29, 27, 24, 0.16); transform: translateX(calc(var(--k) * 100%)); transition: transform 0.28s cubic-bezier(.3, .7, .4, 1); }
+.zm-rk-pages { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+.zm-rk-pages::-webkit-scrollbar { display: none; }
+.zm-rk-page { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; }
+.zm-rk-page.is-room .zm-record { margin-top: 2px; }
+.zm-rk-page.is-room .zm-record table { font-size: 14px; }
+.zm-record td.pos .zm-medal { width: 20px; height: 22px; }
+@media (prefers-reduced-motion: reduce) { .zm-rk-tabs .bar { transition: none; } }
+/* 两页是横向滚动框，会把竖向超出的部分裁掉（第一名头像的描边圈顶上被切平，2026-11-27 用户截图）：上面留出空、整体往上挪回去 */
+.zm-rk-pages { padding-top: 10px; margin-top: -10px; }
