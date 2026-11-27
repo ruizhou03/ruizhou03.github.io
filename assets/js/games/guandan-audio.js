@@ -4,7 +4,7 @@
   // 掼蛋声音（规格 4.3）：音效 / 报牌语音 / 背景音乐三条轨道，各自独立开关，记在本机。
   // - 音效：Web Audio 现场合成（落牌、叩桌、洗牌、炸弹分档、轮到我、倒计时、结算），无素材文件；
   // - 语音：一张语音精灵图 /assets/audio/guandan-voice.mp3（周睿本人录音，逐条挑选），首次需要时才加载；
-  // - 音乐：现场生成的五声音阶拨弦，安静、不重复；默认关闭（D1）。
+  // - 音乐：三版民乐编曲（茶馆 / 开打 / 炸场，见 guandan-music.js），跟着牌桌在哪一页、有没有人出炸弹换版；默认关闭（D1）。
   // 语音播放时音乐自动压低一半，同一时刻只播一条语音，新的打断旧的。
   const contract = window.GuandanContract;
   const storage = window.GuandanStorage;
@@ -22,6 +22,7 @@
   };
   function savePrefs() { storage.writeJson(prefsKey, prefs); }
 
+  const MUSIC_LEVEL = 0.32;   // 音乐总线（和百变小咪一样；编曲内部的混音在 guandan-music.js）
   let context = null;
   let bus = null;
   function ensureContext() {
@@ -33,7 +34,12 @@
     const master = context.createGain();
     master.connect(context.destination);
     const make = value => { const g = context.createGain(); g.gain.value = value; g.connect(master); return g; };
-    bus = { sfx: make(0.7), voice: make(0.85), music: make(0.16) };
+    // 音乐单独过一个压缩器（照百变小咪）：锣鼓一响不至于把整首压扁，也不会冲爆
+    const musicComp = context.createDynamicsCompressor();
+    musicComp.threshold.value = -14; musicComp.knee.value = 6; musicComp.ratio.value = 6; musicComp.attack.value = 0.004; musicComp.release.value = 0.2;
+    musicComp.connect(master);
+    bus = { sfx: make(0.7), voice: make(0.85), music: context.createGain() };
+    bus.music.gain.value = MUSIC_LEVEL; bus.music.connect(musicComp);
     if (context.state === 'suspended') context.resume();
     return context;
   }
@@ -103,6 +109,7 @@
     },
     // 炸弹：低频轰鸣，档位越高越长越响；同花顺 / 天王炸加一记金属泛音
     bomb(tier = 1) {
+      bombMusic();
       const a = sfxReady(); if (!a) return;
       const t = a.currentTime;
       const k = Math.min(7, Math.max(1, tier));
@@ -215,71 +222,53 @@
     duckMusic(lastVoiceEnd(now) - now);
   }
 
-  // ---------- 背景音乐：五声音阶拨弦，随机慢行 ----------
-  const SCALE = [146.83, 164.81, 185.0, 220.0, 246.94, 293.66, 329.63, 369.99, 440.0, 493.88];
-  let musicTimer = null;
-  let musicIdx = 5;
-  let echo = null;
-  function pluck(audio, at, freq, gain) {
-    const osc = audio.createOscillator();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(freq, at);
-    const over = audio.createOscillator();
-    over.type = 'sine';
-    over.frequency.setValueAtTime(freq * 2.01, at);
-    const filter = audio.createBiquadFilter();
-    filter.type = 'lowpass'; filter.frequency.setValueAtTime(2400, at); filter.frequency.exponentialRampToValueAtTime(600, at + 1.8);
-    const env = audio.createGain();
-    env.gain.setValueAtTime(0.0008, at);
-    env.gain.exponentialRampToValueAtTime(gain, at + 0.006);
-    env.gain.exponentialRampToValueAtTime(0.0008, at + 2.6);
-    const overEnv = audio.createGain();
-    overEnv.gain.value = 0.25;
-    osc.connect(filter); over.connect(overEnv); overEnv.connect(filter);
-    filter.connect(env); env.connect(bus.music); env.connect(echo);
-    osc.start(at); over.start(at); osc.stop(at + 2.7); over.stop(at + 2.7);
-  }
-  function ensureEcho(audio) {
-    if (echo) return;
-    echo = audio.createDelay(1.0);
-    echo.delayTime.value = 0.42;
-    const fb = audio.createGain();
-    fb.gain.value = 0.32;
-    const wet = audio.createGain();
-    wet.gain.value = 0.45;
-    echo.connect(fb); fb.connect(echo); echo.connect(wet); wet.connect(bus.music);
-  }
-  function musicStep() {
-    musicTimer = null;
-    if (!prefs.music || !context) return;
-    const hidden = hasDom && document.hidden;
-    if (!hidden) {
-      const t = context.currentTime + 0.02;
-      musicIdx = Math.max(0, Math.min(SCALE.length - 1, musicIdx + [-2, -1, -1, 1, 1, 2][Math.floor(Math.random() * 6)]));
-      pluck(context, t, SCALE[musicIdx], 0.5);
-      if (Math.random() < 0.22) pluck(context, t + 0.02, SCALE[Math.max(0, musicIdx - 3)], 0.3);
-    }
-    const rest = Math.random() < 0.14 ? 3200 : 900 + Math.random() * 1300;
-    musicTimer = setTimeout(musicStep, rest);
+  // ---------- 背景音乐：交给 guandan-music.js（三版编曲 + 什么时候换哪版）；这里只管开关、总线和场景 ----------
+  // 场景照牌桌当前页面（body[data-guandan-view]，由 GuandanEngine 的导航写）：开始页 / 房间 / 结算放「茶馆」，一局里放「开打」
+  const MUSIC = () => window.GuandanMusic || null;
+  let musicAttached = false;
+  const sceneOf = view => (view === 'playing' || view === 'tribute' ? 'game' : 'menu');
+  function syncScene() {
+    if (!MUSIC() || !hasDom || !document.body) return;
+    MUSIC().setScene(sceneOf(document.body.dataset.guandanView || 'setup'));
   }
   function startMusic() {
-    if (musicTimer || !prefs.music) return;
+    if (!prefs.music || !MUSIC()) return;
+    if (hasDom && document.hidden) return;
     const audio = ensureContext();
     if (!audio) return;
-    ensureEcho(audio);
-    musicTimer = setTimeout(musicStep, 300);
+    if (!musicAttached) { MUSIC().connect(audio, bus.music, 1); musicAttached = true; }
+    syncScene();
+    if (!MUSIC().playing()) MUSIC().start();
   }
   function stopMusic() {
-    clearTimeout(musicTimer);
-    musicTimer = null;
+    if (MUSIC() && musicAttached) MUSIC().stop();
+  }
+  // 有人出炸弹：音乐换「炸场」，同时压一下让炸弹声出来（音效关了也照样换）
+  function bombMusic() {
+    if (!prefs.music || !MUSIC() || !musicAttached) return;
+    MUSIC().onBomb();
+    duckMusic(0.9);
   }
   function duckMusic(seconds) {
     if (!bus || !context) return;
     const g = bus.music.gain;
     const t = context.currentTime;
     g.cancelScheduledValues(t);
-    g.setTargetAtTime(0.08, t, 0.05);
-    g.setTargetAtTime(0.16, t + seconds, 0.25);
+    g.setTargetAtTime(MUSIC_LEVEL * 0.5, t, 0.05);
+    g.setTargetAtTime(MUSIC_LEVEL, t + seconds, 0.25);
+  }
+  if (hasDom) {
+    // 页面切换 → 换版
+    const watch = () => {
+      if (!document.body || typeof MutationObserver !== 'function') return;
+      new MutationObserver(syncScene).observe(document.body, { attributes: true, attributeFilter: ['data-guandan-view'] });
+    };
+    if (document.body) watch(); else document.addEventListener('DOMContentLoaded', watch);
+    // 切到后台就停（后台计时器被限速，硬放会断断续续），回来再从头接上
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopMusic();
+      else if (prefs.music && context) { if (context.state !== 'running') context.resume().then(startMusic, () => {}); else startMusic(); }
+    });
   }
 
   // ---------- 声音按钮与三轨开关 ----------
