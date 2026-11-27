@@ -882,6 +882,10 @@
    * 全用网络时普通和高手一样强（练不出更强的高手：更大网络 / 接着练 / 推演里对手也用网络都只和它打平），档位拉不开 */
   const NORMAL_BRAIN_P = (FXO && FXO.brainP != null) ? FXO.brainP : 0.3;
   const isPeekMove = (m) => m.type === 'play' && m.cards.length === 1 && (K[m.cards[0]] === R.FUTURE || K[m.cards[0]] === R.ALTER);
+  /* 交换「少换一点」：交换候选的分数统一减一点。人类 627 个局面里只在 8.6% 的时候打交换，原样高手 18%，
+   * 减 0.03 后降到 11%、和人类选择的一致率 87.7%→91.4%；经典/百变/5 人/组队各几千局只掉 0~0.4 分（噪声内）（用户 2026-11-27） */
+  const SWAP_HOLD = FXO && FXO.swapHold != null ? FXO.swapHold : 0.03;
+  const isSwapMove = (m) => m.type === 'play' && m.cards.length === 1 && K[m.cards[0]] === R.SWAP;
   function brainAct(v) {
     const nm = pol(v).act(v);
     if (isPeekMove(nm)) return nm;
@@ -890,7 +894,7 @@
     if (cands.length === 1) return cands[0];
     const sf = brainState(v);
     let bi = 0, bv = -Infinity;
-    for (let i = 0; i < cands.length; i++) { const q = brainScore(v, sf, cands[i]); if (q > bv) { bv = q; bi = i; } }
+    for (let i = 0; i < cands.length; i++) { const q = brainScore(v, sf, cands[i]) - (SWAP_HOLD && isSwapMove(cands[i]) ? SWAP_HOLD : 0); if (q > bv) { bv = q; bi = i; } }
     return cands[bi];
   }
   // v2：塞炸弹猫的位置也让网络挑（pos = 塞之前牌堆的第几张，0 = 顶）。和训练场 feat.js insFeat / game.js netInsert 一致
