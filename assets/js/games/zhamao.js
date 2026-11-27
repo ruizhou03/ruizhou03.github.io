@@ -2338,7 +2338,7 @@
     if (handGame === game) els.hand.querySelectorAll('.zm-card[data-id]').forEach((c) => oldNodes.set(c.dataset.id, c));
     handGame = game;
     const saving = mode === 'save', okSave = saving ? saveCandidates(hand) : null;
-    const combo = selected.length && (saving ? selected.length === 2 && R.savePairOk(hand, selected) : mode !== 'give' && comboLive(selected));
+    const combo = selected.length && (saving ? selected.length === 2 && R.savePairOk(hand, selected) : classifyMine(selected) && mode !== 'give');
     const note = !hand.length ? watchNote() : '';
     // 我出局了、还没坐到谁背后：空出来的手牌区摆一排还在场的人的小头像，点谁就坐到谁背后（2026-11-17 用户定丙）
     const pick = !hand.length && outIdle() ? watchPickHtml() : '';
@@ -2543,7 +2543,6 @@
   // 别人出牌后我有「不行」：紫色「喵？不行」顶在「出牌」的位置；点人时「摸牌」换成「取消」；别人索要我的牌时「出牌」换成「给牌」
   function renderBand() {
     const s = game.state;
-    els.playBtn.classList.remove('is-dead');   // 只有「我出牌、凑成了却没人能指」那一支再挂上
     // 只有真的在问我时才露紫色「作废」（2026-11-14：挑着问里不问我的牌，按钮也会闪一下，看着像设置没生效）
     const canNope = s.phase === 'react' && reactOpen && R.canNope(s, 0) && (askMeNope(s) || !!tut);
     const onlinePass = !!(game.online && s.phase === 'react' && reactOpen);   // 联机：每次出牌都有导火索，没「作废」也能点「取消」提前结束
@@ -2613,9 +2612,9 @@
       els.drawBtn.disabled = false;
       els.drawBtn.classList.toggle('is-ready', !selected.length);
       const c = selected.length ? classifyMine(selected) : null;
-      const dead = !!(c && c.needsTarget && !R.validTargets(s, 0, c.type).length);   // 凑成了但没人能指：留着能点，点了给反馈（onPlay）
-      els.playBtn.disabled = !(c && !dead) && !dead;
-      els.playBtn.classList.toggle('is-dead', dead);
+      // 凑成了就亮，哪怕桌上没人能指（2026-11-27 用户：只剩影子猫时出牌键也照常亮——点了牌上桌、选人时点影子猫它才虚一下，
+      // 不然像系统出了 bug）。没人能指时 onPlay 照样摆上桌等选人，「取消」/ 点空白收回
+      els.playBtn.disabled = !c;
     }
     // 选中一张要指人的牌（还没点出牌）：能指的人头像先亮一圈淡金圈（2026-11-17 定甲）
     aimHint(mode !== 'target' && !busy && myTurnToAct() && selected.length ? (() => { const c = classifyMine(selected); return c && c.needsTarget ? R.validTargets(s, 0, c.type) : []; })() : []);
@@ -5466,23 +5465,10 @@
     const i = selected.indexOf(id);
     if (i >= 0) selected.splice(i, 1); else selected.push(id);
     snd(i >= 0 ? 'untap' : 'tap');
-    const wasCombo = !!(selected.length > 1 && comboLive(selected));
+    const wasCombo = !!(selected.length > 1 && classifyMine(selected));
     renderHand();
     renderBand();
     if (wasCombo) snd('combo');
-    else if (i < 0) shadowHint(selected);
-  }
-  /* 选中的牌凑成了、而且真有人能指（2026-11-27 用户截图：角色局只剩我和影子猫，两张三花抬起来描着金边、出牌键却灰着——
-   * 影子猫「凑对偷牌，偷不到它」，桌上能被两张偷的人一个都没有。以前照样描金边呼吸，像是能出） */
-  function comboLive(cards) {
-    const c = cards.length ? classifyMine(cards) : null;
-    return !!c && (!c.needsTarget || R.validTargets(game.state, 0, c.type).length > 0);
-  }
-  // 凑成了对子却没人能偷，是因为能偷的只剩影子猫：它亮一下角色、身子虚一下（同点它头像时），不写字（用户：牌桌上不出说明文字）
-  function shadowHint(cards) {
-    const s = game.state, c = cards.length > 1 ? classifyMine(cards) : null;
-    if (!c || c.type !== 'pair' || !s.roles || R.validTargets(s, 0, 'pair').length) return;
-    for (let k = 1; k < s.n; k++) if (s.alive[k] && s.hands[k].length && R.roleOf(s, k) === 'shadow') flashRole(k, token, 0).then((fl) => shadowDodge(k).then(() => fl.back()));
   }
   function onDraw() {
     const s = game.state;
@@ -5516,7 +5502,6 @@
     const cards = selected.slice();
     const c = classifyMine(cards);
     if (!c) return;
-    if (c.needsTarget && !R.validTargets(s, 0, c.type).length) { shake(els.playBtn); snd('untap'); shadowHint(cards); return; }   // 凑成了但没人能指（只剩影子猫）
     const go = (target, named) => {
       const d = { type: 'play', cards, target, named };
       if (!R.checkPlay(s, 0, cards, d)) { shake(els.playBtn); return; }
