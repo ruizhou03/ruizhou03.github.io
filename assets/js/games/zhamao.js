@@ -7100,9 +7100,9 @@
     let gap = 6;
     if (n * hu + (n - 1) * gap > hw) gap = (hw - hu) / (n - 1) - hu;
     const cw = (k, w, extra) => cardHtml(k, '', '--cw:' + f(w) + (extra || ''));
-    // 参照尺：小中大三张手牌的虚线框叠在一起（底边对齐），当前这档放一张真牌
+    // 参照尺：小中大三张手牌的虚线框叠在一起（底边对齐），右上角标档位字；当前这档放一张真牌，被它盖住的框（under）不标字
     const ruler = '<div class="zs-pv-ruler" style="width:' + f(big.hu) + ';height:' + f(big.hu * 1.4) + '">' +
-      ['l', 'm', 's'].map((k) => { const w = dim(k).hu; return '<i class="' + (k === sz ? 'on' : '') + '" style="width:' + f(w) + ';height:' + f(w * 1.4) + '"></i>'; }).join('') +
+      ['l', 'm', 's'].map((k) => { const w = dim(k).hu; return '<i class="' + (k === sz ? 'on' : w <= hu ? 'under' : '') + '" style="width:' + f(w) + ';height:' + f(w * 1.4) + '"><b>' + T('ui.set.size.' + k, { s: '小', m: '中', l: '大' }[k]) + '</b></i>'; }).join('') +
       cw('defuse', hu, ';position:absolute;left:0;bottom:0') + '</div>';
     const piles = '<div class="zs-pv-piles" style="gap:' + f(pu * 0.5) + '">' + backHtml('', '--cw:' + f(pu) + ';width:' + f(pu)) + cw('skip', pu, ';rotate:4deg') + '</div>';
     const hand = ['defuse', 'nope', 'attack', 'skip', 'favor', 'shuffle', 'future'].map((k, i) => cw(k, hu, ';margin-left:' + (i ? gap.toFixed(1) : 0) + 'px;z-index:' + i)).join('');

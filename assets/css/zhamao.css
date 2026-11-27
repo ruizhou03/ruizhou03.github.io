@@ -2059,6 +2059,11 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zs-pv-ruler { position: relative; flex: none; }
 .zs-pv-ruler > i { position: absolute; left: 0; bottom: 0; border: 1.5px dashed rgba(29, 27, 24, 0.28); border-radius: 9% / 6.4%; box-sizing: border-box; }
 .zs-pv-ruler > i.on { border-color: transparent; }
+.zs-pv-ruler > i b { position: absolute; right: 4px; top: 2px; z-index: 2; font-size: 10px; font-weight: 400; color: rgba(29, 27, 24, 0.45); line-height: 1; }
+/* 「大」的字写在框外头顶上：横屏三档只差几像素，都写在框里会叠在一起 */
+.zs-pv-ruler > i:first-child b { top: auto; bottom: 100%; right: 2px; margin-bottom: 2px; }
+/* 当前这档和比它小的框被真牌盖着，字不标（免得压在牌面上） */
+.zs-pv-ruler > i.on b, .zs-pv-ruler > i.under b { display: none; }
 .zs-pv-ruler > .zm-card { transform-origin: 0 100%; }
 .zs-pv-piles > *, .zs-pv-hand > * { transform-origin: 50% 100%; }
 .zs-pv .zm-card { flex: none; box-shadow: 0 2px 6px rgba(29, 27, 24, 0.14); }
