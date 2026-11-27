@@ -2315,6 +2315,10 @@
     const s = game.state;
     const hand = handOut.size ? D().hand.filter((id) => !handOut.has(id)) : D().hand;
     selected = selected.filter((id) => hand.indexOf(id) >= 0);
+    // 兜底（2026-11-27 用户：两张猫莫名其妙抬着、好几轮都出不了）：只有轮到我挑牌的时候（我出牌 / 给牌 / 急救挑对子 / 选人）才留着抬起的牌，
+    // 别的时候一律放下——哪条路漏清了选中，也不会把抬着的牌带进下一回合
+    const canPick = !game.spectator && s.alive[0] && (mode === 'save' || mode === 'give' || mode === 'target' || favorAsk() || (s.phase === 'act' && s.turn === 0));
+    if (!canPick && selected.length) selected = [];
     /* 问到我要不要作废（2026-11-16 用户：作废牌要默认替我点起来）：每个新的反应窗，手里第一张作废自动抬起；
      * 再点这张抬起的就打出去（2026-11-17 朋友局：都以为再点一下是出牌，结果放下了、时间到了也没作废成），
      * 点上面的紫色「作废」键也一样；不想挡点「不挡 / 不管」 */
@@ -6987,7 +6991,8 @@
    * 我第三名：台子矮放不下「3」+ 鱼，三根台子都不写数字（高低看得出名次），我那根只放鱼。托管多的小机器人标挂在我头像右上角 */
   /* 每个人这一局的小鱼干（2026-11-27 用户：领奖台上每个人、排行榜每一行都写奖 / 罚，看得出第一拿多少、垫底扣多少；我的那份另外凸显）。
    * 别人的 = 按名次的规则数（不含各人的余额封顶 / 托管减半，那是各人自己的事）；我的 = 服务器结算的真数（WAL.slot，会数上去、鱼游进左上角） */
-  const payTag = (v) => (v == null || !WAL ? '' : '<span class="zm-pay' + (v > 0 ? ' is-up' : v < 0 ? ' is-down' : '') + '">' + WAL.FISH + '<i>' + (v < 0 ? '−' : '+') + Math.abs(v).toLocaleString('en-US') + '</i></span>');
+  // nil：这局我没扣上门票、不计小鱼干——照样标出这个名次的奖罚，只是划掉（2026-11-27 用户：单机排行榜看不出奖罚）
+  const payTag = (v, nil) => (v == null || !WAL ? '' : '<span class="zm-pay' + (v > 0 ? ' is-up' : v < 0 ? ' is-down' : '') + (nil ? ' is-nil' : '') + '">' + WAL.FISH + '<i>' + (v < 0 ? '−' : '+') + Math.abs(v).toLocaleString('en-US') + '</i></span>');
   // 准备了的小勾（2026-11-27 用户：按钮上面那排头像不要了；点了「再来一局」以后，看得出谁准备了）：挂在领奖台 / 排行榜的头像上，我点了准备才显出来
   const rdyTick = (x) => (x.pid ? '<i class="zm-rdy-st" data-rdy="' + esc(x.pid) + '">' + READY_IC + '</i>' : '');
   function podiumHtml(items, slot) {
@@ -6999,11 +7004,11 @@
       if (!x) return '';
       return '<div class="zm-pod is-p' + (i + 1) + (x.me ? ' is-me' : '') + '" style="--pc:' + POD_COLORS[i] + '">' +
         '<span class="avw"><span class="av">' + x.face + '</span>' + (i === mi ? bot : '') + rdyTick(x) + '</span><b class="nm">' + esc(x.nick) + (x.me ? '<i class="me">' + T('ui.me', '我') + '</i>' : '') + '</b>' +
-        '<span class="blk"><span class="num">' + (i + 1) + '</span>' + (i === mi ? sl : payTag(x.pay)) + '</span></div>';
+        '<span class="blk"><span class="num">' + (i + 1) + '</span>' + (i === mi ? sl : payTag(x.pay, x.nil)) + '</span></div>';
     };
     const rest = items.slice(3);
     return '<h2 class="zm-sr">' + T('ui.rank.title', '排行榜') + '</h2><div class="zm-podium">' + col(1) + col(0) + col(2) + '</div>' +
-      (rest.length ? '<ol class="zm-rank zm-rank-rest' + (rest.length >= 4 ? ' is-many' : '') + '">' + rest.map((x, j) => '<li class="' + (x.me ? 'is-me' : '') + '"><span class="pos">' + (j + 4) + '</span><span class="miniw"><span class="mini">' + x.face + '</span>' + (j + 3 === mi ? bot : '') + rdyTick(x) + '</span><span class="nm">' + esc(x.nick) + (x.me && j + 3 !== mi ? '<small>' + T('ui.rank.me', '（我）') + '</small>' : '') + '</span>' + (j + 3 === mi ? sl : payTag(x.pay)) + '</li>').join('') + '</ol>' : '') +
+      (rest.length ? '<ol class="zm-rank zm-rank-rest' + (rest.length >= 4 ? ' is-many' : '') + '">' + rest.map((x, j) => '<li class="' + (x.me ? 'is-me' : '') + '"><span class="pos">' + (j + 4) + '</span><span class="miniw"><span class="mini">' + x.face + '</span>' + (j + 3 === mi ? bot : '') + rdyTick(x) + '</span><span class="nm">' + esc(x.nick) + (x.me && j + 3 !== mi ? '<small>' + T('ui.rank.me', '（我）') + '</small>' : '') + '</span>' + (j + 3 === mi ? sl : payTag(x.pay, x.nil)) + '</li>').join('') + '</ol>' : '') +
       (slot && mi < 0 ? slot : '');
   }
   // 台子从底下长出来（三、二、一依次），头像随后落到台上，冠军那一下冒一圈金星
@@ -7062,8 +7067,10 @@
         '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + homeLabel() + '</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>' + T('ui.again', '再来一局') + '</button></div>', (d) => { soloEndWire(d); if (wp) WAL.fill(d, wp, game); });
       return;
     }
-    const sp = (i) => (wp && WAL.payout ? WAL.payout({ tier: settings.tier, mode: curMode(), n: order.length, rank: i + 1 }) : null);
-    openDialog(podiumHtml(order.map((seat, i) => ({ face: avatarHtml(seat), nick: nameOf(seat), me: seat === 0, pay: sp(i) })), wp ? WAL.slot() : '') +
+    // 每个名次的奖罚一律标出来（同联机排行榜）：以前只有门票扣上了（wp）才标——没扣上票的局整张榜一个数都没有（2026-11-27 用户截图）。
+    // 门票扣上了：我那格照旧放结算胶囊；没扣上：我那格也标这个名次的数，划掉 = 这局不计
+    const sp = (i) => (WAL && WAL.payout ? WAL.payout({ tier: game.wt ? game.wt.tier : settings.tier, mode: game.wt ? game.wt.mode : curMode(), n: order.length, rank: i + 1 }) : null);
+    openDialog(podiumHtml(order.map((seat, i) => ({ face: avatarHtml(seat), nick: nameOf(seat), me: seat === 0, pay: sp(i), nil: seat === 0 && !wp })), wp ? WAL.slot() : '') +
       '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + homeLabel() + '</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>' + T('ui.again', '再来一局') + '</button></div>', (d) => { d.classList.add('is-podium'); soloEndWire(d); animPodium(d); if (wp) WAL.fill(d, wp, game); });
   }
   function soloEndWire(d) {

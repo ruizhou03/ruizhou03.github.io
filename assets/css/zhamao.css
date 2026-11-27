@@ -2173,6 +2173,9 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zm-pod .blk > .zm-pay, .zm-pod .zmw-res.is-inline { width: calc(100% - 18px); box-sizing: border-box; padding-top: 7px; border-top: 1px solid rgba(255, 253, 248, 0.45); }
 .zm-pay { display: inline-flex; align-items: center; justify-content: center; gap: 4px; font: 700 14px/1 'ZM Num', 'ZM Serif', Georgia, serif; white-space: nowrap; }
 .zm-pay i { font-style: normal; }
+.zm-pay.is-nil i { text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.zm-pay.is-nil { opacity: 0.55; }
+.zm-pod .zm-pay.is-nil { opacity: 0.55; }
 .zm-pay .zmw-fish { width: 20px; height: 13px; flex: none; }
 .zm-pod .zm-pay { color: #fffdf8; opacity: 0.9; text-shadow: 0 1px 0 rgba(29, 27, 24, 0.16); }
 .zm-pod .zm-pay .zmw-fish path:nth-child(-n+2) { fill: currentColor; stroke: none; }
