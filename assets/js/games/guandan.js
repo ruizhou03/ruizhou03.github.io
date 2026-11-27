@@ -2058,7 +2058,9 @@
         // 出完牌：名次标签（头游/二游/三游/末游）直接取代张数，不再「0 | 头游」两个并排。
         se.rk.hidden = false;
         se.rk.className = 'gd-rank-badge r' + (rankPos + 1);
-        se.rk.textContent = ['头游','二游','三游','末游'][rankPos];
+        // 2026-11-27 用户：「头游 / 二游」胶囊标签丑 → 和手牌数同一张小牌，写 #1 / #2 / #3 / #4，读屏照读全称
+        se.rk.textContent = '#' + (rankPos + 1);
+        se.rk.setAttribute('aria-label', ['头游','二游','三游','末游'][rankPos]);
         se.cnt.hidden = true;
         se.cnt.classList.remove('warn');
       } else {

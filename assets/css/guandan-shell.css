@@ -868,11 +868,17 @@ body .guandan-wrap .gd-seat .gd-av-cnt .gd-count:not([hidden]) {
   box-shadow: 0 0 0 1.5px var(--gd-paper, #fbf6ec), 2px 2px 0 1.5px rgba(29, 27, 24, 0.28);
 }
 body .guandan-wrap .gd-seat .gd-av-cnt .gd-count.warn:not([hidden]) { background: var(--gd-seal); color: var(--gd-seal-ink, #fff); }
-.guandan-wrap .gd-av-cnt .gd-rank-badge:not([hidden]) {
-  display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 10px; margin: 0; white-space: nowrap;
-  background: var(--gd-ink); color: var(--gd-paper); font: 700 11px/1 var(--gd-serif); letter-spacing: 0.04em; box-shadow: 0 0 0 1.5px var(--gd-paper);
+/* 名次：和手牌数同一张实心小牌，写 #1~#4；头游朱砂底 + 一圈细金边，其余墨底 */
+body .guandan-wrap .gd-seat .gd-av-cnt .gd-rank-badge:not([hidden]) {
+  display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
+  min-width: 19px; height: 25px; padding: 0 2px; border-radius: 4px; margin: 0; border: 0; white-space: nowrap;
+  background: var(--gd-ink); color: var(--gd-paper, #fbf6ec); font: 700 12px/1 var(--gd-num); letter-spacing: -0.02em; text-indent: 0;
+  box-shadow: 0 0 0 1.5px var(--gd-paper, #fbf6ec), 2px 2px 0 1.5px rgba(29, 27, 24, 0.28);
 }
-.guandan-wrap .gd-av-cnt .gd-rank-badge.r1:not([hidden]) { background: var(--gd-seal); }
+body .guandan-wrap .gd-seat .gd-av-cnt .gd-rank-badge.r1:not([hidden]) {
+  background: var(--gd-seal); color: #fff6e0;
+  box-shadow: inset 0 0 0 1px rgba(231, 196, 106, 0.95), 0 0 0 1.5px var(--gd-paper, #fbf6ec), 2px 2px 0 1.5px rgba(29, 27, 24, 0.28);
+}
 /* 原来的张数行 / 自己头像上的圆角标都不用了 */
 body.gd-game-fullscreen .guandan-wrap .gd-self-meta .gd-seat-cnt { display: none; }
 body.gd-game-fullscreen .guandan-wrap .gd-seat-meta .gd-seat-cnt:empty,
