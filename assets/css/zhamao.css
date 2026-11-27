@@ -2129,10 +2129,17 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zm-botslot .zmw-bot { margin: 0; box-shadow: 0 0 0 1.5px var(--zm-paper); }
 .zmw-res.is-inline { margin: 0; padding: 0; border: 0; min-height: 0; display: block; }
 .zmw-res.is-inline .zmw-ln { justify-content: center; }
-.zm-pod .zmw-res.is-inline .zmw-ln > b { padding: 3px 8px 3px 5px; border-radius: 999px; background: rgba(255, 253, 248, 0.94); font-size: 15px; gap: 3px; }
-.zm-pod .zmw-res.is-inline .zmw-ln > b .zmw-fish { width: 22px; height: 14px; }
-.zm-podium.is-nonum .zm-pod .blk { padding-top: 14px; }
-.zm-pod.is-p3 .zmw-res.is-inline .zmw-ln > b { font-size: 14px; }
+/* 台子里（2026-11-27 用户：白胶囊像贴上去的）→ 甲「刻在台子上」：和名次数字同一种奶白、同一种字，名次下面压一道细线，鱼是同色剪影 */
+.zm-pod .zmw-res.is-inline { width: 62%; padding-top: 5px; border-top: 1px solid rgba(255, 253, 248, 0.45); }
+.zm-pod .zmw-res.is-inline .zmw-ln > b, .zm-pod .zmw-res.is-inline .zmw-ln > b.is-up, .zm-pod .zmw-res.is-inline .zmw-ln > b.is-down { flex-direction: column; gap: 2px; color: #fffdf8; font-size: 16px; letter-spacing: 0.02em; text-shadow: 0 1px 0 rgba(29, 27, 24, 0.18); }
+.zm-pod .zmw-res.is-inline .zmw-fish { width: 22px; height: 14px; opacity: 0.92; }
+.zm-pod .zmw-res.is-inline .zmw-fish path:nth-child(-n+2) { fill: currentColor; stroke: none; }
+.zm-pod .zmw-res.is-inline .zmw-fish path:nth-child(3) { stroke: var(--pc); }
+.zm-pod .zmw-res.is-inline .zmw-fish circle { fill: var(--pc); }
+.zm-pod.is-p2 .blk { gap: 4px; }
+.zm-podium.is-nonum .zm-pod .blk { padding-top: 10px; }
+.zm-podium.is-nonum .zm-pod .zmw-res.is-inline { border-top: 0; padding-top: 0; }
+.zm-podium.is-nonum .zm-pod .zmw-res.is-inline .zmw-ln > b { font-size: 18px; }
 .zm-rank li > .zmw-res.is-inline { flex: none; margin-left: auto; }
 .zm-rank li > .zmw-res.is-inline .zmw-ln > b { font-size: 19px; gap: 4px; }
 .zm-rank li > .zmw-res.is-inline .zmw-ln > b .zmw-fish { width: 28px; height: 18px; }
