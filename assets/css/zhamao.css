@@ -5,8 +5,8 @@
  * 思源宋体截成只含游戏用字（scripts/zhamao-fonts.py，加了新字要重跑；tests/zhamao-fonts.test.js 查漏字）+ Gelasio 数字（Georgia 的开源替身）。
  * 放在每个字体列表最前面，苹果 / 安卓 / 电脑一个样；页面在字体到之前不显示游戏（index.html 开头），最多等 3 秒再退回系统字体。
  * 玩家自己打的字（昵称、聊天）里不在字表的字，逐字退回后面的系统宋体 / 思源宋体 CDN */
-@font-face { font-family: 'ZM Serif'; font-weight: 400; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-serif-400.woff2?v=04e9f29173') format('woff2'); }
-@font-face { font-family: 'ZM Serif'; font-weight: 700; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-serif-700.woff2?v=9b4c2e490b') format('woff2'); }
+@font-face { font-family: 'ZM Serif'; font-weight: 400; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-serif-400.woff2?v=23a2bddcdd') format('woff2'); }
+@font-face { font-family: 'ZM Serif'; font-weight: 700; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-serif-700.woff2?v=ebabe69088') format('woff2'); }
 @font-face { font-family: 'ZM Num'; font-weight: 700; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-num-700.woff2?v=73242cd6c8') format('woff2'); }
 
 body.zm-fullscreen { margin: 0; background: #f3eee3; overflow: hidden; }
