@@ -5176,8 +5176,8 @@
    * ④ 整段播完，我自己出局的话手牌区才出那排「看谁」的小头像 */
   async function animOut(e, t) {
     // 最后一个出局（之后只剩赢家）：快进到这儿就停，最后这一炸和结算的聚光灯按原速放——让大家看清冠军是谁（2026-11-14 用户）
-    if (ov && ov.alive.filter(Boolean).length <= 2 && game.turbo) { game.turboOff = true; game.finalSlow = true; setTurbo(false); }
-    else if (ov && ov.alive.filter(Boolean).length <= 2) { game.turboOff = true; game.finalSlow = true; }
+    if (ov && ov.alive.filter(Boolean).length <= 2 && game.turbo) { game.turboOff = true; setTurbo(false); }
+    else if (ov && ov.alive.filter(Boolean).length <= 2) game.turboOff = true;
     if (window.ZhamaoAudio) window.ZhamaoAudio.knockedOut();
     const node = game.boomNode;   // （旧路径留着兜底：九命 / 急救之类没走到这儿；正常出局时为空）
     game.boomNode = null;
@@ -9854,9 +9854,7 @@
       // 单机：我出局、自己那下炸完了（fastOut），机器猫还在接着打 → 我自己的 ⏩
       const s = game.state;
       // 最后一摸 game.state 当场就是 over：桌上还在演（ov）就别收键，不然键一没、牌还没翻开就知道打完了（2026-11-26 用户）
-      if (!game.tutorial && s && !s.alive[meSeat()] && (s.phase !== 'over' || ov) && game.fastOut && (!game.turboOff || game.finalSlow)) mode = 'ff';
-      // 2026-11-27 用户：游戏结束（最后一炸 + 冠军聚光灯按原速放）时点快进没反应——以前这时键直接收掉了，手指点在原处什么都没有。
-      // 现在最后这段键还在，点了一样直接进排行榜（jumpToEnd 对「已经算完、桌上还在演」那一支本来就支持）
+      if (!game.tutorial && s && !s.alive[meSeat()] && (s.phase !== 'over' || ov) && game.fastOut && !game.turboOff) mode = 'ff';
       // 2026-11-22 用户：我出局了就直接 5 倍速播（以前要自己点 ⏩ 才 5 倍）；⏩ 改成「直接看结果」
       if (mode === 'ff' && !game.turbo && !game.autoTurbo) { game.autoTurbo = true; setTurbo(true); }
       if (game.ffJump && s && (s.phase !== 'over' || ov)) mode = 'ff';   // 点了「直接看结果」、剩下几步还在算：键一直亮着，算完进结算再收
