@@ -9678,9 +9678,11 @@
     const me = online && online.st ? online.st.me : null;
     const face = (r) => (r.avatar && AV && AV.byId[r.avatar] ? AV.byId[r.avatar].svg : '<span>' + esc((r.nick || '?').slice(0, 1)) + '</span>');
     const ms = rec.matches;
+    // 并列同名次（2026-11-27 用户：平均名次一样的给同一个名次，不按名字分先后）：1、2、2、4……奖牌跟着名次走
+    const pos = []; rec.rows.forEach((r, i) => { pos[i] = i && r.avg.toFixed(1) === rec.rows[i - 1].avg.toFixed(1) ? pos[i - 1] : i; });
     return '<div class="zm-record"><div class="zm-record-h">' + T('ui.record.title', '本房间战绩 · {n} 局', { n: ms.length }) + '<small>' + T('ui.record.by', '按平均名次') + '</small></div><div class="zm-record-scroll">' +
       '<table><thead><tr><th></th><th class="nm"></th><th class="avg">' + T('ui.record.avg', '平均名次') + '</th>' + ms.map((m, i) => '<th class="rk">' + (i + 1) + '</th>').join('') + '</tr></thead><tbody>' +
-      rec.rows.map((r, i) => '<tr class="' + (r.id === me ? 'is-me' : '') + '"><td class="pos">' + (medals && i < 3 ? medal(i) : i + 1) + '</td><td class="nm"><span class="nmw"><span class="mini">' + face(r) + '</span><span>' + esc(r.nick) + '</span></span></td>' +
+      rec.rows.map((r, i) => '<tr class="' + (r.id === me ? 'is-me' : '') + '"><td class="pos">' + (medals && pos[i] < 3 ? medal(pos[i]) : pos[i] + 1) + '</td><td class="nm"><span class="nmw"><span class="mini">' + face(r) + '</span><span>' + esc(r.nick) + '</span></span></td>' +
         '<td class="avg">' + r.avg.toFixed(1) + '</td>' +
         ms.map((m) => { const x = r.ranks.find((k) => k.m === m); return '<td class="rk' + (x && x.r === 1 ? ' is-win' : '') + '">' + (x ? x.r : '–') + '</td>'; }).join('') + '</tr>').join('') +
       '</tbody></table></div></div>';
