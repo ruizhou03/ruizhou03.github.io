@@ -1415,9 +1415,10 @@
     hand.style.setProperty('--gd-stack-step', step + 'px');
     // 2026-11-27 用户：同点数摞得很高（两副牌一列最多 8 张，加逢人配的自定义组更高）时别压牌——
     // 压了点数 / 花色看不清，手指也点不准。改为让按钮行跟着最高那列往上挪一点：
-    // 5 张以内按钮不动（锚在 5 张深）；6~8 张按钮随之升 1~3 档；超过 8 张（只有手动摞的超大炸弹）
+    // 2026-11-27 二改：只看「按钮正下方」那几列（按钮行半宽 130px 再外扩 6px 范围内的列）——别处再高也挡不着按钮。
+    // 正下方都不高时按钮落到 4 张深；有高的就随之升，最多 8 张深；超过 8 张（只有手动摞的超大炸弹）
     // 按钮停在 8 张深，那一列才轻微压紧到 8 张深的高度。
-    const BAND_MIN = 5, BAND_MAX = 8;
+    const BAND_MIN = 4, BAND_MAX = 8;
     let tallest = 0;
     cols.forEach(col => {
       const cards = col.querySelectorAll('.gd-card');
@@ -1427,7 +1428,7 @@
       col.style.height = ((n - 1) * colStep + cardH) + 'px';
       cards.forEach((c, i) => { c.style.top = (i * colStep) + 'px'; });
     });
-    const bandDepth = Math.max(BAND_MIN, Math.min(BAND_MAX, tallest));
+    // 量按钮正下方的列（列间叠压在下面才算，所以放到叠压之后再定按钮高度，见下）
     // 2026-11-27 用户：列太多一行放不下怎么办——先让列和列叠起来（每列至少露出 0.72W，点数和花色都看得见），
     // 实在还放不下，才交给 .gd-hand 横向滑动看牌。
     const colArr = [...cols];
@@ -1441,7 +1442,17 @@
     // 出牌决策带锚到「~6 张深」的高度：随卡片大小自适应，不再死留过多空白。
     // = 桌底+手牌底距 + 6 张摞高(1 张 cardH + 5 个错位 step)，再整体下移 20px(用户两次要按钮更低一点)；CSS 叠加 env(safe-bottom)。
     // 2026-11-26：微信横屏太矮，按钮行改锚到「5 张深」，给左右两家的出牌和我的闹钟腾出一行
-    // 2026-11-27：手里最高那列超过 5 张时跟着升（见上面 bandDepth），最多升到 8 张深
+    let underBand = 0;
+    {
+      const tr = els.table && els.table.getBoundingClientRect();
+      const cx = tr && tr.width ? tr.left + tr.width / 2 : window.innerWidth / 2;
+      cols.forEach(col => {
+        const r = col.getBoundingClientRect();
+        if (r.right > cx - 136 && r.left < cx + 136) underBand = Math.max(underBand, col.querySelectorAll('.gd-card').length);
+      });
+    }
+    const bandDepth = Math.max(BAND_MIN, Math.min(BAND_MAX, underBand));
+    // 2026-11-27：按钮正下方最高那列决定按钮高度（4~8 张深，见上面 bandDepth）
     document.documentElement.style.setProperty('--gd-band-bottom', Math.round(-2 + cardH + (bandDepth - 1) * step) + 'px');
   }
 
