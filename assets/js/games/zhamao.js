@@ -6818,17 +6818,24 @@
    * 不写「第几名」「胜利」之类的字——台子高低和颜色已经说明了。items：[{ face, nick, me }]，按名次排好 */
   const POD_COLORS = ['#c9a96e', '#a9adb5', '#c98a55'];
   // 2026-11-26 用户：9 人局榜单太长、底下的小鱼干要滚才看得到——第 4 名往后超过 3 个就排成两列小格（is-grid）
-  function podiumHtml(items) {
+  /* slot（2026-11-27 用户）：这局我的小鱼干不再单独一行，揉进榜里——上了台就放进我那根台子（名次数字下面），没上台放在我那一行右边；
+   * 我第三名：台子矮放不下「3」+ 鱼，三根台子都不写数字（高低看得出名次），我那根只放鱼。托管多的小机器人标挂在我头像右上角 */
+  function podiumHtml(items, slot) {
+    const mi = slot ? items.findIndex((x) => x.me) : -1;
+    const sl = mi >= 0 ? slot.replace('class="zmw-res"', 'class="zmw-res is-inline"') : '';
+    const noNum = mi === 2;
+    const bot = '<i class="zm-botslot" data-zmw-bot></i>';
     const col = (i) => {
       const x = items[i];
       if (!x) return '';
       return '<div class="zm-pod is-p' + (i + 1) + (x.me ? ' is-me' : '') + '" style="--pc:' + POD_COLORS[i] + '">' +
-        '<span class="av">' + x.face + '</span><b class="nm">' + esc(x.nick) + (x.me ? '<i class="me">' + T('ui.me', '我') + '</i>' : '') + '</b>' +
-        '<span class="blk"><span>' + (i + 1) + '</span></span></div>';
+        '<span class="avw"><span class="av">' + x.face + '</span>' + (i === mi ? bot : '') + '</span><b class="nm">' + esc(x.nick) + (x.me ? '<i class="me">' + T('ui.me', '我') + '</i>' : '') + '</b>' +
+        '<span class="blk">' + (noNum ? '' : '<span class="num">' + (i + 1) + '</span>') + (i === mi ? sl : '') + '</span></div>';
     };
     const rest = items.slice(3);
-    return '<h2 class="zm-sr">' + T('ui.rank.title', '排行榜') + '</h2><div class="zm-podium">' + col(1) + col(0) + col(2) + '</div>' +
-      (rest.length ? '<ol class="zm-rank zm-rank-rest' + (rest.length >= 4 ? ' is-grid' : '') + '">' + rest.map((x, j) => '<li class="' + (x.me ? 'is-me' : '') + '"><span class="pos">' + (j + 4) + '</span><span class="mini">' + x.face + '</span><span class="nm">' + esc(x.nick) + (x.me ? '<small>' + T('ui.rank.me', '（我）') + '</small>' : '') + '</span></li>').join('') + '</ol>' : '');
+    return '<h2 class="zm-sr">' + T('ui.rank.title', '排行榜') + '</h2><div class="zm-podium' + (noNum ? ' is-nonum' : '') + '">' + col(1) + col(0) + col(2) + '</div>' +
+      (rest.length ? '<ol class="zm-rank zm-rank-rest' + (rest.length >= 4 ? ' is-grid' : '') + '">' + rest.map((x, j) => '<li class="' + (x.me ? 'is-me' : '') + '"><span class="pos">' + (j + 4) + '</span><span class="miniw"><span class="mini">' + x.face + '</span>' + (j + 3 === mi ? bot : '') + '</span><span class="nm">' + esc(x.nick) + (x.me && j + 3 !== mi ? '<small>' + T('ui.rank.me', '（我）') + '</small>' : '') + '</span>' + (j + 3 === mi ? sl : '') + '</li>').join('') + '</ol>' : '') +
+      (slot && mi < 0 ? slot : '');
   }
   // 台子从底下长出来（三、二、一依次），头像随后落到台上，冠军那一下冒一圈金星
   function animPodium(d) {
@@ -6886,7 +6893,7 @@
         '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + homeLabel() + '</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>' + T('ui.again', '再来一局') + '</button></div>', (d) => { soloEndWire(d); if (wp) WAL.fill(d, wp, game); });
       return;
     }
-    openDialog(podiumHtml(order.map((seat) => ({ face: avatarHtml(seat), nick: nameOf(seat), me: seat === 0 }))) + (wp ? WAL.slot() : '') +
+    openDialog(podiumHtml(order.map((seat) => ({ face: avatarHtml(seat), nick: nameOf(seat), me: seat === 0 })), wp ? WAL.slot() : '') +
       '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + homeLabel() + '</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>' + T('ui.again', '再来一局') + '</button></div>', (d) => { d.classList.add('is-podium'); soloEndWire(d); animPodium(d); if (wp) WAL.fill(d, wp, game); });
   }
   function soloEndWire(d) {
@@ -8961,6 +8968,7 @@
       return;
     }
     syncPeople(st);
+    if (g.over) { readyPaint(); checkShort(st); }
     syncNoHelp(g);
     syncOnlinePause(g);
     syncRoles(g);
@@ -9422,6 +9430,79 @@
   /* 排行榜（一局结束；编辑模式里点「排行榜」也回到这里）。2026-11-14 用户：房主「下一局」= 同样的人、座位、规则直接开打；
    * 「回房间」改规则 / 加减机器猫；⇄ 进编辑模式（长按头像也行）：拖头像换座位、点 × 请离。下面列本房间战绩。
    * 名字按这局打完那一刻记下的（座位调过之后再打开也对得上） */
+  /* ───── 准备（2026-11-27 用户：联机更民主）─────
+   * 房主也只是点「准备」，坐着的真人全准备好，服务器当场开（最后一个人那次请求里开，不多轮询）。牌桌上不写说明：
+   * · 按钮：准备 →（点了）✓ 已准备（淡底，再点取消）；别人都准备了、只差我 → 按钮直接写「开始」
+   * · 排行榜按钮上方一排小头像（.zm-readyrow，只有真人、两个以上才有）：准备了的亮、右下角盖朱红小勾；没准备的淡着、轻轻呼吸——房主一眼看得出在等谁
+   * · 房间页不加那一排：座位右上角直接盖同样的小勾
+   * 我刚点、服务器还没回来：先按我点的显示（3 秒没回来作罢），不等来回 */
+  const readyReq = { on: null, at: 0 };
+  const READY_IC = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.6 8.4 6.6 11.2 12.4 4.8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function readyPhaseOk(st) { return !!(st && !st.spectator && st.mySeat >= 0 && (st.phase === 'lobby' || (st.game && st.game.over))); }
+  function readyHumans(st) { return st.players.filter((p) => !p.isAi && !p.left); }
+  function readySet(st) {
+    const s = new Set(st.ready || []);
+    if (readyReq.on != null && performance.now() - readyReq.at < 3000) { if (readyReq.on) s.add(st.me); else s.delete(st.me); } else readyReq.on = null;
+    return s;
+  }
+  // 'on' = 我准备了；'' = 还没准备
+  function readyMine(st) { return readySet(st).has(st.me) ? 'on' : ''; }
+  /* 字（2026-11-27 用户第二版）：排行榜上一直叫「再来一局」；点了以后客人「✓ 已准备」、房主「等待其他玩家准备…」。
+   * 房间页没点时叫「准备」（只有我一个真人时叫「开始」）。按钮宽度写死，换字不变宽 */
+  function readyLabel(k, rank) {
+    const st = online && online.st;
+    if (k === 'on') return st && st.hostId === st.me ? '<i class="is-wait">' + T('ui.ready.wait', '等待其他玩家准备…') + '</i>' : READY_IC + T('ui.ready.on', '已准备');
+    if (rank) return T('ui.again', '再来一局');
+    return st && readyHumans(st).length < 2 ? T('ui.start', '开始') : T('ui.ready', '准备');
+  }
+  function readyBtnHtml(st, rank) {
+    const k = readyMine(st);
+    return '<button type="button" class="zm-btn zm-btn-primary zm-ready' + (rank ? ' is-rank' : '') + (k === 'on' ? ' is-on' : '') + '" data-ready data-focus><span class="zm-ready-t" data-k="' + k + '">' + readyLabel(k, rank) + '</span></button>';
+  }
+  function readyRowHtml(st) {
+    const hs = readyHumans(st);
+    if (hs.length < 2) return '';
+    const s = readySet(st);
+    const face = (p) => (p.avatar && AV && AV.byId[p.avatar] ? AV.byId[p.avatar].svg : '<span>' + esc((p.nick || '?').slice(0, 1)) + '</span>');
+    return '<div class="zm-readyrow" role="list">' + hs.slice().sort((a, b) => a.seat - b.seat).map((p) => '<i class="zm-rdy' + (s.has(p.id) ? ' is-on' : '') + (p.id === st.me ? ' is-me' : '') + (p.online ? '' : ' is-off') + '" role="listitem" title="' + esc(p.nick) + '" aria-label="' + esc(p.nick) + (s.has(p.id) ? T('ui.ready.on', '已准备') : '') + '">' + face(p) + '<b>' + READY_IC + '</b></i>').join('') + '</div>';
+  }
+  function readyToggle(btn) {
+    const st = online && online.st;
+    if (!readyPhaseOk(st)) return;
+    const on = readyMine(st) !== 'on';
+    readyReq.on = on; readyReq.at = performance.now();
+    readyLast = on ? 'on' : '';
+    snd(on ? 'tick' : 'tap');
+    readyPaint();
+    if (btn && on && !fx.reduce()) btn.animate([{ transform: 'scale(1)' }, { transform: 'scale(0.92)' }, { transform: 'scale(1.04)' }, { transform: 'scale(1)' }], { duration: 320, easing: 'ease-out' });
+    // 门票当场扣 / 退（服务器同时记账）：鱼在左上角和这颗键之间游（排行榜才有左上角的小鱼干）
+    const g = G(), price = g && g.pay && !g.pay.refund ? g.pay.price : 0;
+    if (WAL && WAL.holdFx && btn && price) WAL.holdFx(btn, price, on);
+    onlineAct('ready', { on }).then(() => { readyReq.on = null; readyPaint(); if (WAL && WAL.refresh) setTimeout(() => WAL.refresh(), 900); });
+  }
+  let readyLast = '';
+  // 状态一变就就地改（不重画排行榜，领奖台动画不重播）；房间页整页重画，不用这个
+  function readyPaint() {
+    const st = online && online.st;
+    if (!st) return;
+    const k = readyPhaseOk(st) ? readyMine(st) : '';
+    // 不是我点的、准备没了（房主改了规则 / 门票价变了）：服务器把门票退了，左上角对一下数
+    if (readyLast === 'on' && k !== 'on' && readyReq.on == null && WAL && WAL.refresh) WAL.refresh();
+    readyLast = k;
+    const d = els.dialog;
+    if (!els.mask.hidden && d.querySelector('[data-ready]')) {
+      const b = d.querySelector('[data-ready]'), t = b.querySelector('.zm-ready-t');
+      b.classList.toggle('is-on', k === 'on');
+      if (t && t.dataset.k !== k) { t.dataset.k = k; t.innerHTML = readyLabel(k, b.classList.contains('is-rank')); }
+      b.disabled = false;
+      const acts = b.closest('.zm-actions');
+      if (acts) acts.classList.toggle('is-ready', k === 'on');   // 道具格（zhamao-beta.js）看这个锁住
+      const row = d.querySelector('.zm-readyrow'), html = readyRowHtml(st);
+      if (row) { if (row.outerHTML !== html) { if (html) row.outerHTML = html; else row.remove(); } }
+      else if (html && acts) acts.insertAdjacentHTML('beforebegin', html);
+    }
+    if (ffBtn && ffBtn.dataset.mode === 'next') ffBtn.classList.toggle('is-on', k === 'on');
+  }
   // 组队结算（单机 / 联机共用）：赢的那一队都写「胜利」、都挂奖牌，下面一道线隔开输的
   function teamRankHtml(order, w, won) {
     const s = game.state, me = game.spectator ? -1 : 0;
@@ -9456,19 +9537,18 @@
       : order.map((seat) => ({ me: seat === 0 && !game.spectator, face: avatarHtml(seat), nick: nameOf(seat) }));
     const teamW = teamGame() ? (g.winners || 1) : 0;   // 组队：赢的那一队都算赢，不上领奖台，用队伍名单
     openDialog((host ? '<button type="button" class="zm-icbtn zm-rank-edit is-corner" data-edit aria-label="' + T('ui.host.edit', '调座位 / 请人离开') + '" title="' + T('ui.host.edit', '调座位 / 请人离开') + '">' + HOST_IC.swap + '</button>' : '') +
-      (teamW ? teamRankHtml(order, teamW, !game.spectator && order.slice(0, teamW).indexOf(0) >= 0) : podiumHtml(items)) +
-      (WAL && g.pay && !game.spectator && !g.pay.refund ? WAL.slot() : '') +
+      (teamW ? teamRankHtml(order, teamW, !game.spectator && order.slice(0, teamW).indexOf(0) >= 0) + (WAL && g.pay && !game.spectator && !g.pay.refund ? WAL.slot() : '') : podiumHtml(items, WAL && g.pay && !game.spectator && !g.pay.refund ? WAL.slot() : '')) +
       recordHtml(st && st.record, 2) +
-      (host ? '' : '<p class="zm-muted">' + T('ui.room.waitNext', '等房主开下一局') + (WAL && g.pay && !g.pay.refund && !game.spectator ? T('ui.room.waitNextFee', '（开局时扣门票 {p} 小鱼干）', { p: Number(g.pay.price).toLocaleString('en-US') }) : '') + '</p>') +
-      '<div class="zm-actions"><button type="button" class="zm-btn" data-leave>' + T('ui.leaveRoom', '离开房间') + '</button>' + (host ? '<button type="button" class="zm-btn" data-again>' + T('ui.room.backShort', '回房间') + '</button><button type="button" class="zm-btn zm-btn-primary" data-next data-focus>' + T('ui.nextGame', '下一局') + '</button>' : '') + '</div>', (d) => {
+      (readyPhaseOk(st) ? readyRowHtml(st) : '') +
+      '<div class="zm-actions' + (readyPhaseOk(st) && readyMine(st) === 'on' ? ' is-ready' : '') + '"><button type="button" class="zm-btn" data-leave>' + T('ui.leaveRoom', '离开房间') + '</button>' + (host ? '<button type="button" class="zm-btn" data-again>' + T('ui.room.backShort', '回房间') + '</button>' : '') + (readyPhaseOk(st) ? readyBtnHtml(st, true) : '') + '</div>', (d) => {
       if (!teamW) { d.classList.add('is-podium'); animPodium(d); }
       if (WAL) { const mi = teamW ? -1 : items.findIndex((x) => x.me); WAL.fillOnline(d, !game.spectator && g.pay ? Object.assign({}, g.pay, mi >= 0 ? { rank: mi + 1 } : {}) : null, game); }
       d.querySelector('[data-leave]').addEventListener('click', () => { closeDialog(); leaveOnline(true); });
       const a = d.querySelector('[data-again]');
       if (a) a.addEventListener('click', () => { a.disabled = true; onlineAct('rematch'); });
-      const nx = d.querySelector('[data-next]');
-      if (nx && WAL && WAL.costTag && g.pay && !g.pay.refund && !game.spectator) WAL.costTag(nx, g.pay.price);   // 2026-11-24 用户：「下一局」也要看得出花多少（同一桌同样的门票）
-      if (nx) nx.addEventListener('click', () => { nx.disabled = true; onlineAct('next'); });
+      const nx = d.querySelector('[data-ready]');
+      if (nx && WAL && WAL.costTag && g.pay && !g.pay.refund && !game.spectator) WAL.costTag(nx, g.pay.price);   // 2026-11-24 用户：「下一局」也要看得出花多少（同一桌同样的门票）——现在挂在「准备」上
+      if (nx) nx.addEventListener('click', () => readyToggle(nx));
       const ed = d.querySelector('[data-edit]');
       if (ed) ed.addEventListener('click', () => { closeDialog(); enterEdit('table'); });
     });
@@ -9564,7 +9644,7 @@
       void req;
       const want = !!(replaying && !game.turboOff);
       if (!!game.turbo !== want) setTurbo(want);
-      const canNext = !!(g && g.over && game.finishShown === g.matchNo && isHost() && !online.playing && !online.queue.length);
+      const canNext = !!(g && g.over && game.finishShown === g.matchNo && readyPhaseOk(online.st) && !online.playing && !online.queue.length);   // 2026-11-27：人人都有（= 准备）
       mode = replaying || (game.ffJump && g && game.finishShown !== g.matchNo) ? 'ff' : canNext ? 'next' : '';
     }
     if (!mode) { if (ffBtn) { ffBtn.remove(); ffBtn = null; } return; }
@@ -9585,7 +9665,7 @@
           b.disabled = true;
           snd('tap');
           jumpToEnd();   // 2026-11-22 用户：⏩ = 直接看结果（剩下的瞬间算完，跳到排行榜）
-        } else if (b.dataset.mode === 'next') { b.disabled = true; exitEdit(); onlineAct('next'); }
+        } else if (b.dataset.mode === 'next') { exitEdit(); readyToggle(null); }
       });
       els.center.appendChild(ffBtn);
       if (!fx.reduce()) ffBtn.animate([{ opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1 }], { duration: 260, easing: 'cubic-bezier(.3,.7,.4,1.4)' });
@@ -9601,9 +9681,10 @@
       ffBtn.dataset.mode = mode;
       ffBtn.innerHTML = FF_IC[mode];
       ffBtn.disabled = false;
-      const label = mode === 'ff' ? T('ui.ffEnd', '直接看结果') : T('ui.nextGame', '下一局');
+      const label = mode === 'ff' ? T('ui.ffEnd', '直接看结果') : T('ui.ready', '准备');
       ffBtn.setAttribute('aria-label', label); ffBtn.title = label;
     }
+    if (mode === 'next') ffBtn.classList.toggle('is-on', readyMine(online.st) === 'on');
     ffBtn.classList.toggle('is-on', mode === 'ff' && !!game.ffJump);   // 我出局后自动 5 倍速播时不亮（2026-11-26 用户：一上来就黄，像是已经按住了）；点了「直接看结果」才亮
   }
 
@@ -9941,9 +10022,11 @@
     if (!sh || !WAL || !WAL.topUp || st.spectator || sh.ids.indexOf(st.me) < 0 || shortSeen === sh.at) return;
     shortSeen = sh.at;
     const host = st.hostId === st.me;
-    WAL.topUp({ tier: sh.tier, mode: sh.mode, n: sh.n, price: sh.price, okLabel: host ? T('ui.start', '开始') : T('ui.wallet.ready', '好了') }).then((ok) => {
+    void host;
+    // 2026-11-27：我点准备时服务器发现我不够 → 弹补鱼，主键「准备」，补够了点它 = 再点一次准备
+    WAL.topUp({ tier: sh.tier, mode: sh.mode, n: sh.n, price: sh.price, okLabel: T('ui.ready', '准备') }).then((ok) => {
       if (!ok || !online) return;
-      onlineAct('wallet_ok').then((r) => { if (host && r && r.state && r.state.phase === 'lobby' && !r.state.short) onlineAct('start'); });
+      onlineAct('ready', { on: true });
     });
   }
   function enterLobby(st, prev) {
@@ -9984,7 +10067,7 @@
    *  ③ 大厅里也能「说一句」（右上角聊天键；对局里那一套）
    *  ④「观战者能看我的手牌」挪进右上角菜单的「设置」，房间页只留这一局的事
    *  ⑤ 邀请直接：房间号旁「复制链接」「二维码」，二维码就地展开给旁边的人扫 */
-  let lobbyQr = false;
+  let lobbyQr = false, lobbyRdySeen = new Set();
   function renderLobbyV2(st, o) {
     const { host, me, rules, seated, shownSeats, row, sw, ts } = o;
     const order = seated.slice().sort((a, b) => a.seat - b.seat).map((p) => p.seat);
@@ -9995,13 +10078,16 @@
     const myBlock = teamOn && mineSeat != null && mineSeat < teamN ? Math.floor(mineSeat / tsize) : 0;
     const relTeam = (seat) => (teamOn && seat < teamN ? (Math.floor(seat / tsize) - myBlock + form.length) % form.length : -1);
     const tint = (svg, seat) => { const k = relTeam(seat); return k >= 0 ? svg.replace(/(<circle cx="32" cy="32" r="32" fill=")#[0-9a-fA-F]{3,8}/, '$1' + TEAM_BG[k]) : svg; };
+    const rset = readySet(st);
+    setTimeout(() => { lobbyRdySeen = new Set(rset); }, 0);   // 小勾只在刚准备的那一下弹出来（房间页每次整页重画）
     const seatHtml = (seat) => {
       const p = seated.find((x) => x.seat === seat);
       if (!p) return '<button type="button" class="zm-lseat is-empty" data-seat="' + seat + '"><span class="av">+</span><b>' + (host ? T('lobby.addBot', '加机器猫') : T('lobby.empty', '空位')) + '</b><small>' + (st.spectator ? T('lobby.sitHere', '坐这里') : host ? '' : T('lobby.moveHere', '换到这')) + '</small></button>';
       const av = p.avatar && AV && AV.byId[p.avatar] ? tint(AV.byId[p.avatar].svg, seat) : '<span>' + esc(p.nick.slice(0, 1)) + '</span>';
       const tag = p.isAi ? AI.TIER_NAMES[p.aiLevel] || AI.TIER_NAMES.normal : p.id === st.hostId ? T('ui.host', '房主') : !p.online ? T('ui.tag.offline', '掉线') : '';
-      const short = !p.isAi && st.short && st.short.ids.indexOf(p.id) >= 0;   // 这局门票不够（房主点开始时服务器查的）
-      return '<button type="button" class="zm-lseat' + (p.id === me ? ' is-me' : '') + (p.isAi ? ' is-bot' : '') + (short ? ' is-short' : '') + '" data-seat="' + seat + '"><i class="ord">' + (order.indexOf(seat) + 1) + '</i>' + (short && WAL ? '<i class="zm-need">' + WAL.FISH + '</i>' : '') + '<span class="av">' + av + '</span><b>' + esc(p.nick) + '</b><small>' + esc(tag) + '</small></button>';
+      const short = !p.isAi && st.short && st.short.ids.indexOf(p.id) >= 0;   // 这局门票不够（他点准备时服务器查的）
+      const rdy = !p.isAi && !short && rset.has(p.id);   // 准备了：右上角盖朱红小勾（2026-11-27）
+      return '<button type="button" class="zm-lseat' + (p.id === me ? ' is-me' : '') + (p.isAi ? ' is-bot' : '') + (short ? ' is-short' : '') + (rdy ? ' is-ready' : '') + '" data-seat="' + seat + '"><i class="ord">' + (order.indexOf(seat) + 1) + '</i>' + (short && WAL ? '<i class="zm-need">' + WAL.FISH + '</i>' : '') + (rdy ? '<i class="zm-rdy-st' + (lobbyRdySeen.has(p.id) ? '' : ' is-new') + '">' + READY_IC + '</i>' : '') + '<span class="av">' + av + '</span><b>' + esc(p.nick) + '</b><small>' + esc(tag) + '</small></button>';
     };
     const url = NET.inviteUrl(st.code);
     const tools = '<div class="zm-lobby-tools">' + ($('zmChatBtn') && social && socialOk() ? '<button type="button" class="zm-tool" data-l="chat" aria-label="' + T('ui.chat', '聊天') + '">' + $('zmChatBtn').innerHTML + '</button>' : '') +
@@ -10024,12 +10110,14 @@
         '<div class="zs-line"><span>' + T('ui.team.seats', '座位') + '</span><div class="zs-seg" role="group">' + [['together', T('ui.team.together', '同队坐一起')], ['random', T('ui.team.shuffle', '随机打乱')]].map(([v, tx]) => '<button type="button" data-tseat="' + v + '" aria-pressed="' + (rules.teamSeat === v) + '"' + (host ? '' : ' disabled') + '>' + tx + '</button>').join('') + '</div></div>' : '') +
       '</section>' + ruleChipsHtml(rules, ts, true) +   // 规则：和单机开局单同一排小规则牌，点开规则页（房主改，别人只看）
       (host ? '' : '<p class="zm-muted zm-lobby-note">' + T('lobby.hostRules', '规则由房主定') + '</p>') +
-      '<div class="zm-lobby-actions"><button type="button" class="zm-btn" data-l="leave">' + T('ui.leaveRoom', '离开房间') + '</button>' +
+      '<div class="zm-lobby-actions' + (readyPhaseOk(st) && readyMine(st) === 'on' ? ' is-ready' : '') + '"><button type="button" class="zm-btn" data-l="leave">' + T('ui.leaveRoom', '离开房间') + '</button>' +
       (host && teamOn ? '<button type="button" class="zm-btn" data-l="tshuffle">' + T('lobby.shuffleTeams', '随机分队') + '</button>' : '') +
-      (host ? (teamOn
-        ? (() => { const extra = seated.filter((p) => p.seat >= teamN).length, lack = teamN - seated.filter((p) => p.seat < teamN).length; return '<button type="button" class="zm-btn zm-btn-primary" data-l="start"' + (lack || extra ? ' disabled' : '') + '>' + (lack ? T('lobby.startLack', '开始（还差 {n} 人）', { n: lack }) : extra ? T('lobby.moveExtra', '先把多出来的人挪进队里') : T('lobby.startN', '开始（{n} 人）', { n: teamN })) + '</button>'; })()
-        : '<button type="button" class="zm-btn zm-btn-primary" data-l="start"' + (seated.length >= 2 ? '' : ' disabled') + '>' + T('lobby.startN', '开始（{n} 人）', { n: seated.length }) + '</button>')
-        : '<span class="zm-lobby-wait">' + T('lobby.waitHost', '等房主开始…') + '</span>') + '</div></div>';
+      // 2026-11-27：人人一颗「准备」（房主也是）。人不够 / 组队座位不对时照样能点（准备留着），凑齐了服务器自己开；只是先写着还差什么
+      (st.spectator ? '' : (() => {
+        const lack = teamOn ? teamN - seated.filter((p) => p.seat < teamN).length : Math.max(0, 2 - seated.length), extra = teamOn ? seated.filter((p) => p.seat >= teamN).length : 0;
+        if (!lack && !extra) return readyBtnHtml(st);
+        return '<button type="button" class="zm-btn zm-btn-primary zm-ready" data-l="hold" disabled>' + (lack ? T('lobby.lack', '还差 {n} 人', { n: lack }) : T('lobby.moveExtra', '先把多出来的人挪进队里')) + '</button>';
+      })()) + '</div></div>';
     const qr = lobbyEl.querySelector('[data-qr]');
     if (qr) { if (window.GamesShell && GamesShell.QR) { try { GamesShell.QR.render(qr, url, { scale: 4, margin: 2, dark: '#1d1b18', light: '#fbf8f1' }); } catch (_) { qr.remove(); } } else qr.remove(); }
   }
@@ -10068,7 +10156,7 @@
       return;
     }
     if (b.dataset.l === 'leave') { leaveOnline(true); return; }
-    if (b.dataset.l === 'start') { b.disabled = true; onlineAct('start'); return; }
+    if (b.matches('[data-ready]')) { readyToggle(b); renderLobby(st); return; }
     if (b.matches('[data-rules-open]')) { lobbyRules(); return; }
     if (b.dataset.turn != null) { onlineAct('config', { config: { turnSec: +b.dataset.turn } }); return; }
     if (b.dataset.deck != null) { onlineAct('config', { config: { rules: { deckSize: b.dataset.deck } } }); return; }
@@ -10207,7 +10295,7 @@
         e.stopPropagation();
         if (b.dataset.e === 'done') exitEdit();
         else if (b.dataset.e === 'rank') { exitEdit(); showRanking(); }
-        else if (b.dataset.e === 'next') { b.disabled = true; exitEdit(); onlineAct('next'); }
+        else if (b.dataset.e === 'next') { exitEdit(); readyToggle(null); }
       });
     }
     bar.innerHTML = '<button type="button" class="zm-btn zm-btn-primary" data-e="done">' + T('ui.finish', '完成') + '</button>';

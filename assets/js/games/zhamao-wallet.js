@@ -657,10 +657,13 @@
   function payOf(r) { return r.pay != null ? r.pay : (r.delta || 0) + (r.price || 0) - (r.firstWin || 0); }   // 2026-11-26 起结算能为负（扣钱）
   const sgn = (v) => (v < 0 ? '−' : '+');
   function paintPay(el, r, label, quiet) {
-    el.classList.add('is-lines');
+    const inl = el.classList.contains('is-inline');   // 揉进排行榜里（2026-11-27）：不写「第 N 名」，机器人标挂到我头像右上角
+    el.classList.add(inl ? 'is-in' : 'is-lines');
     const pay = payOf(r);
-    el.innerHTML = '<div class="zmw-ln is-main"><span>' + label + autoBadge(r.auto) + '</span><b class="' + (pay > 0 ? 'is-up' : pay < 0 ? 'is-down' : '') + '">' + FISH + '<i>' + sgn(pay) + (quiet ? fmt(pay) : '0') + '</i></b></div>' + floorNote(r.floor);
-    const bot = el.querySelector('.zmw-bot');
+    const botTo = inl ? (el.closest('.zm-dialog') || document).querySelector('[data-zmw-bot]') : null;
+    if (botTo) botTo.innerHTML = autoBadge(r.auto);
+    el.innerHTML = '<div class="zmw-ln is-main">' + (inl ? '' : '<span>' + label + autoBadge(r.auto) + '</span>') + '<b class="' + (pay > 0 ? 'is-up' : pay < 0 ? 'is-down' : '') + '">' + FISH + '<i>' + sgn(pay) + (quiet ? fmt(pay) : '0') + '</i></b></div>' + (inl ? '' : floorNote(r.floor));
+    const bot = (botTo || el).querySelector('.zmw-bot');
     if (bot) bot.addEventListener('click', (e) => { e.stopPropagation(); bot.classList.toggle('is-open'); clearTimeout(bot.__t); if (bot.classList.contains('is-open')) bot.__t = setTimeout(() => bot.classList.remove('is-open'), 2600); });
   }
   function countUp(el, pay) {
@@ -792,6 +795,20 @@
     const p = now ? step() : (tQ = tQ.then(step));
     return p;
   }
+  /* 联机「再来一局 / 准备」（2026-11-27 用户：点了当场扣门票，没开成退回）：on = 几条鱼从左上角游进按钮、数字往下滚；
+   * off = 从按钮游回左上角、数字往上滚。服务器那边同时扣 / 退，回来后 refresh 对数（一样就不动） */
+  function holdFx(btn, p, on) {
+    const from = tchip && tchip.offsetParent !== null ? tchip : null;
+    if (!p || !from || !btn || !state || state.bal == null) return Promise.resolve();
+    if (on) return state.bal < p ? Promise.resolve() : fishPay(p, from, btn).then(() => {});
+    const fx = FX();
+    cancelFx();
+    const b = from.querySelector('b'), a = tShown != null ? tShown : state.bal, z = a + p;
+    tGen++; tShown = z; held = false; state = Object.assign({}, state, { bal: state.bal + p });
+    if (!fx || !fxOn()) { setT(z); return Promise.resolve(); }
+    fx.roll(b, a, z, 700);
+    return fx.school(FISH, btn, from, 3, { spread: 14, gap: 70, dur: 700, lift: -40, size: 26 }).then(() => { if (tShown === z) setT(z); });
+  }
   /* 换一局 / 回房间：上一局没放完的一律收掉，左上角对成现在的余额；记下开局时的勋章、今天赢没赢过（联机结算时比对） */
   function tableStart(game) {
     tGen++; tQ = Promise.resolve(); held = false;
@@ -867,7 +884,7 @@
     me: refresh,
     checkin: () => post('checkin').then((j) => { state = Object.assign({}, state || {}, { ck: today() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); return j; }), profile, profileCached, profileWait, synced, who, today, fb: (steps) => post('fb', { steps }).catch(() => null), fbAward,
     ledger: (offset) => post('ledger', { offset }), costTag, tagHtml, onNoScore: null,
-    mountChip, mountTable, tableStart, tableChip: () => tchip, badgeShow, claimFirstWin, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login, markBadgesSeen, seenBadges, fxOn, playTicket, pay, canPay, cancelFx, payout, topUp,
+    mountChip, mountTable, tableStart, holdFx, refresh, tableChip: () => tchip, badgeShow, claimFirstWin, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login, markBadgesSeen, seenBadges, fxOn, playTicket, pay, canPay, cancelFx, payout, topUp,
     __demo: { setShown: (x) => { shown = x; if (chip) chip.querySelector('b').textContent = fmt(x); }, repaint: () => paintChip() },
   };
 })(window);

@@ -5,8 +5,8 @@
  * 思源宋体截成只含游戏用字（scripts/zhamao-fonts.py，加了新字要重跑；tests/zhamao-fonts.test.js 查漏字）+ Gelasio 数字（Georgia 的开源替身）。
  * 放在每个字体列表最前面，苹果 / 安卓 / 电脑一个样；页面在字体到之前不显示游戏（index.html 开头），最多等 3 秒再退回系统字体。
  * 玩家自己打的字（昵称、聊天）里不在字表的字，逐字退回后面的系统宋体 / 思源宋体 CDN */
-@font-face { font-family: 'ZM Serif'; font-weight: 400; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-serif-400.woff2?v=4f74f1979b') format('woff2'); }
-@font-face { font-family: 'ZM Serif'; font-weight: 700; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-serif-700.woff2?v=8b89976ed0') format('woff2'); }
+@font-face { font-family: 'ZM Serif'; font-weight: 400; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-serif-400.woff2?v=edc534155f') format('woff2'); }
+@font-face { font-family: 'ZM Serif'; font-weight: 700; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-serif-700.woff2?v=d41416a32b') format('woff2'); }
 @font-face { font-family: 'ZM Num'; font-weight: 700; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-num-700.woff2?v=73242cd6c8') format('woff2'); }
 
 body.zm-fullscreen { margin: 0; background: #f3eee3; overflow: hidden; }
@@ -1697,8 +1697,8 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-pod .av svg { width: 100%; height: 100%; display: block; }
 .zm-pod .nm { max-width: 100%; display: flex; align-items: center; gap: 4px; font-size: 14px; white-space: nowrap; overflow: hidden; }
 .zm-pod .me { flex: none; font-style: normal; font-size: 11px; line-height: 16px; padding: 0 5px; border-radius: 8px; background: var(--zm-seal); color: var(--zm-seal-ink); }
-.zm-pod .blk { align-self: stretch; height: 58px; box-sizing: border-box; display: flex; justify-content: center; padding-top: 8px; background: var(--pc); border-radius: 10px 10px 0 0; transform-origin: 50% 100%; }
-.zm-pod .blk span { font: 700 28px/1 'ZM Num', 'ZM Serif', Georgia, serif; color: #fffdf8; }
+.zm-pod .blk { align-self: stretch; height: 58px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 7px; padding-top: 8px; background: var(--pc); border-radius: 10px 10px 0 0; transform-origin: 50% 100%; }
+.zm-pod .blk > .num { font: 700 28px/1 'ZM Num', 'ZM Serif', Georgia, serif; color: #fffdf8; }
 .zm-pod.is-p1 .blk { height: 118px; }
 .zm-pod.is-p2 .blk { height: 84px; }
 .zm-rank-rest { margin-top: 10px; }
@@ -2084,3 +2084,57 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 }
 /* 摸进手里的猫要变万能猫（百搭 / 百搭猫）：抬起来那一会儿描一圈金边，让人看清是这张在变 */
 .zm-rd-who span { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 12px; color: var(--zm-ink); }
+
+/* ───── 联机「准备」（2026-11-27 用户：全员准备才开局）─────
+ * 按钮：准备（墨底）→ ✓ 已准备（纸底朱红字，再点取消）；只差我时写「开始」。
+ * 排行榜按钮上方一排小头像：准备了的亮、右下角朱红小勾；没准备的淡着、轻轻呼吸。房间页座位右上角盖同样的小勾 */
+.zm-ready { transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.12s ease; }
+.zm-ready .zm-ready-t { display: inline-flex; align-items: center; gap: 4px; }
+.zm-ready .zm-ready-t svg { width: 15px; height: 15px; display: block; }
+.zm-ready.is-on { background: var(--zm-paper); color: var(--zm-seal); border-color: var(--zm-seal); }
+.zm-ready.is-on .zmw-tag { display: none; }   /* 已准备：门票签收起（开局才扣），按钮不变宽、不换行 */
+.zm-readyrow { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
+.zm-rdy { position: relative; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 13px;
+  background: var(--zm-paper); border: 1.5px solid rgba(29, 27, 24, 0.35); opacity: 0.42; filter: grayscale(0.85);
+  transition: opacity 0.25s ease, filter 0.25s ease, border-color 0.25s ease; animation: zm-rdy-wait 2.4s ease-in-out infinite; }
+.zm-rdy > svg, .zm-rdy > span { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; display: grid; place-items: center; }
+.zm-rdy.is-me { border-color: rgba(180, 57, 44, 0.55); }
+.zm-rdy.is-off { border-style: dashed; }
+.zm-rdy b { position: absolute; right: -4px; bottom: -3px; width: 15px; height: 15px; border-radius: 50%; background: var(--zm-seal); color: #fff; display: grid; place-items: center;
+  transform: scale(0); transition: transform 0.28s cubic-bezier(.3, .7, .4, 1.5); box-shadow: 0 0 0 1.5px var(--zm-paper); }
+.zm-rdy b svg { width: 11px; height: 11px; display: block; }
+.zm-rdy.is-on { opacity: 1; filter: none; border-color: var(--zm-ink); animation: none; }
+.zm-rdy.is-on b { transform: scale(1); }
+@keyframes zm-rdy-wait { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.92); } }
+.zm-lseat .zm-rdy-st { position: absolute; right: 5px; top: 4px; width: 18px; height: 18px; border-radius: 50%; background: var(--zm-seal); color: #fff; display: grid; place-items: center;
+  box-shadow: 0 0 0 1.5px var(--zm-paper); }
+.zm-lseat .zm-rdy-st.is-new { animation: zm-rdy-pop 0.3s cubic-bezier(.3, .7, .4, 1.5); }
+.zm-lseat .zm-rdy-st svg { width: 12px; height: 12px; display: block; }
+@keyframes zm-rdy-pop { from { transform: scale(0); } to { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .zm-rdy, .zm-lseat .zm-rdy-st { animation: none; } }
+/* 排行榜「再来一局」（2026-11-27 用户：宽度写死，换成「已准备 / 等待其他玩家准备…」不变宽） */
+.zm-ready.is-rank { width: 136px; padding: 0 8px; letter-spacing: 0.02em; }
+.zm-ready.is-rank .zmw-tag { margin-left: 5px; }
+/* 房主一行三颗键（离开房间 / 回房间 / 再来一局）：收紧一点，一行放得下 */
+.zm-dialog .zm-actions:has(> [data-again]) { gap: 8px; }
+.zm-dialog .zm-actions:has(> [data-again]) > .zm-btn:not(.zm-ready) { padding: 0 12px; letter-spacing: 0.02em; }
+.zm-ready .zm-ready-t { justify-content: center; }
+.zm-ready .is-wait { font-style: normal; font-size: 12.5px; letter-spacing: 0; font-weight: 700; white-space: nowrap; }
+.zm-lobby-actions .zm-ready { min-width: 10.2em; }
+
+/* 排行榜里我的小鱼干（2026-11-27 用户）：上台 = 台子里一颗纸色小胶囊（数字下面；我第三名时台子不写数字）；没上台 = 我那一行右边 */
+.zm-pod .avw, .zm-rank .miniw { position: relative; display: inline-flex; flex: none; }
+.zm-botslot { position: absolute; right: -7px; top: -5px; font-style: normal; z-index: 1; }
+.zm-botslot:empty { display: none; }
+.zm-botslot .zmw-bot { margin: 0; box-shadow: 0 0 0 1.5px var(--zm-paper); }
+.zmw-res.is-inline { margin: 0; padding: 0; border: 0; min-height: 0; display: block; }
+.zmw-res.is-inline .zmw-ln { justify-content: center; }
+.zm-pod .zmw-res.is-inline .zmw-ln > b { padding: 3px 8px 3px 5px; border-radius: 999px; background: rgba(255, 253, 248, 0.94); font-size: 15px; gap: 3px; }
+.zm-pod .zmw-res.is-inline .zmw-ln > b .zmw-fish { width: 22px; height: 14px; }
+.zm-podium.is-nonum .zm-pod .blk { padding-top: 14px; }
+.zm-pod.is-p3 .zmw-res.is-inline .zmw-ln > b { font-size: 14px; }
+.zm-rank li > .zmw-res.is-inline { flex: none; margin-left: auto; }
+.zm-rank li > .zmw-res.is-inline .zmw-ln > b { font-size: 19px; gap: 4px; }
+.zm-rank li > .zmw-res.is-inline .zmw-ln > b .zmw-fish { width: 28px; height: 18px; }
+.zm-rank-rest.is-grid li > .zmw-res.is-inline .zmw-ln > b { font-size: 14px; }
+.zm-rank-rest.is-grid li > .zmw-res.is-inline .zmw-ln > b .zmw-fish { width: 20px; height: 13px; }

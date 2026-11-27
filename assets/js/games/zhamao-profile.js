@@ -292,12 +292,15 @@
     const h = it.head || {}, r = it.res;
     const name = (MODE_NAME[h.mode] || '对局') + (h.n ? ' · ' + h.n + ' 人' : '') + (TIER_NAME[h.tier] ? ' · ' + TIER_NAME[h.tier] : '') + (h.src === 'online' ? ' · 联机' : '');
     let sub = '', warn = false;
-    if (!r) { sub = it.parts.some((x) => x.why === 'penalty') ? '中途离开' : '没打完，门票不退'; warn = true; }
+    // 联机门票点「再来一局 / 准备」就扣（2026-11-27）：没开成退回 = 一进一出；还没打完 = 对局中
+    if (!r && it.parts.some((x) => x.why === 'refund')) sub = '没开成，门票退回';
+    else if (!r && h.src === 'online') sub = '对局中';
+    else if (!r) { sub = it.parts.some((x) => x.why === 'penalty') ? '中途离开' : '没打完，门票不退'; warn = true; }
     else {
       sub = r.left ? '中途离开' : h.mode === 'team' || r.rank == null ? (r.won ? '赢了' : '输了') : '第 ' + r.rank + ' 名';
       if (r.auto > 0.7) { sub += ' · 托管七成以上，不发奖'; warn = true; } else if (r.auto > 0.3) { sub += ' · 托管三成以上，奖励减半'; warn = true; }
     }
-    const NAMES = { ticket: '门票', win: '名次结算', online: '名次结算', firstwin: '今日首胜', penalty: '中途离开罚票' };
+    const NAMES = { ticket: '门票', win: '名次结算', online: '名次结算', firstwin: '今日首胜', penalty: '中途离开罚票', refund: '门票退回' };
     const parts = it.parts.filter((x) => x.d || x.why === 'ticket').map((x) => '<span><em>' + (NAMES[x.why] || LED_NAME[x.why] || esc(x.why)) + '</em><b>' + sign(x.d) + '</b></span>').join('');
     return '<li class="g" data-lg><span class="ic">' + (r && r.won ? IC.win : IC.ticket) + '</span><span class="nm">' + name + '<small' + (warn ? ' class="warn"' : '') + '>' + sub + '</small></span><b class="' + (it.d > 0 ? 'up' : it.d < 0 ? 'dn' : '') + '">' + sign(it.d) + '</b><div class="parts">' + parts + '</div></li>';
   }
