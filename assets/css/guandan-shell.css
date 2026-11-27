@@ -490,29 +490,63 @@ body.gd-game-fullscreen .guandan-wrap .gd-play-actions .gd-btn.gd-slot { width: 
 .guandan-wrap #gdPlay0Center > .gd-pass-big { position: absolute; left: 50%; top: calc(50% - var(--gd-pass-lift, 53px)); transform: translate(-50%, -50%); animation-name: gd-pass-ink-c; }
 @keyframes gd-pass-ink-c { from { opacity: 0; transform: translate(-50%, -50%) scale(1.25); filter: blur(2px); } to { opacity: 1; transform: translate(-50%, -50%); filter: none; } }
 
-/* 5. 炸弹 / 接风 / 抗贡 / 头游：出牌区正中盖一枚印章，两个字，不带图标和说明 */
-.guandan-wrap .gd-fx-banner { top: 33%; font-family: var(--gd-serif); }
+/* 5. 炸弹 / 牌型 / 接风 / 抗贡 / 头游（2026-11-27 用户嫌盖章土，改成欢乐斗地主那种）：
+      出牌区正中一行大字斜着滑进来，背后一道横扫的光带，周围迸几粒碎光；字上有一道高光扫过。
+      牌型 = 墨色，炸弹 = 朱砂，同花顺 / 天王炸 = 金。只有两个字，不带图标和说明（说明只给读屏）。 */
+.guandan-wrap .gd-fx-banner { top: 36%; font-family: var(--gd-serif); width: 0; height: 0; overflow: visible; }
 .guandan-wrap .gd-fx-banner::before, .guandan-wrap .gd-fx-banner::after { display: none !important; }
-.guandan-wrap .gd-fx-banner .gd-fx-main {
-  padding: 6px 12px 6px 16px; border-radius: 8px; letter-spacing: 0.22em; text-indent: 0;
-  border: 2.5px solid currentColor; box-shadow: inset 0 0 0 2px var(--gd-paper), inset 0 0 0 3.5px currentColor;
-  background: rgba(255, 253, 248, 0.92); color: var(--gd-seal); font-size: 30px !important; line-height: 1.15;
-}
-.guandan-wrap .gd-fx-banner.is-bomb .gd-fx-main { background: var(--gd-seal); color: var(--gd-seal-ink); border-color: var(--gd-seal); box-shadow: inset 0 0 0 3px var(--gd-seal), inset 0 0 0 4.5px rgba(255, 253, 248, 0.7), 0 10px 30px rgba(180, 57, 44, 0.35); }
-.guandan-wrap .gd-fx-banner.is-bomb.t2 .gd-fx-main, .guandan-wrap .gd-fx-banner.is-bomb.t3 .gd-fx-main { font-size: 36px !important; }
-.guandan-wrap .gd-fx-banner.is-bomb.t4 .gd-fx-main, .guandan-wrap .gd-fx-banner.is-bomb.t5 .gd-fx-main { font-size: 42px !important; }
-.guandan-wrap .gd-fx-banner.is-bomb.t6 .gd-fx-main, .guandan-wrap .gd-fx-banner.is-bomb.t7 .gd-fx-main { font-size: 48px !important; }
-.guandan-wrap .gd-fx-banner.t3 .gd-fx-main, .guandan-wrap .gd-fx-banner.t7 .gd-fx-main { background: #9a6b16; border-color: #9a6b16; box-shadow: inset 0 0 0 3px #9a6b16, inset 0 0 0 4.5px rgba(255, 253, 248, 0.7), 0 10px 30px rgba(154, 107, 22, 0.35); }
 .guandan-wrap .gd-fx-banner .gd-fx-sub, .guandan-wrap .gd-fx-banner .gd-fx-icon { display: none; }
-.guandan-wrap .gd-fx-banner { animation: gd-stamp var(--gd-fx-dur, 1200ms) cubic-bezier(0.2, 0.8, 0.25, 1) forwards; }
-@keyframes gd-stamp {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(2.1) rotate(-10deg); }
-  14% { opacity: 1; transform: translate(-50%, -50%) scale(0.94) rotate(-5deg); }
-  22% { transform: translate(-50%, -50%) scale(1) rotate(-5deg); }
-  82% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-5deg); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.04) rotate(-5deg); }
+.guandan-wrap .gd-fx-banner { animation: gd-fx-life var(--gd-fx-dur, 1200ms) linear forwards; }
+@keyframes gd-fx-life { 0%, 88% { opacity: 1; } 100% { opacity: 0; } }
+.guandan-wrap .gd-fx-banner .gd-fx-main {
+  position: absolute; left: 0; top: 0; transform: translate(-50%, -50%) skewX(-10deg);
+  display: block; white-space: nowrap; padding: 0; border: 0; box-shadow: none; border-radius: 0; background: none;
+  font-weight: 900; font-size: 46px !important; line-height: 1; letter-spacing: 0.12em; text-indent: 0.12em;
+  color: var(--gd-ink);
+  background-image: linear-gradient(100deg, currentColor 0 42%, #fff6dc 49%, currentColor 56% 100%);
+  background-size: 260% 100%; background-position: 120% 0;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 0 var(--gd-paper)) drop-shadow(0 0 1px var(--gd-paper)) drop-shadow(0 6px 14px rgba(29, 27, 24, 0.22));
+  animation: gd-fx-slide var(--gd-fx-dur, 1200ms) cubic-bezier(0.2, 0.8, 0.25, 1) forwards, gd-fx-shine 0.9s ease-out 0.22s forwards;
 }
-/* 炸弹那一手：不再铺一团红雾，出牌区只闪一下 */
+.guandan-wrap .gd-fx-banner.is-bomb .gd-fx-main { color: var(--gd-seal); font-size: 52px !important; }
+.guandan-wrap .gd-fx-banner.is-bomb.t4 .gd-fx-main, .guandan-wrap .gd-fx-banner.is-bomb.t5 .gd-fx-main { font-size: 58px !important; }
+.guandan-wrap .gd-fx-banner.is-bomb.t6 .gd-fx-main, .guandan-wrap .gd-fx-banner.is-bomb.t7 .gd-fx-main { font-size: 64px !important; }
+.guandan-wrap .gd-fx-banner.t3 .gd-fx-main, .guandan-wrap .gd-fx-banner.t7 .gd-fx-main { color: #a9741a; }
+@keyframes gd-fx-slide {
+  0% { opacity: 0; transform: translate(-130%, -50%) skewX(-10deg); filter: blur(6px); }
+  16% { opacity: 1; transform: translate(-46%, -50%) skewX(-10deg); filter: none; }
+  24% { transform: translate(-50%, -50%) skewX(-10deg); }
+  84% { opacity: 1; transform: translate(-50%, -50%) skewX(-10deg); }
+  100% { opacity: 0; transform: translate(-36%, -50%) skewX(-10deg); }
+}
+@keyframes gd-fx-shine { to { background-position: -40% 0; } }
+/* 横扫光带：从左往右刷出来，再收掉 */
+.guandan-wrap .gd-fx-streak {
+  position: absolute; left: 0; top: 0; width: 360px; height: 34px; transform: translate(-50%, -50%) skewX(-10deg);
+  background: linear-gradient(90deg, transparent 0, rgba(29, 27, 24, 0.1) 18%, rgba(29, 27, 24, 0.16) 50%, rgba(29, 27, 24, 0.1) 82%, transparent 100%);
+  border-radius: 50%; transform-origin: left center;
+  animation: gd-fx-streak var(--gd-fx-dur, 1200ms) cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
+}
+.guandan-wrap .gd-fx-banner.is-bomb .gd-fx-streak { background: linear-gradient(90deg, transparent 0, rgba(180, 57, 44, 0.18) 18%, rgba(180, 57, 44, 0.28) 50%, rgba(180, 57, 44, 0.18) 82%, transparent 100%); height: 44px; width: 420px; }
+@keyframes gd-fx-streak {
+  0% { opacity: 0; clip-path: inset(0 100% 0 0); }
+  18% { opacity: 1; clip-path: inset(0 0 0 0); }
+  80% { opacity: 1; }
+  100% { opacity: 0; clip-path: inset(0 0 0 100%); }
+}
+/* 碎光：八粒从字中心往外迸 */
+.guandan-wrap .gd-fx-spark {
+  position: absolute; left: 0; top: 0; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%;
+  background: #e8b04a; box-shadow: 0 0 6px rgba(232, 176, 74, 0.9);
+  opacity: 0; animation: gd-fx-spark 0.75s cubic-bezier(0.15, 0.7, 0.3, 1) calc(0.16s + var(--i) * 0.02s) forwards;
+}
+.guandan-wrap .gd-fx-banner.is-bomb .gd-fx-spark { background: #ffcf6e; width: 9px; height: 9px; }
+@keyframes gd-fx-spark {
+  0% { opacity: 1; transform: rotate(var(--a)) translateX(10px) scale(1); }
+  100% { opacity: 0; transform: rotate(var(--a)) translateX(120px) scale(0.3); }
+}
+/* 炸弹那一手：不再闪一块红色方框，只让那手牌弹一下（见下面 gd-bomb-pop） */
 .guandan-wrap .gd-played.fx-bomb, .guandan-wrap .gd-played.fx-bomb-2, .guandan-wrap .gd-played.fx-bomb-3,
 .guandan-wrap .gd-played.fx-strflush, .guandan-wrap .gd-played.fx-jokerbomb { background: none; }
 
@@ -536,9 +570,7 @@ body.gd-game-fullscreen .guandan-wrap .gd-play-actions .gd-btn.gd-slot { width: 
 
 /* 8. 左下角：不再放自己的头像 / 张数 / 托管钮（手牌就在眼前）；托管收进 ☰ 菜单，
       只有正在托管时才亮一颗机器人，点一下取消。名次（头游…）照旧显示。 */
-body.gd-game-fullscreen .guandan-wrap #gdSeat0,
-body.gd-game-fullscreen .guandan-wrap .gd-self-meta .gd-count { display: none; }
-body.gd-game-fullscreen .guandan-wrap .gd-autopilot-chip[aria-pressed="false"] { display: none; }
+/* 2026-11-27 用户又要回自己的头像（见第三轮 R3-2） */
 body.gd-game-fullscreen .guandan-wrap .gd-self-meta .gd-autopilot-chip { margin-top: 0; }
 body.gd-game-fullscreen .guandan-wrap .gd-self-bar { bottom: calc(6px + env(safe-area-inset-bottom, 0px)); }
 /* 右下角：只留一颗「理牌」；「恢复默认排序 / 调整顺序」挪进 ☰ 菜单 */
@@ -546,7 +578,7 @@ body.gd-game-fullscreen .guandan-wrap #gdSortMoreBtn { display: none; }
 body.gd-game-fullscreen .guandan-wrap .gd-sort-actions { bottom: calc(6px + env(safe-area-inset-bottom, 0px)); }
 
 /* 9. 手牌往下贴：去掉底下那条空白，牌离屏幕底只留一点 */
-body.gd-game-fullscreen .guandan-wrap .gd-table { --gd-hand-l: 14px; --gd-hand-r: 56px; }
+body.gd-game-fullscreen .guandan-wrap .gd-table { --gd-hand-l: 62px; --gd-hand-r: 56px; }
 body.gd-game-fullscreen .guandan-wrap .gd-hand { padding-bottom: 2px; }
 body.gd-game-fullscreen .guandan-wrap .gd-table { padding-bottom: calc(2px + env(safe-area-inset-bottom, 0px)); }
 
@@ -556,8 +588,14 @@ body.gd-game-fullscreen .guandan-wrap .gd-table { padding-bottom: calc(2px + env
 .guandan-wrap .gd-played.gd-revealing .gd-played-row .gd-card.size-full:first-child { margin-left: 0; }
 .guandan-wrap .gd-reveal-wrap { gap: 0; }
 .guandan-wrap .gd-reveal-row + .gd-reveal-row { margin-top: calc(var(--u, 46px) * -0.55); }
-.guandan-wrap .gd-played.gd-revealing .gd-card { animation: gd-reveal-deal 0.36s cubic-bezier(0.2, 0.8, 0.25, 1) both; animation-delay: calc(var(--i, 0) * 45ms); }
-@keyframes gd-reveal-deal { from { opacity: 0; transform: translateY(-14px) rotateY(80deg); } to { opacity: 1; transform: none; } }
+.guandan-wrap .gd-played.gd-revealing .gd-card { opacity: 0; }
+/* 展开：整行先叠在起点那张上，然后一张接一张滑开（--dx 由 JS 量出，--i 是展开顺序） */
+.guandan-wrap .gd-reveal-wrap.is-fanning .gd-card { opacity: 1; animation: gd-reveal-fan 0.62s cubic-bezier(0.22, 0.75, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 38ms); }
+@keyframes gd-reveal-fan {
+  0% { opacity: 0; transform: translateX(var(--dx, 0)); }
+  12% { opacity: 1; transform: translateX(var(--dx, 0)); }
+  100% { opacity: 1; transform: none; }
+}
 body.gd-game-fullscreen .guandan-wrap .gd-table.gd-showing-reveal > * { visibility: visible !important; pointer-events: auto; }
 body.gd-game-fullscreen .guandan-wrap .gd-table.gd-showing-reveal > .gd-reveal-gallery { display: none !important; }
 body.gd-game-fullscreen .guandan-wrap .gd-table.gd-showing-reveal > .gd-play-band,
@@ -574,14 +612,6 @@ body.gd-game-fullscreen .guandan-wrap .gd-table.gd-showing-reveal > .gd-sort-act
   position: relative; background: none; border: 1px solid rgba(29, 27, 24, 0.22); border-radius: 14px; box-shadow: none; transform: none; padding: 12px 10px;
 }
 .guandan-wrap .gd-result-team.winning { border: 1.5px solid var(--gd-seal); background: rgba(180, 57, 44, 0.04); }
-.guandan-wrap .gd-result-team.winning::after {
-  content: '胜'; position: absolute; top: -12px; right: -8px; width: 34px; height: 34px; border-radius: 7px;
-  display: flex; align-items: center; justify-content: center; transform: rotate(8deg);
-  background: var(--gd-seal); color: var(--gd-seal-ink); font: 700 19px/1 var(--gd-serif);
-  box-shadow: inset 0 0 0 2px var(--gd-seal), inset 0 0 0 3px rgba(255, 253, 248, 0.6);
-  animation: gd-stamp-small 0.45s cubic-bezier(0.2, 0.8, 0.25, 1) 0.35s both;
-}
-@keyframes gd-stamp-small { from { opacity: 0; transform: rotate(8deg) scale(2); } to { opacity: 1; transform: rotate(8deg) scale(1); } }
 .guandan-wrap .gd-result-team-label { font-family: var(--gd-serif); font-size: 15px; letter-spacing: 0.3em; color: var(--gd-ink); }
 .guandan-wrap .gd-result-player { background: none; border: 0; padding: 4px 2px; gap: 4px; }
 .guandan-wrap .gd-result-avatar { width: 34px; height: 34px; border: 1.5px solid rgba(29, 27, 24, 0.35); background: var(--gd-paper); color: var(--gd-ink); }
@@ -610,7 +640,133 @@ body.gd-game-fullscreen .guandan-wrap .gd-table.gd-showing-reveal > .gd-sort-act
 
 /* 12. ☰ 菜单：微信横屏太矮放不下一列，分两列（左：这局牌的操作；右：设置 / 规则 / 战绩榜 / 回主页） */
 @media (max-height: 500px) {
-  .guandan-wrap .gd-menu:not([hidden]) { width: auto; display: grid; grid-auto-flow: column; grid-template-rows: repeat(4, auto); column-gap: 6px; max-height: calc(100vh - 70px); overflow-y: auto; }
+  .guandan-wrap .gd-menu:not([hidden]) { width: auto; display: grid; grid-auto-flow: column; grid-template-rows: repeat(3, auto); column-gap: 6px; max-height: calc(100vh - 70px); overflow-y: auto; }
   .guandan-wrap .gd-menu hr { display: none; }
   .guandan-wrap .gd-menu > button { min-height: 42px; }
 }
+
+/* ============ 第三轮（2026-11-27 用户试玩反馈） ============ */
+/* R3-1. 不再压暗任何东西：别家头像灰着像掉线、手牌灰着整桌灰蒙蒙。轮到谁靠头像外圈的倒计时环。 */
+body.gd-game-fullscreen .guandan-wrap :is(.gd-seat, .gd-self-bar, .gd-hand).is-dim,
+body.gd-game-fullscreen .guandan-wrap .gd-seat.dim,
+body.gd-game-fullscreen .guandan-wrap .gd-hand.no-play { opacity: 1; filter: none; }
+body.gd-game-fullscreen .guandan-wrap .gd-avatar {
+  background: var(--gd-paper); border: 1.5px solid var(--gd-ink); color: var(--gd-ink);
+  box-shadow: 0 1px 3px rgba(29, 27, 24, 0.18); animation: none;
+}
+body.gd-game-fullscreen .guandan-wrap .gd-seat.turn .gd-avatar { animation: none; box-shadow: 0 1px 3px rgba(29, 27, 24, 0.18); }
+body.gd-game-fullscreen .guandan-wrap .gd-seat .gd-name { color: var(--gd-ink); }
+body.gd-game-fullscreen .guandan-wrap .gd-seat .gd-count { color: var(--gd-ink); background: rgba(29, 27, 24, 0.07); }
+/* 外圈倒计时环（照炸弹猫）：朱砂一圈，从 12 点顺时针收走；最后 5 秒变急促 */
+.guandan-wrap .gd-avatar .gd-ring {
+  position: absolute; left: -6px; top: -6px; width: calc(100% + 12px); height: calc(100% + 12px);
+  transform: rotate(-90deg) scaleY(-1); pointer-events: none; overflow: visible; display: none;
+}
+.guandan-wrap .gd-avatar .gd-ring circle {
+  fill: none; stroke: var(--gd-seal); stroke-width: 3; stroke-linecap: round;
+  stroke-dasharray: 100; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear;
+}
+.guandan-wrap .gd-seat.is-timing .gd-ring { display: block; }
+.guandan-wrap .gd-seat.is-timing .gd-avatar { border-color: transparent; }
+.guandan-wrap .gd-seat.is-hurry .gd-avatar { animation: gd-ring-hurry 0.5s ease-in-out infinite alternate; }
+@keyframes gd-ring-hurry { from { transform: scale(1); } to { transform: scale(1.07); } }
+/* 原来的闹钟 / 数字只留给读屏 */
+body.gd-game-fullscreen .guandan-wrap :is(.gd-played-clock, .gd-self-clock, .gd-clock) {
+  position: absolute !important; width: 1px !important; height: 1px !important; overflow: hidden !important;
+  clip: rect(0 0 0 0) !important; clip-path: inset(50%) !important; white-space: nowrap; padding: 0 !important; border: 0 !important; margin: -1px !important;
+}
+/* 「不出」：挂在头像朝桌心的那一侧——跟倒计时环同一个位置 */
+body.gd-game-fullscreen .guandan-wrap .gd-pass-big { display: none; }
+.guandan-wrap .gd-seat { position: relative; }
+.guandan-wrap .gd-pass-tag {
+  position: absolute; z-index: 4; pointer-events: none; display: none; white-space: nowrap;
+  font: 700 22px/1 var(--gd-serif); letter-spacing: 0.12em; color: var(--gd-ink-mute, #6b645a);
+  text-shadow: 0 0 6px var(--gd-paper), 0 0 2px var(--gd-paper);
+}
+.guandan-wrap .gd-seat.is-passed .gd-pass-tag { display: block; animation: gd-pass-in 0.28s cubic-bezier(0.2, 0.8, 0.25, 1.3) both; }
+@keyframes gd-pass-in { from { opacity: 0; transform: var(--gd-pass-t, none) scale(0.6); } to { opacity: 1; transform: var(--gd-pass-t, none) scale(1); } }
+.guandan-wrap #gdSeat3 .gd-pass-tag { left: calc(100% + 12px); top: 23px; --gd-pass-t: translateY(-50%); transform: var(--gd-pass-t); }
+.guandan-wrap #gdSeat1 .gd-pass-tag { right: calc(100% + 12px); top: 23px; --gd-pass-t: translateY(-50%); transform: var(--gd-pass-t); }
+.guandan-wrap #gdSeat2 .gd-pass-tag { left: 23px; top: calc(100% + 10px); --gd-pass-t: translateX(-50%); transform: var(--gd-pass-t); }
+.guandan-wrap #gdSeat0 .gd-pass-tag { left: 0; bottom: calc(100% + 12px); --gd-pass-t: none; transform: none; }
+
+/* R3-2. 自己的头像回到左下角：右下角小圆标写剩几张；点头像弹出「托管」，托管中机器人一直亮着 */
+body.gd-game-fullscreen .guandan-wrap .gd-self-bar { left: 8px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); gap: 0; display: block; }
+body.gd-game-fullscreen .guandan-wrap #gdSeat0 { display: block; }
+body.gd-game-fullscreen .guandan-wrap #gdAv0 { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+body.gd-game-fullscreen .guandan-wrap .gd-self-meta { position: absolute; left: 0; top: 0; width: 46px; height: 46px; pointer-events: none; display: block; }
+body.gd-game-fullscreen .guandan-wrap .gd-self-meta .gd-name { display: none; }
+body.gd-game-fullscreen .guandan-wrap .gd-self-meta .gd-seat-cnt { position: absolute; right: -7px; bottom: -5px; display: flex; gap: 2px; }
+body.gd-game-fullscreen .guandan-wrap .gd-self-meta .gd-count:not([hidden]),
+body.gd-game-fullscreen .guandan-wrap .gd-self-meta .gd-rank-badge:not([hidden]) {
+  display: inline-flex; min-width: 22px; height: 18px; padding: 0 5px; border-radius: 9px; align-items: center; justify-content: center;
+  background: var(--gd-ink); color: var(--gd-paper); font: 700 11px/1 var(--gd-num); box-shadow: 0 0 0 1.5px var(--gd-paper); border: 0;
+}
+body.gd-game-fullscreen .guandan-wrap .gd-self-meta .gd-rank-badge:not([hidden]) { font: 700 11px/1 var(--gd-serif); letter-spacing: 0.04em; }
+body.gd-game-fullscreen .guandan-wrap .gd-self-meta .gd-rank-badge.r1 { background: var(--gd-seal); }
+/* 点头像弹出的「托管」：头像正上方一颗小药丸 */
+body.gd-game-fullscreen .guandan-wrap .gd-self-meta .gd-autopilot-chip {
+  position: absolute; left: 0; bottom: calc(100% + 10px); pointer-events: auto; margin: 0;
+  height: 30px; padding: 0 12px 0 10px; gap: 5px; font-size: 15px; filter: none; opacity: 1; display: none; white-space: nowrap; width: max-content;
+  box-shadow: 0 2px 6px rgba(29, 27, 24, 0.18);
+}
+body.gd-game-fullscreen .guandan-wrap .gd-self-meta .gd-autopilot-chip .gd-autopilot-tx { display: inline; font-size: 13px; }
+body.gd-game-fullscreen .guandan-wrap .gd-self-bar.is-pop .gd-autopilot-chip:not(:disabled) { display: inline-flex; animation: gd-pass-in 0.2s ease-out both; }
+/* 托管中（没弹出时）：头像左上角挂一颗小机器人，点它取消 */
+body.gd-game-fullscreen .guandan-wrap .gd-self-bar:not(.is-pop) .gd-autopilot-chip.on:not(:disabled) {
+  display: inline-flex; left: -6px; bottom: auto; top: -8px; width: 24px; height: 24px; padding: 0; font-size: 13px;
+  box-shadow: 0 0 0 1.5px var(--gd-paper);
+}
+body.gd-game-fullscreen .guandan-wrap .gd-self-bar:not(.is-pop) .gd-autopilot-chip.on .gd-autopilot-tx { display: none; }
+body.gd-game-fullscreen .guandan-wrap .gd-self-bar.is-pop #gdAv0 { box-shadow: 0 0 0 3px rgba(29, 27, 24, 0.15); }
+
+/* R3-3. 按钮矮一截 */
+body.gd-game-fullscreen .gd-play-actions .gd-btn { min-height: 34px; height: 34px; font-size: 15px; }
+body.gd-game-fullscreen .guandan-wrap .gd-play-actions .gd-btn.gd-slot { width: 80px; min-width: 80px; }
+
+/* R3-4. 打牌过程中不出任何说明 / 规则文字（2026-11-27 用户）：提示行整个不显示；
+         出错只抖一下手牌，文字只给读屏。只有炸弹 / 顺子 / 接风 / 抗贡这类牌型字样会出现。 */
+body.gd-game-fullscreen .guandan-wrap .gd-band-hint { display: none !important; }
+
+/* R3-5. 打出来的牌横向叠放时只露左边一条——「级」飘带挪到左下角，被压着也看得见；最后一张也放左下角，统一。
+         手牌是竖着叠的（露上边），所以手牌里仍在右上角。 */
+.guandan-wrap .gd-played .gd-card.is-level::after {
+  top: auto; right: auto;
+  bottom: calc(var(--gd-card-w, 50px) * 0.024); left: calc(var(--gd-card-w, 50px) * -0.201);
+}
+
+/* R3-6. 战绩榜先拿掉（2026-11-27 用户：做得很丑）：规则面板里也不挂排行榜 */
+.guandan-wrap #gd-wlb-mount, #gd-wlb-mount { display: none !important; }
+
+/* R3-7. 发牌：桌心飞出的牌背（朱砂斜纹 + 白边），落到另三家头像 */
+.gd-deal-layer { position: absolute; inset: 0; pointer-events: none; z-index: 60; }
+.gd-deal-back {
+  position: absolute; width: 30px; height: 43px; border-radius: 4px; display: block;
+  background: repeating-linear-gradient(45deg, #b8392e 0 3px, #a12c24 3px 6px);
+  border: 2px solid #fbf7ee; box-shadow: 0 2px 5px rgba(29, 27, 24, 0.3);
+}
+
+/* R3-8. 进 / 还贡标签：不再是金块 / 蓝块，改成压在牌底的一条细飘带（进贡朱砂、还贡墨色），和「级」飘带一个路数 */
+.guandan-wrap .gd-played-row.gd-tribute-row { position: relative; }
+.guandan-wrap .gd-tribute-tag, .guandan-wrap .gd-tribute-tag.tribute-give, .guandan-wrap .gd-tribute-tag.tribute-return {
+  left: 1px; right: 1px; bottom: 1px; transform: none; padding: 0;
+  height: calc(var(--gd-card-w, 50px) * 0.28); display: flex; align-items: center; justify-content: center;
+  border-radius: 0 0 5px 5px; box-shadow: none; text-shadow: none;
+  font: 700 calc(var(--gd-card-w, 50px) * 0.19)/1 var(--gd-serif); letter-spacing: 0.15em; text-indent: 0.15em;
+  background: var(--gd-seal); color: var(--gd-seal-ink);
+  animation: gd-tribute-ribbon 0.36s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+.guandan-wrap .gd-tribute-tag::after { content: '贡'; }
+.guandan-wrap .gd-tribute-tag.tribute-return { background: var(--gd-ink); color: var(--gd-paper); }
+@keyframes gd-tribute-ribbon { from { clip-path: inset(0 50% 0 50%); } to { clip-path: inset(0 0 0 0); } }
+
+/* R3-9. 左上角「打几」：不再是一枚红方印，画成一张小小的红桃级牌（白牌面、红点数、下面一颗红心） */
+.guandan-wrap .gd-level-now {
+  width: 30px; height: 42px; border-radius: 4px; flex-direction: column; gap: 1px;
+  background: linear-gradient(160deg, var(--gd-card-bg, #fffdf8) 0%, var(--gd-card-bg-2, #f6f0e2) 100%);
+  color: var(--gd-seal); box-shadow: 0 0 0 1px rgba(29, 27, 24, 0.28), 0 2px 4px rgba(29, 27, 24, 0.2);
+  transform: rotate(-5deg); overflow: hidden; position: relative;
+}
+.guandan-wrap .gd-level-now .val { font-family: var(--gd-num); font-size: 17px; font-weight: 700; line-height: 1; color: var(--gd-seal); letter-spacing: -0.04em; }
+.guandan-wrap .gd-level-now::after { content: '♥'; font-size: 13px; line-height: 1; color: var(--gd-seal); font-family: system-ui, sans-serif; }
+.guandan-wrap .gd-levelbar-corner { grid-template-columns: 30px auto; align-items: center; }

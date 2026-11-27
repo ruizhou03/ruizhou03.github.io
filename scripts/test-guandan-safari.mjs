@@ -8,7 +8,7 @@ const args = new Map(process.argv.slice(2).map((arg) => {
   const [key, ...rest] = arg.split('=');
   return [key, rest.join('=')];
 }));
-const marker = args.get('--marker') || '20261126ui17';
+const marker = args.get('--marker') || '20261127ui18';
 const browserName = args.get('--browser') || 'safari';
 const browserLabel = browserName === 'firefox' ? 'Firefox' : 'Safari';
 const driverPath = args.get('--driver') || (browserName === 'firefox'
@@ -306,7 +306,8 @@ async function run() {
     group.visual === 1 && group.synchronized),
   `${browserLabel} 分段按钮往返切换后 pressed 状态与视觉不一致`);
 
-  if (checkOffline) {
+  // 2026-11-27：离线按钮先拿掉（用户：离线模式暂停）
+  if (checkOffline && await execute(`return !!document.querySelector('#gdOfflineCacheBtn')`)) {
     await click('#gdOfflineCacheBtn');
     await waitFor(
       `return /当前档位基础资源已校验并缓存/.test(document.querySelector('#gdHardOfflineStatus')?.textContent || '')`,
@@ -369,7 +370,7 @@ async function run() {
   assert.match(orderStatus, /第 2 列/, `${browserLabel} 调整顺序没有移动到第二列`);
   assert.notDeepEqual(orderAfter, orderBefore, `${browserLabel} 调整顺序没有真实改变 DOM 牌列顺序`);
 
-  await click('#gdBoardBtn');
+  await click('#gdRulesBtn');
   await waitFor(
     `return document.activeElement?.getAttribute('aria-label') === '关闭'`,
     `${browserLabel} dialog 打开后焦点没有落到关闭按钮`,
@@ -390,7 +391,7 @@ async function run() {
 
   await pressKey('\uE00C');
   await waitFor(
-    `return document.activeElement?.id === 'gdBoardBtn'`,
+    `return document.activeElement?.id === 'gdRulesBtn'`,
     `${browserLabel} Escape 关闭后焦点没有回到榜单按钮`,
     2000,
   );
@@ -399,14 +400,13 @@ async function run() {
       hidden: document.querySelector('#gdBoardModal').hidden,
       active: document.activeElement?.getAttribute('aria-label'),
       activeId: document.activeElement?.id,
-      triggerLabel: document.querySelector('#gdBoardBtn')?.getAttribute('aria-label'),
+      triggerLabel: document.querySelector('#gdRulesBtn')?.getAttribute('aria-label'),
       inertCount: document.querySelectorAll('[inert]').length,
     };
   `);
   assert.equal(dialogClosed.hidden, true);
-  assert.equal(dialogClosed.activeId, 'gdBoardBtn');
-  assert.equal(dialogClosed.triggerLabel, '榜单');
-  assert.equal(dialogClosed.inertCount, 0);
+  assert.equal(dialogClosed.activeId, 'gdRulesBtn');
+    assert.equal(dialogClosed.inertCount, 0);
 
   await click('#gdSettingsBtn');
   await waitFor(

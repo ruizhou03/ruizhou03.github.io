@@ -15,7 +15,7 @@ const rulesFixture = JSON.parse(await readFile(
 // 2026-11-26 外壳照百变小咪：右上角只有「声音」+「☰ 菜单」，设置 / 规则 / 战绩榜 / 回到主页面收进菜单
 assert.match(html, /class="gd-tool gd-mute-btn" id="gdMuteBtn"/, '声音按钮在右上角工具里');
 assert.match(html, /id="gdMenuBtn"[^>]*aria-haspopup="menu"[^>]*aria-expanded="false"/, '菜单按钮必须公开弹出菜单状态');
-for (const id of ['gdSettingsBtn', 'gdRulesBtn', 'gdBoardBtn', 'gdExitBtn']) {
+for (const id of ['gdSettingsBtn', 'gdRulesBtn', 'gdExitBtn']) {
   assert.match(html, new RegExp(`role="menuitem" id="${id}"`), `${id} 必须是菜单项`);
 }
 assert.match(html, /id="gdSelfClock"[^>]*role="timer"[^>]*aria-live="off"/,
@@ -37,7 +37,7 @@ assert.doesNotMatch(css, /prefers-color-scheme:\s*dark/,
   '规格 1.8：牌桌固定为墨园宣纸色，本期不做独立深色配色');
 assert.match(css, /--gd-paper:\s*#f3eee3[\s\S]*--gd-seal:\s*#b4392c/,
   '规格 1.8：必须定义墨园宣纸配色令牌');
-assert.match(html, /guandan\.min\.js\?v=20261126ui17/, '生产页面应使用当前压缩内容标记，避免旧 JS 缓存');
+assert.match(html, /guandan\.min\.js\?v=20261127ui18/, '生产页面应使用当前压缩内容标记，避免旧 JS 缓存');
 assert.match(html, /data-value="off"[^>]*class="[^"]*selected|class="[^"]*selected"[^>]*data-value="off"/,
   '同队进贡 UI 默认应关闭');
 

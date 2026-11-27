@@ -1434,6 +1434,7 @@
     }
     // 局终摊牌：没出完的家把整手剩牌平铺到出牌区。座 0 是我、手牌已在底部展示，不重复摊；
     // 对手手牌在联机里可能是 -1 占位（服务端未下发真牌），那种情况也跳过（不摊占位牌）。
+    if (state.revealHands && seatEls[seat].seat) seatEls[seat].seat.classList.remove('is-passed');
     if (state.revealHands && seat !== 0 && state.hands[seat] && state.hands[seat].length > 0 && state.hands[seat][0] !== -1) {
       renderRevealedHand(seat);
       return;
@@ -1442,6 +1443,8 @@
     slot.classList.remove('gd-reveal-rows-2', 'gd-reveal-rows-3');
     slot.style.removeProperty('--gd-reveal-max-w');
     const lp = state.lastPlay[seat];
+    // 2026-11-27 用户：倒计时（头像外圈）和「不出」必须在同一个地方——「不出」挂在头像旁边，不再写进出牌区
+    if (seatEls[seat].seat) seatEls[seat].seat.classList.toggle('is-passed', lp === 'pass' && state.phase === PHASE.PLAYING);
     // 状态哈希：renderAll 被频繁调用，同一手"不要"/同一组牌不应每次重建 DOM —
     // 那会让 gd-pass-pop 动画反复重放（用户看到别人弃出时，自己的"不要"也跟着闪）
     const level = currentLevelLabel();
@@ -1452,6 +1455,10 @@
     if (slot.dataset.lpKey === key) return;
     slot.dataset.lpKey = key;
     slot.innerHTML = '';
+    if (seat === 0) {
+      const bar = document.querySelector('.gd-self-bar');
+      if (bar) bar.classList.toggle('is-pass', lp === 'pass');
+    }
     if (lp === 'pass') {
       // 大字"不要"浮窗：仿欢乐斗地主——每家弃出都让人一眼看见，不再藏在虚线小角标里
       const big = document.createElement('span');
@@ -1530,6 +1537,21 @@
         }
       }
     }
+    // 2026-11-27 用户：摊牌要像把一手牌「展开」——每行先叠在起点那张上，再一张张滑开。
+    // 左家 / 对家 / 自己从左往右展开；右家（下家）从右往左：他的牌从靠他座位的那一侧（右边）
+    // 往桌心铺开，和左家左右镜像，看着都是「从自己手里摊出来」。
+    const rtl = seat === 1;
+    for (const row of wrap.children) {
+      const cards = [...row.children];
+      if (!cards.length) continue;
+      const anchor = (rtl ? cards[cards.length - 1] : cards[0]).getBoundingClientRect().left;
+      cards.forEach((card, i) => {
+        const dx = anchor - card.getBoundingClientRect().left;
+        card.style.setProperty('--dx', dx.toFixed(1) + 'px');
+        card.style.setProperty('--i', rtl ? cards.length - 1 - i : i);
+      });
+    }
+    wrap.classList.add('is-fanning');
   }
 
   function renderRevealedHand(seat) {
@@ -1792,7 +1814,7 @@
     if (se.av.dataset.avatarMarker === marker && se.av.querySelector('.gd-avatar-icon')) return;
     se.av.dataset.avatarMarker = marker;
     for (const child of [...se.av.childNodes]) {
-      if (child !== se.clk) child.remove();
+      if (child !== se.clk && !(child.classList && child.classList.contains('gd-ring'))) child.remove();
     }
     const host = document.createElement('span');
     host.className = 'gd-avatar-icon';
@@ -1804,6 +1826,78 @@
   function setSeatNameText(seatEl, name) {
     const nameEl = seatEl && seatEl.querySelector('.gd-name');
     if (nameEl && nameEl.textContent !== name) nameEl.textContent = name;
+  }
+
+  // 发牌动画（2026-11-27 用户）：新一局开打时，牌从桌心一摞飞出——我的手牌一列列落到底下，
+  // 另三家各飞几张牌背到头像。纯视觉，不改牌局状态；跑的这 ~1.3s 里 AI / 倒计时往后挪（见 dealFxRemaining）。
+  const dealFx = { pending: false, until: 0, revealShown: false };
+  function queueDealFx() {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    dealFx.pending = true;
+    dealFx.until = Date.now() + 1400;
+  }
+  function fanOwnHand() {
+    if (!els.hand || typeof Element.prototype.animate !== 'function') return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const cols = [...els.hand.querySelectorAll('.gd-rank-col')];
+    if (!cols.length) return;
+    const anchor = cols[0].getBoundingClientRect().left;
+    cols.forEach((col, i) => {
+      const dx = anchor - col.getBoundingClientRect().left;
+      col.animate([
+        { transform: `translateX(${dx}px)`, opacity: i ? 0 : 1 },
+        { transform: `translateX(${dx}px)`, opacity: 1, offset: 0.12 },
+        { transform: 'none', opacity: 1 },
+      ], { duration: 620, delay: i * 38, easing: 'cubic-bezier(0.22, 0.75, 0.2, 1)', fill: 'backwards' });
+    });
+  }
+  function dealFxRemaining() { return Math.max(0, dealFx.until - Date.now()); }
+  function runDealFx() {
+    dealFx.pending = false;
+    const table = els.table;
+    if (!table || !els.hand || typeof Element.prototype.animate !== 'function') { dealFx.until = 0; return; }
+    const tr = table.getBoundingClientRect();
+    if (!tr.width) { dealFx.until = 0; return; }
+    const cx = tr.left + tr.width / 2, cy = tr.top + tr.height * 0.4;
+    const cols = [...els.hand.querySelectorAll('.gd-rank-col')];
+    const n = Math.max(1, cols.length);
+    const step = Math.min(70, 900 / n);
+    cols.forEach((col, i) => {
+      const r = col.getBoundingClientRect();
+      const dx = cx - (r.left + r.width / 2), dy = cy - (r.top + r.height / 2);
+      col.animate([
+        { transform: `translate(${dx}px, ${dy}px) scale(0.35) rotate(-8deg)`, opacity: 0 },
+        { opacity: 1, offset: 0.25 },
+        { transform: 'none', opacity: 1 },
+      ], { duration: 420, delay: 120 + i * step, easing: 'cubic-bezier(0.2, 0.8, 0.25, 1)', fill: 'backwards' });
+    });
+    // 另三家：每家 5 张牌背，交错飞向头像
+    const layer = document.createElement('div');
+    layer.className = 'gd-deal-layer';
+    layer.setAttribute('aria-hidden', 'true');
+    table.appendChild(layer);
+    let last = 0;
+    for (let k = 0; k < 5; k++) {
+      for (const seat of [1, 2, 3]) {
+        const av = seatEls[seat] && seatEls[seat].av;
+        if (!av) continue;
+        const ar = av.getBoundingClientRect();
+        const back = document.createElement('i');
+        back.className = 'gd-deal-back';
+        back.style.left = (cx - tr.left) + 'px'; back.style.top = (cy - tr.top) + 'px';
+        layer.appendChild(back);
+        const delay = 120 + (k * 3 + seat) * 62;
+        last = Math.max(last, delay);
+        back.animate([
+          { transform: 'translate(-50%, -50%) scale(1) rotate(0deg)', opacity: 1 },
+          { transform: `translate(calc(-50% + ${ar.left + ar.width / 2 - cx}px), calc(-50% + ${ar.top + ar.height / 2 - cy}px)) scale(0.55) rotate(${seat === 1 ? 90 : seat === 3 ? -90 : 0}deg)`, opacity: 0.9, offset: 0.85 },
+          { transform: `translate(calc(-50% + ${ar.left + ar.width / 2 - cx}px), calc(-50% + ${ar.top + ar.height / 2 - cy}px)) scale(0.4)`, opacity: 0 },
+        ], { duration: 380, delay, easing: 'cubic-bezier(0.3, 0.7, 0.3, 1)', fill: 'both' });
+      }
+    }
+    const total = Math.max(120 + n * step + 420, last + 400);
+    dealFx.until = Date.now() + total;
+    setTimeout(() => layer.remove(), total + 60);
   }
 
   function renderAll() {
@@ -1851,6 +1945,10 @@
     }
     refreshAutopilotBtn();
     renderHand();
+    if (dealFx.pending) runDealFx();
+    // 局终摊牌时我自己没出完的牌：底下那手也跟别家一样，从左往右「展开」一次
+    if (state.revealHands && !dealFx.revealShown) { dealFx.revealShown = true; fanOwnHand(); }
+    else if (!state.revealHands) dealFx.revealShown = false;
     renderRevealGallery();
     updateActions();
     applyAttentionFocus();
@@ -1884,17 +1982,8 @@
     seatEls0.forEach(e => e && e.classList.remove('is-dim'));
     if (selfBar) selfBar.classList.remove('is-dim');
     if (handEl) handEl.classList.remove('is-dim');
-    if (state.phase !== PHASE.PLAYING) return;
-    const curr = state.turn;
-    // 座位 0（我）的 .gd-seat 已经是 .gd-self-bar 的子节点，dim 父级即可，
-    // 不要双重 dim 否则 opacity 复合后过暗。AI 三家直接 dim 各自 .gd-seat。
-    for (let s = 1; s < 4; s++) {
-      if (s !== curr) seatEls0[s] && seatEls0[s].classList.add('is-dim');
-    }
-    if (curr !== 0) {
-      if (selfBar) selfBar.classList.add('is-dim');
-      if (handEl) handEl.classList.add('is-dim');
-    }
+    // 2026-11-27 用户：别家灰着像不在线、手牌灰着整桌灰蒙蒙——不再压暗任何一家，
+    // 轮到谁由头像外圈的倒计时环表示。
   }
 
   // ---- 选牌 + 显式调整顺序 ----
@@ -2319,8 +2408,9 @@
     if (tributeGive) {
       const sel = selectedCards();
       els.playBtn.textContent = '进贡';
-      setSlot(els.passBtn, { empty: true });
-      setSlot(els.hintBtn, { empty: true });
+      // 2026-11-27 用户：进/还贡只有一颗按钮，要居中——两边空槽直接收起，不再占位
+      if (els.passBtn) els.passBtn.hidden = true;
+      if (els.hintBtn) els.hintBtn.hidden = true;
       if (els.autoCancelBtn) els.autoCancelBtn.hidden = true;
       setSlot(els.playBtn, { primary: true, disabled: !(sel.length === 1 && tributeGive.validCards.includes(sel[0])) });
       const to = tributePartnerName('give');
@@ -2333,8 +2423,9 @@
     if (tributeReturn) {
       const sel = selectedCards();
       els.playBtn.textContent = '还贡';
-      setSlot(els.passBtn, { empty: true });
-      setSlot(els.hintBtn, { empty: true });
+      // 2026-11-27 用户：进/还贡只有一颗按钮，要居中——两边空槽直接收起，不再占位
+      if (els.passBtn) els.passBtn.hidden = true;
+      if (els.hintBtn) els.hintBtn.hidden = true;
       if (els.autoCancelBtn) els.autoCancelBtn.hidden = true;
       setSlot(els.playBtn, { primary: true, disabled: !(sel.length === 1 && isValidReturnCard(sel[0])) });
       const to = tributePartnerName('return');
@@ -2603,6 +2694,8 @@
     state.bombMult = gv.bombMult;
     state.openMult = gv.openMult;
     applyServerGameState(gv);
+    // 新一局刚发完牌（每家 27 张、还没人出过）→ 放发牌动画
+    if (state.hands.every(h => Array.isArray(h) && h.length === 27) && state.out.length === 0) queueDealFx();
     renderAll();
     saveSession();
     // 本局已就绪：开局动画/初始化都跑完了，从现在起轮询拉回的服务端对局可以持续灌进本地。
@@ -2853,7 +2946,17 @@
     if (!_deferredTable) {
       for (let s = 0; s < 4; s++) {
         const lp = state.lastPlay[s];
-        if (!lp || lp === 'pass' || !isBombType(lp.type)) continue;
+        if (!lp || lp === 'pass') continue;
+        if (!isBombType(lp.type)) {
+          // 顺子 / 连对 / 钢板：别家这手刚亮出来时放一次居中牌型特效（我自己的那手在乐观渲染里放过）
+          if (!COMBO_FX[lp.type] || !lp.cards) continue;
+          const ck = bombFxKey(s, lp.cards);
+          const pv = _prevLastPlay[s];
+          if ((pv && pv !== 'pass' && pv.cards && bombFxKey(s, pv.cards) === ck) || ck === state._comboFxKey) continue;
+          state._comboFxKey = ck;
+          playComboFx(s, lp);
+          continue;
+        }
         const key = bombFxKey(s, lp.cards);
         const prev = _prevLastPlay[s];
         const prevKey = (prev && prev !== 'pass' && prev.cards) ? bombFxKey(s, prev.cards) : null;
@@ -2899,7 +3002,7 @@
       hidePlayActionsImmediate();
       renderAll();
       if (isBombType(combo.type)) { state._bombFxKey = bombFxKey(0, cards); playBombFx(0, combo); }
-      else { _gaSfxPlay(); AUDIO.voice(voiceIdForCombo(combo)); }
+      else { _gaSfxPlay(); AUDIO.voice(voiceIdForCombo(combo)); state._comboFxKey = bombFxKey(0, cards); playComboFx(0, combo); }
     } else if (action === 'pass') {
       state.lastPlay[0] = 'pass';
       _gaSfxPass();
@@ -3083,9 +3186,16 @@
     else leader = Math.floor(gdRandom() * 4);   // 首局随机
     state.firstLeader = leader;
 
-    // 进贡处理（非首局）
+    queueDealFx();
+    // 进贡处理（非首局）：先把牌发完（发牌动画），再开始进贡
     if (prevRanking && prevRanking.length === 4) {
-      handleTribute(prevRanking, leader);
+      if (dealFx.pending) {
+        state.phase = PHASE.TRIBUTE;
+        setNavView(NAV_VIEW.TRIBUTE);
+        renderAll();
+        const gen = roundVisualGeneration;
+        setTimeout(() => { if (gen === roundVisualGeneration) handleTribute(prevRanking, leader); }, dealFxRemaining());
+      } else handleTribute(prevRanking, leader);
     } else {
       beginPlay(leader);
     }
@@ -3102,8 +3212,14 @@
     renderAll();
     _gaSfxDeal();
     saveSession();
-    if (leader !== 0) scheduleAI();
-    else { updateActions(); armTurnClock(); notifyMyTurn(); }
+    const startTurn = () => {
+      if (state.phase !== PHASE.PLAYING || state.turn !== leader) return;
+      if (leader !== 0) scheduleAI();
+      else { updateActions(); armTurnClock(); notifyMyTurn(); }
+    };
+    const wait = dealFxRemaining();
+    if (wait > 0) { state.busy = true; setTimeout(() => { state.busy = false; renderAll(); startTurn(); }, wait); }
+    else startTurn();
     // D1：背景音乐默认关，第一次开局在提示行说一次去哪里开
     const ap = AUDIO.prefs();
     // 2026-11-26 用户不要文字提示：背景音乐开关就在 ☰ → 设置 里，不再在牌桌上弹一句
@@ -3312,8 +3428,8 @@
     const ctx = state._activeTributeGive;
     if (!ctx) return;
     const sel = selectedCards();
-    if (sel.length !== 1) { toast('请选一张'); return; }
-    if (!ctx.validCards.includes(sel[0])) { toast('只能选同等级的最大可进贡牌'); return; }
+    if (sel.length !== 1) { flashBandError('请选一张'); return; }
+    if (!ctx.validCards.includes(sel[0])) { flashBandError('只能选同等级的最大可进贡牌'); return; }
     if (isNetworked()) { sendNetworkedTribute('give', sel[0]); return; }
     commitGivePlayer(sel[0], state._tributeGiveCb);
   }
@@ -3390,7 +3506,8 @@
     state.lastPlay[pair.receiver] = mkCombo(pair.returnCard, '还');
     renderAll();
 
-    setTimeout(phaseSwap, 600);
+    // 2026-11-27 用户：进贡过程要看得清——亮牌、对飞、停留都放慢一点
+    setTimeout(phaseSwap, 1000);
 
     function phaseSwap() {
       const giverSlot = seatEls[pair.giver].play;
@@ -3409,7 +3526,7 @@
       state.lastPlay[pair.giver] = mkCombo(pair.returnCard, '还');
       state.lastPlay[pair.receiver] = mkCombo(pair.tributeCard, '进');
       renderAll();
-      setTimeout(phaseInsert, 500);
+      setTimeout(phaseInsert, 900);
     }
 
     function phaseInsert() {
@@ -3451,7 +3568,7 @@
     cardEl.style.top = fromCy + 'px';
     cardEl.style.transform = 'translate(-50%, -50%)';
     cardEl.style.zIndex = '9999';
-    cardEl.style.transition = 'left 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), top 0.7s cubic-bezier(0.4, 0.0, 0.2, 1)';
+    cardEl.style.transition = 'left 0.85s cubic-bezier(0.4, 0.0, 0.2, 1), top 0.85s cubic-bezier(0.4, 0.0, 0.2, 1)';
     cardEl.style.pointerEvents = 'none';
     cardEl.style.boxShadow = '0 6px 14px rgba(20,37,63,0.45)';
     const wrap = document.querySelector('.guandan-wrap') || document.body;
@@ -3463,7 +3580,7 @@
     setTimeout(() => {
       cardEl.remove();
       onDone && onDone();
-    }, 720);
+    }, 870);
   }
 
   // 进贡阶段中心 banner：每次显示前先清掉上一条（避免叠字成重影）
@@ -3484,12 +3601,23 @@
     els.table.querySelectorAll('.gd-fx-banner').forEach(node => node.remove());
     const ban = document.createElement('div');
     ban.className = 'gd-fx-banner ' + (o.kind === 'bomb' ? 'is-bomb t' + o.tier : 'is-info') + (o.extraClass ? ' ' + o.extraClass : '');
+    ban.dataset.text = o.text;
     ban.style.setProperty('--gd-fx-dur', o.duration + 'ms');
     const main = document.createElement('div');
     main.className = 'gd-fx-main';
     // 2026-11-26 用户：炸弹 / 接风 / 抗贡只要两个字的印章，不要图标和底下一行说明（说明只给读屏）
     main.append(document.createTextNode(o.text));
-    ban.append(main);
+    // 特效底子：一道横扫的光带 + 几粒迸出来的碎光（纯 CSS 动画，位置由 --i 错开）
+    const streak = document.createElement('span');
+    streak.className = 'gd-fx-streak';
+    ban.append(streak, main);
+    for (let i = 0; i < 8; i++) {
+      const spark = document.createElement('span');
+      spark.className = 'gd-fx-spark';
+      spark.style.setProperty('--a', (i * 45 + 20) + 'deg');
+      spark.style.setProperty('--i', i);
+      ban.append(spark);
+    }
     if (window.ZirconIcons) ZirconIcons.hydrate(ban);
     els.table.appendChild(ban);
     announce(o.text + (o.sub ? '，' + o.sub : ''));
@@ -3623,8 +3751,8 @@
     if (!cur) return;
     const { idx, pair } = cur;
     const sel = selectedCards();
-    if (sel.length !== 1) { toast('请选一张牌'); return; }
-    if (!isValidReturnCard(sel[0])) { toast('请选 ≤10 的一张牌'); return; }
+    if (sel.length !== 1) { flashBandError('请选一张牌'); return; }
+    if (!isValidReturnCard(sel[0])) { flashBandError('请选 ≤10 的一张牌'); return; }
     if (isNetworked()) { sendNetworkedTribute('return', sel[0]); return; }
     pair.returnCard = sel[0];
     state.selected.clear();
@@ -3672,7 +3800,7 @@
       const mult = bombMultiplierFor(combo);
       if (mult > 1) state.bombMult = (state.bombMult || 1) * mult;
       playBombFx(seat, combo);
-    } else { _gaSfxPlay(); AUDIO.voice(voiceIdForCombo(combo)); }
+    } else { _gaSfxPlay(); AUDIO.voice(voiceIdForCombo(combo)); playComboFx(seat, combo); }
     // 报牌语音接在这手牌型后面：剩牌跨过 10 / 5 / 2 张报一次（一手跨过几档只报最少那档），出完报头游
     const warn = afterLen > 0 ? [2, 5, 10].find(n => beforeLen > n && afterLen <= n) : null;
     if (warn) AUDIO.voice('left-' + warn, { queue: true });
@@ -3704,6 +3832,14 @@
     6: { dur: 1600, quake: 3, flash: 2, slot: 'fx-bomb-3' },
     7: { dur: 1800, quake: 4, flash: 2, slot: 'fx-jokerbomb' },
   };
+  // 2026-11-27 用户：出顺子等牌型时，照欢乐斗地主在屏幕中间放一个牌型字 + 特效，带点庆祝感
+  const COMBO_FX = { [T.STRAIGHT]: '顺子', [T.PAIR_STR]: '连对', [T.TRIPLE_STR]: '钢板' };
+  function playComboFx(seat, combo) {
+    const text = combo && COMBO_FX[combo.type];
+    if (!text) return;
+    showBanner({ kind: 'combo', text, sub: seatName(seat), priority: 3, duration: 1150, holdAi: true,
+      extraClass: 'is-combo fx-' + combo.type });
+  }
   function playBombFx(seat, combo) {
     const slot = seatEls[seat].play;
     if (!slot) return;
@@ -4275,7 +4411,26 @@
     }
     return clock;
   }
+  // 2026-11-27 用户：别家思考时不要明晃晃的闹钟——照炸弹猫，头像外面一圈朱砂环顺时针收走；
+  // 自己也一样。原来的计时元素保留给读屏（role=timer），画面上不显示。
+  function avatarRing(seat) {
+    const av = seatEls[seat] && seatEls[seat].av;
+    if (!av) return null;
+    let ring = av.querySelector('.gd-ring');
+    if (!ring) {
+      av.insertAdjacentHTML('beforeend', '<svg class="gd-ring" viewBox="0 0 50 50" aria-hidden="true"><circle cx="25" cy="25" r="23.5" pathLength="100"/></svg>');
+      ring = av.querySelector('.gd-ring');
+    }
+    return ring;
+  }
+  function clearAvatarRings() {
+    for (let s = 0; s < 4; s++) {
+      const se = seatEls[s];
+      if (se && se.seat) se.seat.classList.remove('is-timing', 'is-hurry');
+    }
+  }
   function hideAllClocks() {
+    clearAvatarRings();
     if (els.selfClock) { els.selfClock.hidden = true; els.selfClock.classList.remove('urgent'); }
     for (let s = 1; s < 4; s++) {
       const p = seatEls[s] && seatEls[s].play;
@@ -4289,6 +4444,10 @@
     turnClockSeat = seat;
     turnClockOnTimeout = onTimeout || null;
     turnClockLastSec = 10;
+    const ringTotal = Math.max(1, turnClockEndAt - Date.now());
+    const ring = avatarRing(seat);
+    const ringCircle = ring && ring.querySelector('circle');
+    if (seatEls[seat] && seatEls[seat].seat) seatEls[seat].seat.classList.add('is-timing');
     const el = clockEl(seat);
     if (!el) return;
     el.hidden = false;
@@ -4314,6 +4473,8 @@
         announce(`你的${purpose}时间还剩5秒`);
       }
       el.classList.toggle('urgent', s <= 5);
+      if (ringCircle) ringCircle.style.strokeDashoffset = String(100 - 100 * left / ringTotal);
+      if (seatEls[seat] && seatEls[seat].seat) seatEls[seat].seat.classList.toggle('is-hurry', s <= 5);
       if (s <= 5 && s !== turnClockLastSec) { turnClockLastSec = s; _gaSfxTick(); }
       if (left <= 0) {
         const timeout = turnClockOnTimeout;
@@ -4557,9 +4718,9 @@
     if (!state.autopilot && state._consecutiveTimeouts >= 2) {
       state.autopilot = true;
       refreshAutopilotBtn();
-      flashBandNote('连续超时，已开启托管');
+      announce('连续超时，已开启托管');   // 2026-11-27 用户：不弹文字，托管机器人亮起来就够了
     } else {
-      flashBandNote('超时，已替你出牌');
+      announce('超时，已替你出牌');   // 只给读屏，不在牌桌上弹字
     }
     doAutoPlayPick();
   }
@@ -5393,6 +5554,25 @@
       if (state.autopilot && els.autopilotBtn && !els.autopilotBtn.disabled) els.autopilotBtn.click();
     });
   }
+  // 2026-11-27 用户：牌桌上要有自己的头像（显示剩几张），点一下能叫出「托管」；以后改头像 / 昵称也从这里进。
+  {
+    const selfAv = seatEls[0] && seatEls[0].av;
+    const selfBar = document.querySelector('.gd-self-bar');
+    let popTimer = null;
+    const setPop = (open) => {
+      if (!selfBar || !selfAv) return;
+      selfBar.classList.toggle('is-pop', open);
+      selfAv.setAttribute('aria-expanded', open ? 'true' : 'false');
+      clearTimeout(popTimer);
+      if (open) popTimer = setTimeout(() => setPop(false), 3200);
+    };
+    if (selfAv) {
+      selfAv.addEventListener('click', (e) => { e.stopPropagation(); setPop(!selfBar.classList.contains('is-pop')); });
+      selfAv.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPop(!selfBar.classList.contains('is-pop')); } });
+      document.addEventListener('click', (e) => { if (selfBar && selfBar.classList.contains('is-pop') && !selfBar.contains(e.target)) setPop(false); });
+    }
+    if (els.autopilotBtn) els.autopilotBtn.addEventListener('click', () => setPop(false));
+  }
   if (els.autopilotBtn) {
     els.autopilotBtn.addEventListener('click', () => {
       state.autopilot = !state.autopilot;
@@ -5469,12 +5649,12 @@
     if (!els.sortMainBtn) return;
     const mode = sortMainMode();
     const nothingCustom = !(state.customGroups && state.customGroups.length) && !state.handOrder;
-    const label = { reset: '重排', ungroup: '拆组', group: '成组', 'group-off': '成组' }[mode];
+    const label = { reset: '重排', ungroup: '拆分', group: '组合', 'group-off': '组合' }[mode];   // 2026-11-27 用户：叫「组合 / 拆分」
     const tip = {
       reset: '清掉自定义分组，恢复默认排序',
       ungroup: '把选中的这一组拆开，放回默认位置',
       group: '把选中的牌摞成一组：炸弹放左、其他放右',
-      'group-off': '选中的牌要能组成一手牌型才能成组',
+      'group-off': '选中的牌要能组成一手牌型才能组合',
     }[mode];
     if (els.sortMainTx) els.sortMainTx.textContent = label;
     els.sortMainBtn.title = tip;
@@ -5792,6 +5972,7 @@
     if (state.trick) { state.trick.best = combo; state.trick.bestSeat = seat; }
     renderAll();
     if (isBombType(combo.type)) playBombFx(seat, combo);
+    else playComboFx(seat, combo);
   }
   function demoTribute(double) {
     const C = (s, r) => s * 13 + r;
@@ -6241,8 +6422,10 @@
   function setOverlayTimingNote(el) {
     if (!el) return;
     const inGame = navState.current === NAV_VIEW.PLAYING || navState.current === NAV_VIEW.TRIBUTE;
-    if (!inGame) { el.hidden = true; el.textContent = ''; return; }
-    el.hidden = false;
+    // 2026-11-27 用户：「单机对局已暂停，关闭此面板后继续」之类的说明多余——面板里一律不写
+    el.hidden = true; el.textContent = '';
+    if (el.hidden) return;
+    if (!inGame) return;
     el.textContent = isNetworked()
       ? '联机对局由服务器继续计时；请尽快返回牌桌。'
       : '单机对局已暂停；关闭此面板后继续。';
