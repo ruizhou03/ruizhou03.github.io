@@ -1017,7 +1017,10 @@ body .guandan-wrap .gd-seat .gd-av-cnt .gd-rank-badge.gd-rk-land.r1:not([hidden]
 }
 
 /* 2026-11-27 用户：对家的「不出」太贴出牌区顶上——挪到他若出牌时牌面的底端（出牌区那一格的终点），和牌底对齐 */
-body.gd-game-fullscreen .guandan-wrap #gdSeat2 .gd-pass-tag { top: calc(100% + 6px + var(--u, 46px) * 1.44 - 22px); }
+body.gd-game-fullscreen .guandan-wrap #gdSeat2 .gd-pass-tag { top: calc(100% + 16px + var(--u, 46px) * 1.44 - 22px); }
+/* 2026-11-27 用户：对家出的牌贴着头像下沿 → 留 10px 白；左右两家的出牌区跟着往下挪一点 */
+body.gd-game-fullscreen .guandan-wrap #gdPlay2 { margin-top: 10px; }
+body.gd-game-fullscreen .guandan-wrap .gd-side .gd-played { transform: translateY(10px); }
 
 /* 2026-11-27 用户「不出 / 要不起偶尔要点两三下」：按钮紧挨着手牌，手指常点在按钮下沿外一点点，
    落到了手牌区（那里没牌，点了什么也不发生）。给决策按钮一圈看不见的扩大触控区。 */

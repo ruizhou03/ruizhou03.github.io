@@ -1438,7 +1438,7 @@
     // 一手 27 张，默认按点数分列最多 16 列（13 个点 + 逢人配 + 小王 + 大王）；自己成组只允许三带二 / 顺子 / 连对 / 钢板 / 炸弹 / 同花顺（≥4 张一摞），
     // 16 列各占 1 张后剩 11 张最多再成 2 摞 → 理论上限 18 列。按 18 列都放得下来定卡宽，就永远不用叠。
     const handW = W - (74 + 56) - (wide ? 32 : 22);   // 左右让出头像 / 理牌键与牌桌内边距（2026-11-27 头像回到左下角，两边都离屏幕角远一点，同 CSS --gd-hand-l / -r）
-    const byW = handW / HAND_MAX_COLS - 1;   // -1：列间 1px 缝
+    const byW = handW / (wide ? 15.5 : 12) - 1;   // -1：列间 1px 缝（2026-11-27 用户：不按 18 列缩牌，挤不下改成左右滑动看）   // -1：列间 1px 缝
     const byH = wide ? (H * 0.62 - 72) / 4.06 : (H - 150) / 5;   // 手牌贴底后多出约 10px
     const u = Math.max(36, Math.min(72, Math.floor(Math.min(byW, byH))));
     if (table.style.getPropertyValue('--u') !== u + 'px') table.style.setProperty('--u', u + 'px');
