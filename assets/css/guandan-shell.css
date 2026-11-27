@@ -1017,3 +1017,7 @@ body.gd-game-fullscreen .guandan-wrap #gdSeat2 .gd-pass-tag { top: calc(100% + 6
    落到了手牌区（那里没牌，点了什么也不发生）。给决策按钮一圈看不见的扩大触控区。 */
 body.gd-game-fullscreen .guandan-wrap .gd-play-band .gd-btn { position: relative; }
 body.gd-game-fullscreen .guandan-wrap .gd-play-band .gd-btn::after { content: ''; position: absolute; inset: -6px -5px -14px; border-radius: inherit; }
+
+/* 2026-11-27 用户：手牌挤时别让列叠在一起——理牌键往右挪一点，给手牌多让 14px（配合 JS 按 18 列定卡宽） */
+body.gd-game-fullscreen .guandan-wrap .gd-sort-actions { right: calc(6px + env(safe-area-inset-right, 0px)); }
+body.gd-game-fullscreen .guandan-wrap .gd-table { --gd-hand-r: 56px; }

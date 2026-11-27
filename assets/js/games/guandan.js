@@ -1417,6 +1417,7 @@
   // 矮版按 12 列（手机上多出来的列横向滑动看牌，与以往一致）；高度按「对家行 + 两家出牌 +
   // 决策带 + 6 张深手牌」留足空间。
   // 宽版 / 矮版的分界与 CSS 的 @media (min-height: 500px) 一致。
+  const HAND_MAX_COLS = 18;
   function solveTableSize() {
     const table = els.table;
     if (!table) return;
@@ -1426,8 +1427,11 @@
     if (!vw || !vh || !table.clientWidth) return;
     const W = Math.max(vw, vh), H = Math.min(vw, vh);
     const wide = H >= 500;
-    const handW = W - (74 + 70) - (wide ? 32 : 22);   // 左右让出头像 / 理牌键与牌桌内边距（2026-11-27 头像回到左下角，两边都离屏幕角远一点，同 CSS --gd-hand-l / -r）
-    const byW = handW / (wide ? 15.5 : 12) - 1;   // -1：列间 1px 缝
+    // 2026-11-27 用户：手牌挤的时候列和列别叠——右下角理牌键往右挪（让出 14px），并按「理论最多列数」定卡宽：
+    // 一手 27 张，默认按点数分列最多 16 列（13 个点 + 逢人配 + 小王 + 大王）；自己成组只允许三带二 / 顺子 / 连对 / 钢板 / 炸弹 / 同花顺（≥4 张一摞），
+    // 16 列各占 1 张后剩 11 张最多再成 2 摞 → 理论上限 18 列。按 18 列都放得下来定卡宽，就永远不用叠。
+    const handW = W - (74 + 56) - (wide ? 32 : 22);   // 左右让出头像 / 理牌键与牌桌内边距（2026-11-27 头像回到左下角，两边都离屏幕角远一点，同 CSS --gd-hand-l / -r）
+    const byW = handW / HAND_MAX_COLS - 1;   // -1：列间 1px 缝
     const byH = wide ? (H * 0.62 - 72) / 4.06 : (H - 150) / 5;   // 手牌贴底后多出约 10px
     const u = Math.max(36, Math.min(72, Math.floor(Math.min(byW, byH))));
     if (table.style.getPropertyValue('--u') !== u + 'px') table.style.setProperty('--u', u + 'px');
@@ -6101,6 +6105,8 @@
       // 钢板/炸弹/同花顺/天王炸……classify 认得就放行，认不得(随手凑的一堆杂牌)就静默不摞，
       // 杜绝把任意张数(甚至 8+)的杂牌硬摞成一摞。不弹窗，点错了什么都不发生。
       if (!cb) return;
+      // 2026-11-27 用户：只有成型的组合才能摞（三带二、顺子、连对、钢板、炸弹、同花顺……），对子 / 三张 / 单张一眼就看得清，不单独成摞
+      if (cb.type === T.SINGLE || cb.type === T.PAIR || cb.type === T.TRIPLE) return;
       // 选中的牌若与已有摞重叠：直接拆掉那些旧摞、用当前选中重新摞一摞 ——
       // 这样「已摞好的三张」+「一对」可以直接并成一摞三带二，不必先还原。
       const selSet = new Set(sel);
@@ -9445,24 +9451,40 @@
         ev.stopPropagation();
         const b = ev.target.closest('button');
         if (!b) return;
-        if (b.dataset.emoji) sendEmote({ kind: 'emoji', id: b.dataset.emoji });
-        else if (b.dataset.phrase != null) sendEmote({ kind: 'phrase', id: +b.dataset.phrase });
-        closeChat();
+        // 2026-11-27 用户「点表情 / 快捷语没任何反应」：点下去先亮一下再收起；2 秒内连点（服务器也是 2 秒一条）就抖一下、面板不收，不再悄悄吞掉
+        const item = b.dataset.emoji ? { kind: 'emoji', id: b.dataset.emoji } : (b.dataset.phrase != null ? { kind: 'phrase', id: +b.dataset.phrase } : null);
+        if (!item) return;
+        if (!sendEmote(item)) {
+          b.classList.remove('is-wait'); void b.offsetWidth; b.classList.add('is-wait');
+          return;
+        }
+        b.classList.add('is-sent');
+        const panel = chatPanel;
+        setTimeout(() => { if (chatPanel === panel) closeChat(); }, 160);
       });
     });
     document.addEventListener('click', (e) => { if (chatPanel && !chatPanel.contains(e.target) && e.target !== chatBtn) closeChat(); }, true);
   }
 
   let lastEmoteAt = 0;
-  async function sendEmote(item) {
-    if (!onlineState) return;
+  // 返回 true = 发出去了（本地已经演），false = 太快了没发
+  function sendEmote(item) {
+    if (!onlineState) return false;
     const now = Date.now();
-    if (now - lastEmoteAt < 2000) return;   // 和服务器同样 2 秒一次
+    if (now - lastEmoteAt < 2000) return false;   // 和服务器同样 2 秒一次
     lastEmoteAt = now;
     // 自己发的先在本地演（不等来回），服务器回来的同一条按序号跳过
-    const mine = Object.assign({ from: onlineState.mySeat, seq: -1 }, item);
+    const mine = Object.assign({ from: onlineState.mySeat, seq: -1, mine: true }, item);
     playRoomFx(mine);
-    const r = await gdApi('emote', { token: onlineState.accessToken, body: Object.assign({ code: onlineState.code }, item) });
+    postEmote(item);
+    return true;
+  }
+  async function postEmote(item) {
+    const sess = onlineState;
+    if (!sess) return;
+    const r = await gdApi('emote', { token: sess.accessToken, body: Object.assign({ code: sess.code }, item) });
+    if (onlineState !== sess) return;
+    if (!r.ok) { reportClient('emote', r.error || ('status ' + r.status), ''); return; }
     if (r.ok && r.data && Array.isArray(r.data.fx)) {
       for (const x of r.data.fx) onlineState._fxMine = Math.max(onlineState._fxMine || 0, x.seq);
       onRoomFx(r.data.fx, r.data.fxSeq);
@@ -9505,7 +9527,7 @@
     if (x.kind === 'phrase' || x.kind === 'emoji') {
       const c = centerOf(from);
       const el = document.createElement('div');
-      el.className = x.kind === 'phrase' ? 'gd-fx-bubble' : 'gd-fx-emoji';
+      el.className = (x.kind === 'phrase' ? 'gd-fx-bubble' : 'gd-fx-emoji') + (x.mine ? ' is-mine' : '');
       el.textContent = x.kind === 'phrase' ? (ROOM_PHRASES[x.id] || '') : ((ROOM_EMOJIS.find(e => e[0] === x.id) || [])[1] || '');
       layer.appendChild(el);
       // 气泡朝桌心那边冒：上半屏的头像往下冒，下半屏往上

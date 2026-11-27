@@ -2520,3 +2520,9 @@ body.gd-game-fullscreen .gd-lobby .gd-lobby-seat .seat-actions .gd-btn.is-arm { 
 .guandan-wrap #gdMatchOverlay.has-record .gd-result-score { grid-column: 1; }
 .guandan-wrap #gdMatchOverlay.has-record .gd-result-score:empty { display: none; }
 .guandan-wrap #gdMatchOverlay.has-record .gd-result-actions { margin-top: 12px; }
+/* 2026-11-27 用户「点表情 / 快捷语没反应」：点中的那颗先亮一下；太快（2 秒内）就抖一下；自己发的表情更大、往桌心方向冒一截，不被拇指挡住 */
+.gd-chat-panel button.is-sent { background: var(--gd-seal) !important; color: var(--gd-seal-ink) !important; border-color: var(--gd-seal) !important; transform: scale(1.06); }
+.gd-chat-panel button.is-wait { animation: gd-fx-shake .4s ease-in-out; }
+.gd-fx-emoji.is-mine { font-size: 58px; animation: gd-emoji-mine 2.1s cubic-bezier(.3,.7,.4,1) forwards; }
+@keyframes gd-emoji-mine { 0% { opacity: 0; transform: translate(0, 0) scale(.3) rotate(-18deg); } 18% { opacity: 1; transform: translate(38px, -52px) scale(1.25) rotate(8deg); } 30% { transform: translate(40px, -58px) scale(1) rotate(0); } 85% { opacity: 1; transform: translate(40px, -62px) scale(1); } 100% { opacity: 0; transform: translate(40px, -74px) scale(.85); } }
+.gd-fx-bubble.is-mine { font-size: 15px; }
