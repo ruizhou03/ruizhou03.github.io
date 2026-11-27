@@ -59,6 +59,7 @@
 .zmp-task.is-ready{border-color:#b4392c;background:#fffdf8;color:#1d1b18;box-shadow:0 0 0 3px rgba(180,57,44,.12)}
 .zmp-task.is-ready b{color:#3f7a52}
 .zmp-task button{cursor:pointer;flex:none;padding:8px 16px;border-radius:999px;border:1.5px solid #1d1b18;background:#b4392c;color:#fffdf8;font:600 14px/1 system-ui,"Noto Sans SC",sans-serif;box-shadow:0 2px 0 #1d1b18}
+.zmp-task button.go{background:#fffdf8;color:#1d1b18}
 .zmp-task button:active{transform:translateY(2px);box-shadow:none}
 .zmp-task em{font-style:normal;font-size:13px;color:#8a8275}
 .zmp-day.is-big{background-image:radial-gradient(circle at 50% 30%,rgba(227,168,63,.28),transparent 70%)}
@@ -160,12 +161,15 @@
 .zmp-hero3 .zmp-bal{text-align:left}
 .zmp-hero3 .zmp-bal .n{font-size:clamp(26px,7.4vw,40px);gap:6px}
 .zmp-hero3 .zmp-bal .zmw-fish{width:38px;height:24px}
-.zmp-hero3 .zmp-rings{flex:none;grid-template-columns:repeat(2,58px);gap:8px 6px}
-.zmp-hero3 .zmp-ring svg{width:52px;max-width:none;display:block;margin:0 auto}
-.zmp-hero3 .zmp-ring b{margin-top:2px;font-size:12px;white-space:nowrap}
+.zmp-hero3 .zmp-rings{flex:none;grid-template-columns:repeat(2,74px);gap:10px 6px}
+.zmp-hero3 .zmp-ring svg{width:70px;max-width:none;display:block;margin:0 auto}
+.zmp-hero3 .zmp-ring b{margin-top:3px;font-size:13px;white-space:nowrap}
 .zmp-hero3 .zmp-ring b small{margin-left:2px;font-size:10.5px}
-@media(max-width:374px){.zmp-hero3{gap:8px}.zmp-me{gap:8px}.zmp-me .zmp-av{width:48px;height:48px}.zmp-hero3 .zmp-bal .n{font-size:22px;gap:4px}.zmp-hero3 .zmp-bal .zmw-fish{width:30px;height:19px}.zmp-hero3 .zmp-rings{grid-template-columns:repeat(2,50px);gap:6px 4px}.zmp-hero3 .zmp-ring svg{width:44px}.zmp-hero3 .zmp-ring b{font-size:11px}.zmp-hero3 .zmp-ring b small{font-size:9.5px;margin-left:1px}}
-@media(min-width:560px){.zmp-hero3 .zmp-rings{grid-template-columns:repeat(4,64px);gap:6px}.zmp-hero3 .zmp-ring svg{width:58px}}
+@media(max-width:374px){.zmp-hero3{gap:8px}.zmp-me{gap:8px}.zmp-me .zmp-av{width:48px;height:48px}.zmp-hero3 .zmp-bal .n{font-size:22px;gap:4px}.zmp-hero3 .zmp-bal .zmw-fish{width:30px;height:19px}.zmp-hero3 .zmp-rings{grid-template-columns:repeat(2,58px);gap:8px 4px}.zmp-hero3 .zmp-ring svg{width:54px}.zmp-tops svg,.zmp-tops button{width:26px;height:26px}.zmp-hero3 .zmp-ring b{font-size:11px}.zmp-hero3 .zmp-ring b small{font-size:9.5px;margin-left:1px}}
+@media(min-width:560px){.zmp-hero3 .zmp-rings{grid-template-columns:repeat(4,84px);gap:8px}.zmp-hero3 .zmp-ring svg{width:80px}}
+.zmp-tops{display:flex;gap:6px;margin-top:-2px}
+.zmp-tops button{width:32px;height:32px;padding:0;border:0;background:none;cursor:pointer;border-radius:50%;-webkit-tap-highlight-color:transparent}
+.zmp-tops svg{width:32px;height:32px;display:block}
 .zmp-ed{width:min(360px,100%);background:#fffdf8;border:1.5px solid #1d1b18;border-radius:18px;box-shadow:0 3px 0 #1d1b18;padding:16px}
 .zmp-ed .top{display:flex;align-items:center;gap:12px}
 .zmp-ed .top .zmp-av{flex:none}
@@ -343,11 +347,13 @@
     const ss = seriesState(p.badgeList), nGot = (p.badgeList || []).filter((b) => b.got).length;
     const wall = ss.length ? '<div class="zmp-card zmp-medals"><div class="zmp-h">勋章<small>' + nGot + ' / ' + MD().total + '</small></div><div class="zmp-wall">' +
       ss.map((x) => '<button type="button" data-ser="' + x.sid + '"' + (x.tier ? '' : ' class="off"') + '>' + medal(x) + '<b>' + esc(x.tier ? x.tiers[x.tier - 1].name : x.sname) + '</b></button>').join('') + '</div></div>' : '';
-    // 第一格（2026-11-27 用户）：已登录不再挂绿勾（没登录才有「登录保存」）；名字下的那排勋章拿掉（下面就是勋章墙）；
+    // 第一格（2026-11-27 用户）：已登录不再挂绿勾（没登录才有「登录保存」）；名字下放拿到的最高 4 枚勋章（拿掉后用户嫌空，又加回来）；
     // 右边空着的一大块放玩法胜率（窄屏 2×2 小环，宽屏一排 4 个）；点头像 / 名字改名换头像
+    const tops = ss.filter((x) => x.tier).sort((x, y) => y.tier - x.tier).slice(0, 4).map((x) => '<button type="button" data-ser="' + x.sid + '" aria-label="' + esc(x.tiers[x.tier - 1].name) + '">' + MD().svg(x.sid, x.tier) + '</button>').join('');
     const rings = '<div class="zmp-rings">' + MODES.map(([k, name, c]) => '<div class="zmp-ring">' + ring(p.modes[k].w, p.modes[k].g, c) + '<b>' + name + '<small>' + p.modes[k].g + '局</small></b></div>').join('') + '</div>';
     return '<div class="zmp-in">' +
       '<div class="zmp-card zmp-hero3"><div class="l"><button type="button" class="zmp-me" data-edit aria-label="改名字和头像"><span class="zmp-av">' + me.face + '</span><span class="zmp-nick"><span>' + esc(me.nick) + '</span>' + PEN + '</span></button>' +
+        (tops ? '<div class="zmp-tops">' + tops + '</div>' : '') +
         (p.owner === 'account' ? '' : '<button type="button" class="zmp-login" data-login>登录保存</button>') +
         '<div class="zmp-bal"><span class="n">' + FISH + '<b data-num>' + fmt(p.bal) + '</b></span></div>' +   // 2026-11-26 用户：余额旁边不要「近 7 天对局」和「多少局」
         '</div>' + rings + '</div>' +
@@ -429,7 +435,8 @@
       const ck = e.target.closest('[data-ck]');
       if (ck) { checkinNow(ck); return; }
       if (e.target.closest('[data-login]')) { login(); return; }
-      if (e.target.closest('[data-edit]')) editMe();
+      if (e.target.closest('[data-edit]')) { editMe(); return; }
+      if (e.target.closest('[data-go]')) close();
     });
     document.addEventListener('keydown', (e) => { if (e.key !== 'Escape' || !isOpen() || document.querySelector('#sa-overlay.open')) return; const bm = el.querySelector('.zmp-bmask'); if (bm) bm.remove(); else close(); });
     // 登录 / 登出（2026-11-26 事故：在档案里点「登录保存」，档案先摆了一份 6,000、流水全空的，像账号被清空）：
@@ -473,7 +480,7 @@
   function fwHtml(p) {
     const f = p.firstWin;
     if (!f) return '';
-    const st = f.ready ? '<button type="button" data-fw>领取</button>' : '<em>' + (f.done ? '已领' : '赢一局就有') + '</em>';
+    const st = f.ready ? '<button type="button" data-fw>领取</button>' : f.done ? '<em>已领</em>' : '<button type="button" class="go" data-go>去完成</button>';   // 2026-11-27 用户：「赢一局就有」不对，改「去完成」（点了回主页面开局）
     return '<div class="zmp-task' + (f.ready ? ' is-ready' : '') + '"><span>今日首胜<b>' + W().FISH + '+' + fmt(f.amount || 1000) + '</b></span>' + st + '</div>';
   }
   /* 2026-11-26 用户：点了领取，按钮要当场变「已领」（以前等服务器回来要好几秒，中间还能一直点）。
