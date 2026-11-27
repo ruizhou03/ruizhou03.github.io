@@ -8186,7 +8186,8 @@
     autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
     game = { state: d.state, bots: d.bots, tiers: d.tiers, tutorial: false, fastOut: !d.state.alive[0], openKits: new Set(d.openKits || []), kitShown: new Set(d.openKits || []) };
     if (HL) HL.restore(game, d.hl);
-    if (d.wt && d.wt.tid) game.wt = d.wt;   // 这局的小鱼干门票（结算用）
+    if (d.wt && (d.wt.tid || d.wt.gid)) game.wt = d.wt;   // 这局的小鱼干门票（结算用）
+    if (WAL && WAL.resume) WAL.resume(game);   // 开局时没连上、票还没要到：接着要
     game.bots[0] = { nick: profile.nick, avatar: profile.avatar };
     els.cover.hidden = true;
     buildSeats();
@@ -10825,7 +10826,7 @@
     if (performance.now() < ghostUntil && !b.closest('.zm-setsheet-mask')) { ghostUntil = 0; return; }   // 甩收设置单的余波，不是真点
     // 单机：有上一局 → 先问「接着打 / 开新的一局」；没有就直接选人数
     // 2026-11-13 用户：没有没打完的局 → 点单机直接到选人数（不经过「接着打 / 开新的」那一步）；新手教程 · 设置这时挂在选人数那屏底下
-    if (k === 'solo') { openSheet('solo'); return; }
+    if (k === 'solo') { if (WAL && WAL.warm) WAL.warm(); openSheet('solo'); return; }
     if (k === 'sheet-close') { closeSheet(); return; }
     if (k === 'start') {
       settings.players = Math.min(SOLO_MAX, settings.players);
@@ -10945,7 +10946,24 @@
   initSocial();
   if (WAL) WAL.mountChip(els.cover);   // 主菜单左上角：小鱼干余额，点了去猫咪档案
   if (WAL && WAL.mountTable) WAL.mountTable(els.app.querySelector('.zm-topleft'));   // 牌桌左上角常驻小鱼干（2026-11-26 用户挑方案 A：标题位换成余额，结算加减、扣门票都往这里游）
-  if (WAL) WAL.onNoScore = (g) => { if (g === game) toast(T('ui.wallet.noScore', '这局不计小鱼干（门票没扣上）')); };   // 2026-11-24：服务器没发票时不再悄悄白玩
+  if (WAL) WAL.onNoScore = (g) => {
+    if (g !== game) return;
+    if (g.wt && g.wt.short) { shortAbort(g); return; }
+    toast(T('ui.wallet.noScore', '这局不计小鱼干（门票没扣上）'));   // 2026-11-24：服务器没发票时不再悄悄白玩（只剩服务器不认这一种；连不上的会排队补扣）
+  };
+  /* 服务器说余额不够扣这局门票（2026-11-27 用户：钱不够就不能开）：本机的余额对不上（别处花掉了 / 本机记的是旧的）时才会走到这里——
+   * 开局不等门票（不卡开局），票回来说不够就把这局收掉：回主页面，弹和「开始」时一样的「小鱼干不够了」（里面能领救济、够了直接再开） */
+  function shortAbort(g) {
+    if (g !== game) return;
+    token++;
+    stopClock(); clearReactTimer();
+    try { localStorage.removeItem(STORE_KEY); } catch (_) { /* 无痕 */ }
+    if (!els.mask.hidden) closeDialog();
+    game = null; busy = false;
+    showCover();
+    const go = () => { if (game || els.cover.hidden) return; if (WAL.pay) WAL.pay({ tier: settings.tier, mode: curMode(), n: soloN() }).then((ok) => { if (ok && !game && !els.cover.hidden) soloStart(); }); };
+    (WAL.refresh ? WAL.refresh() : Promise.resolve()).then(() => setTimeout(go, 300));
+  }
   refreshCover();
   refreshTools();
   // 进来先是主菜单 + 一条进度条（等字体到位，太快也让它走完一程，不闪），跑完换成按钮

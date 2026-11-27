@@ -104,7 +104,7 @@
   const today = () => dayAt();
   /* 几个请求同时在路上（开局：买道具几笔 + 门票）时，回来的先后不一定：只有最后发出的那个请求回来的余额才摆上去，
    * 早发的晚回来就不改余额（不然左上角会先跳回中间某一步的数再落下来——2026-11-27 用户：扣完又弹一下） */
-  let postSeq = 0;
+  let postSeq = 0, lastOk = 0;
   async function post(action, body, sync) {
     const mySeq = ++postSeq;
     const b = Object.assign({ day: today(), tz: new Date().getTimezoneOffset() }, body || {});   // tz：服务器记下手机时区，联机结算时也按当地日期算首胜（2026-11-24）
@@ -123,6 +123,7 @@
       res = await fetch(BASE + '?action=' + action, opts);
     }
     const j = await res.json().catch(() => ({}));
+    lastOk = Date.now();
     if (!res.ok) { const e = new Error(j.error || 'http_' + res.status); e.status = res.status; throw e; }
     if (me !== who()) { const e = new Error('who_changed'); e.status = 0; throw e; }   // 半路登录 / 登出了：这份是旧身份的，不摆
     quiet = !!sync;
@@ -552,6 +553,9 @@
   function refresh() {
     return post('me', null, true).catch(() => null);
   }
+  /* 打开单机设置单时（2026-11-27 用户：钱不够不能开，但检查不能拖慢开局）：服务器一分钟没说过话就先对一下余额——
+   * 一来「开始」时本机拿来判够不够的余额是新的；二来服务器（fly 闲置会睡，第一次叫醒要好几秒）趁玩家挑人数时就醒了，点「开始」那张门票一下就回 */
+  function warm() { if (Date.now() - lastOk > 60e3) refresh().then(retryPending); }
 
   // ── 单机设置单：「开始」键上标这局门票 ──
   function priceTag(btn, tier, mode, n) {
@@ -576,12 +580,20 @@
   // ── 没结算成的单机局（网断了）：存在本机，下次打开游戏补上 ──
   const PEND = 'zm.wallet.pending';
   const pendList = () => { try { return JSON.parse(ls.get(PEND)) || []; } catch (_) { return []; } };
-  function keepPending(body) { const l = pendList().filter((x) => x.tid !== body.tid); l.push(Object.assign({ t: Date.now() }, body)); ls.set(PEND, JSON.stringify(l.slice(-10))); }
-  function dropPending(tid) { ls.set(PEND, JSON.stringify(pendList().filter((x) => x.tid !== tid))); }
+  const pkey = (x) => x.tid || (x.need && x.need.gid) || '';
+  function keepPending(body) { const l = pendList().filter((x) => pkey(x) !== pkey(body)); l.push(Object.assign({ t: Date.now() }, body)); ls.set(PEND, JSON.stringify(l.slice(-10))); }
+  function dropPending(key) { ls.set(PEND, JSON.stringify(pendList().filter((x) => pkey(x) !== key))); }
+  /* 补结算。门票一直没扣上（整局都连不上服务器）的那种（need）：先扣票（同一个局号，服务器认得、不会扣两次），再结算——
+   * 开了的局一定扣票、一定兑现（2026-11-27 用户）。服务器说余额不够扣票：这局作废（不扣也不发） */
   function retryPending() {
     const l = pendList().filter((x) => Date.now() - (x.t || 0) < 11 * 3600e3);
     ls.set(PEND, JSON.stringify(l));
-    l.reduce((p, x) => p.then(() => { const b = Object.assign({}, x); delete b.t; return post('settle', b, true).then(() => dropPending(x.tid)).catch((e) => { if (e.status === 409 || e.status === 403) dropPending(x.tid); }); }), Promise.resolve());
+    l.reduce((p, x) => p.then(() => {
+      const b = Object.assign({}, x), key = pkey(x);
+      delete b.t; delete b.need;
+      const tk = x.need && !x.tid ? post('ticket', x.need, true).then((r) => { if (!r.tid) { dropPending(key); return false; } b.tid = r.tid; return true; }) : Promise.resolve(true);
+      return tk.then((ok) => (ok ? post('settle', b, true).then(() => dropPending(key)) : null)).catch((e) => { if (e.status === 409 || e.status === 403 || e.status === 422) dropPending(key); });
+    }), Promise.resolve());
   }
 
   // ── 单机：开局领票、记我的步数、结算 ──
@@ -589,11 +601,36 @@
   function start(game, tier) {
     if (!game || game.tutorial || game.online) return;
     const st = game.state, mode = R.normalizeRules(st.rules).mode;
-    const wt = game.wt = { n: st.n, mode, tier, all: 0, auto: 0 };
-    return post('ticket', { n: st.n, mode, tier, gid: game.hl && game.hl.id }).then((r) => {   // 返回：票回来后让牌桌再存一次档（门票号要跟着存档走）
-      if (game.wt !== wt) return;
-      if (r.tid) { wt.tid = r.tid; wt.price = r.price; wt.bal0 = r.bal; } else { wt.short = true; noScore(game); }
-    }).catch(() => { if (game.wt === wt) { wt.off = true; noScore(game); } });
+    // gid = 这局的局号：服务器按它认票，同一局重发几次也只扣一张（2026-11-27）
+    const gid = String((game.hl && game.hl.id) || 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)).slice(0, 32);
+    const wt = game.wt = { n: st.n, mode, tier, all: 0, auto: 0, gid };
+    return askTicket(game, wt);   // 返回：票回来后让牌桌再存一次档（门票号要跟着存档走）
+  }
+  /* 要门票（2026-11-27 用户：钱不够不能开、开了一定扣上票；但不能为了等票卡住开局）：
+   * 开局不等它（发牌 / 抽角色本来就要几秒），后台要；服务器说余额不够 → 牌桌那边收掉这局、回主页面（onNoScore 看 wt.short）；
+   * 连不上 / 服务器出错 → 隔 2、5、10、20 秒再要（同一个局号，不会扣两张）；一直要不到 → 记 need，结算时连票带结算排队，下次连上先扣票再结算 */
+  const TK_GAP = [2000, 5000, 10000, 20000];
+  function askTicket(game, wt, i) {
+    i = i || 0;
+    const p = post('ticket', { n: wt.n, mode: wt.mode, tier: wt.tier, gid: wt.gid }).then((r) => {
+      if (wt.tid) return null;
+      if (r.tid) { wt.tid = r.tid; wt.price = r.price; wt.bal0 = r.bal; wt.need = false; return null; }
+      wt.short = true; noScore(game);
+      return null;
+    }, (e) => {
+      if (wt.tid || wt.short) return null;
+      if (e && e.status >= 400 && e.status < 500 && e.status !== 408 && e.status !== 429) { wt.off = true; noScore(game); return null; }   // 服务器不认（登录失效之类）：这局不计
+      wt.need = true;
+      if (i >= TK_GAP.length || game.wt !== wt || wt.done) return null;
+      return new Promise((r) => setTimeout(r, TK_GAP[i])).then(() => (game.wt === wt && !wt.tid && !wt.short ? askTicket(game, wt, i + 1) : null));
+    });
+    if (!i) Object.defineProperty(wt, 'tp', { value: p, configurable: true, writable: true });   // 结算时还没回来就等它（不进存档）
+    return p;
+  }
+  // 接着打上一局：存档里这局还没拿到票（开局时没连上）→ 接着要
+  function resume(game) {
+    const wt = game && game.wt;
+    if (wt && !wt.tid && !wt.short && !wt.off && wt.gid) askTicket(game, wt);
   }
   /* 服务器没发票（余额对不上 / 连不上）：这局照样能打，但不计小鱼干——说一声，不再悄悄白玩（2026-11-24） */
   function noScore(game) {
@@ -613,7 +650,7 @@
     if (pending.has(game)) return pending.get(game);
     const wt = game.wt;
     if (wt.done) return Promise.resolve(wt.done);
-    if (!wt.tid) return null;
+    if (!wt.tid && (wt.short || wt.off || !wt.gid)) return null;
     const s = game.state, n = s.n, me = meOf(game);
     let body;
     if (R.isTeam && R.isTeam(s)) {
@@ -623,7 +660,7 @@
       const lastOut = (t) => Math.max(...seats.filter((k) => R.teamOf(s, k) === t).map((k) => s.outOrder.indexOf(k)));
       const losers = [...new Set(seats.map((k) => R.teamOf(s, k)))].filter((t) => t !== s.winnerTeam).sort((a, b) => lastOut(b) - lastOut(a));
       const ko = s.outOrder.indexOf(me);
-      body = { tid: wt.tid, team: true, won: mine === s.winnerTeam, winners: seats.filter((k) => R.teamOf(s, k) === s.winnerTeam).length,
+      body = { team: true, won: mine === s.winnerTeam, winners: seats.filter((k) => R.teamOf(s, k) === s.winnerTeam).length,
         trank: mine === s.winnerTeam ? 1 : losers.indexOf(mine) + 2, surv: seats.filter((k) => R.teamOf(s, k) === s.winnerTeam && s.alive[k]).length,
         prank: s.alive[me] || ko < 0 ? 1 : n - ko };
     } else {
@@ -631,7 +668,7 @@
       if (s.phase === 'over' && s.winner === me) rank = 1;
       else if (!s.alive[me]) { const k = s.outOrder.indexOf(me); if (k >= 0) rank = n - k; }
       if (!rank) return null;
-      body = { tid: wt.tid, rank };
+      body = { rank };
     }
     body.autoShare = wt.all ? wt.auto / wt.all : 0;
     // 当场估好（同服务器的算法）：结算页一出来就有数，服务器回来再对一下（首胜奖励只有服务器知道）
@@ -639,19 +676,29 @@
     const floor = body.team ? (teamParts(n, body).floor ? body.prank : 0) : 0;   // 这局按个人名次保底结算：结算页说一句
     wt.rank = body.team ? (body.won ? 1 : body.trank) : body.rank;   // 结算页那一行写「第 N 名」
     const b0 = wt.bal0 != null ? wt.bal0 : state ? state.bal : 0;   // 买完票的余额
+    const pr = wt.price != null ? wt.price : price(wt.tier, wt.mode, n);   // 票还没回来：按价目表
     let pay = pay0;
-    if (pay > 0) pay = Math.min(pay, b0 + (wt.price || 0));   // 赢不超过买票前的余额（一局最多翻倍）
+    if (pay > 0) pay = Math.min(pay, b0 + pr);   // 赢不超过买票前的余额（一局最多翻倍）
     else if (pay < 0) pay = -Math.min(-pay, Math.max(0, b0));   // 扣到 0 为止
-    wt.est = { delta: pay - wt.price, pay, price: wt.price, firstWin: 0, bal: b0 + pay, est: true, auto: body.autoShare, floor };
+    wt.est = { delta: pay - pr, pay, price: pr, firstWin: 0, bal: b0 + pay, est: true, auto: body.autoShare, floor };
     holdT();   // 牌桌左上角先停在结算前的数：等结算页一笔一笔游进去（服务器回来的余额不能先跳上去）
     if (state) state = Object.assign({}, state, { bal: wt.est.bal });   // 本机先记上（「再来一局」够不够按这个算），服务器回来会覆盖
-    const p = post('settle', body, true).then((r) => { wt.done = { delta: r.delta, pay: r.pay, price: wt.price, firstWin: r.firstWin || 0, badges: Array.isArray(r.badges) ? r.badges : [], bal: r.bal, auto: body.autoShare, floor }; dropPending(wt.tid); return wt.done; })
-      .catch((e) => {
-        if (e.status === 409 || e.status === 403) { wt.done = { gone: true }; dropPending(wt.tid); return null; }
-        keepPending(body);   // 网断了 / 服务器没回：记下来，下次打开游戏再补结算（票在服务器上留 12 小时）
+    // 票还在路上（服务器刚醒 / 网慢）：等它回来再结算；一直没要到 → 连票带结算排队（need），下次连上先扣票再结算
+    const p = (wt.tid ? Promise.resolve() : wt.tp || Promise.resolve()).then(() => {
+      if (!wt.tid) {
+        if (wt.need && !wt.short && !wt.off) keepPending(Object.assign({ need: { n, mode: wt.mode, tier: wt.tier, gid: wt.gid } }, body));
         pending.delete(game);
         return null;
-      });
+      }
+      body.tid = wt.tid;
+      return post('settle', body, true).then((r) => { wt.done = { delta: r.delta, pay: r.pay, price: wt.price, firstWin: r.firstWin || 0, badges: Array.isArray(r.badges) ? r.badges : [], bal: r.bal, auto: body.autoShare, floor }; dropPending(wt.tid); return wt.done; })
+        .catch((e) => {
+          if (e.status === 409 || e.status === 403) { wt.done = { gone: true }; dropPending(wt.tid); return null; }
+          keepPending(body);   // 网断了 / 服务器没回：记下来，下次打开游戏再补结算（票在服务器上留 12 小时）
+          pending.delete(game);
+          return null;
+        });
+    });
     pending.set(game, p);
     return p;
   }
@@ -910,7 +957,7 @@
     state: () => state, onChange: (f) => listeners.push(f),
     me: refresh,
     checkin: () => post('checkin').then((j) => { state = Object.assign({}, state || {}, { ck: today() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); return j; }), profile, profileCached, profileWait, synced, who, today, fb: (steps) => post('fb', { steps }).catch(() => null), fbAward,
-    ledger: (offset) => post('ledger', { offset }), costTag, tagHtml, onNoScore: null,
+    ledger: (offset) => post('ledger', { offset }), costTag, tagHtml, onNoScore: null, warm, resume,
     beta,
     nudge: (q) => { quiet = !!q; try { paintChip(); paintT(); } finally { quiet = false; } },   // 内测本机加减变了：左上角跟着滚（q = 直接摆）
     mountChip, mountTable, tableStart, holdFx, refresh, tableChip: () => tchip, badgeShow, claimFirstWin, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login, markBadgesSeen, seenBadges, fxOn, playTicket, pay, canPay, cancelFx, payout, topUp,
