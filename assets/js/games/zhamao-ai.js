@@ -1153,12 +1153,39 @@
     }
     return DRAW;
   }
+  /* 铁律「多次锅别硬摸」（2026-11-26 用户：被甩锅要连摸几张时，机器猫不把这几张当整体看）：
+   * 头上还要摸 ≥2 张、手里没逗猫棒（九命 / 急救 / 组队都不算有救），接下来要摸的这几张合起来是炸弹猫的概率 ≥ MULTI_RISK，
+   * 手里却攥着甩锅 / 指定甩锅还选了摸牌——改成甩锅（有网络按网络挑甩给谁）。逐局看到过「4 次锅、每张看着 10–15%、合起来近一半会炸还连摸」。
+   * 经典 4 / 5 人对线上高手：门槛 30 / 45 / 60% 名次分都和对照一样（0.496 / 0.505），每 2000 局只改到几步，属于挡掉不像人的操作 */
+  const MULTI_RISK = 0.45;
+  function guardMulti(state, seat, v, d) {
+    if (!d || d.type !== 'draw' || (v.turnsLeft || 1) < 2 || !v.deckSize || v.flux === 'bottom') return d;
+    if (saveOk(v) || (teamV(v) && matesV(v).some((m) => v.alive[m]))) return d;
+    if (!has(v, R.ATTACK) && !has(v, R.TATTACK)) return d;
+    const T = Math.min(v.turnsLeft, v.deckSize);
+    let b = []; try { b = pol(v).kittenBelief(v, T); } catch (_) { return d; }
+    const risk = 1 - b.reduce((a, p) => a * (1 - p), 1);
+    if (risk < MULTI_RISK) return d;
+    const legal = (m) => !!R.checkPlay(state, seat, m.cards, m);
+    const pool = [];
+    if (has(v, R.ATTACK)) pool.push(playMove([one(v, R.ATTACK)]));
+    if (has(v, R.TATTACK)) for (let t = 0; t < v.n; t++) if (t !== v.me && v.alive[t]) pool.push(playMove([one(v, R.TATTACK)], t));
+    const ok = pool.filter(legal);
+    if (!ok.length) return d;
+    if (useBrain(v)) {
+      const sf = brainState(v);
+      let best = ok[0], bs = -Infinity;
+      for (const m of ok) { const sc = brainScore(v, sf, m); if (sc > bs) { bs = sc; best = m; } }
+      return best;
+    }
+    return ok[0];
+  }
   /* 一步到位：给定 state 和座位，按档位产出该座位此刻的决定（UI / 服务器用） */
   function decide(state, seat, tier, rng) {
     rng = rng || Math.random;
     const v = withSeen(R.view(state, seat));
     switch (state.phase) {
-      case 'act': return guardDoom(state, seat, v, guardSwap(state, seat, v, actFor(v, tier, rng)));
+      case 'act': return guardMulti(state, seat, v, guardDoom(state, seat, v, guardSwap(state, seat, v, actFor(v, tier, rng))));
       case 'react': return { type: reactFor(v, tier, rng) ? 'nope' : 'pass' };
       case 'give': return { type: 'give', card: chooseGive(v, tier, rng) };
       case 'pick': return { type: 'pick', card: choosePick(v, tier, rng) };
