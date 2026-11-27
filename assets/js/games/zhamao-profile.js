@@ -25,6 +25,9 @@
 .zmp-x{width:44px;height:44px;border:0;background:none;padding:0;cursor:pointer;display:grid;place-items:center;border-radius:50%}
 .zmp-x svg{width:30px;height:30px}
 .zmp-x:active svg{transform:scale(.92)}
+.zmp-mini{display:inline-flex;align-items:center;gap:5px;margin-left:6px;padding:5px 11px 5px 8px;border-radius:999px;background:#fffdf8;border:1.5px solid #1d1b18;font:700 16px/1 ZM Num,ZM Serif,Georgia,serif;font-variant-numeric:tabular-nums;opacity:0;transform:translateY(-4px) scale(.92);transition:opacity .2s,transform .2s;pointer-events:none}
+.zmp-mini.on{opacity:1;transform:none}
+.zmp-mini .zmw-fish{width:26px;height:16px}
 .zmp-topr{margin-left:auto;display:flex;align-items:center;gap:8px;padding-right:env(safe-area-inset-right,0px)}
 .zmp-top h2{margin:0;font-size:22px;font-weight:900;letter-spacing:.04em}
 .zmp-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:4px 14px calc(env(safe-area-inset-bottom,0px) + 24px)}
@@ -37,7 +40,7 @@
 .zmp-av{width:60px;height:60px;border-radius:50%;overflow:hidden;border:2px solid #1d1b18;background:#ebe5d8;display:grid;place-items:center;font-size:22px;font-weight:900}
 .zmp-av svg{width:100%;height:100%;display:block}
 .zmp-nick{font-size:19px;font-weight:900;line-height:1.2}
-.zmp-login{border:1.5px solid #b4392c;color:#b4392c;background:#fffdf8;border-radius:999px;padding:7px 15px;font:700 14px/1 system-ui,sans-serif;cursor:pointer}
+.zmp-login{border:1.5px solid #b4392c;color:#b4392c;background:#fffdf8;border-radius:999px;padding:7px 15px;font:700 14px/1 ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;cursor:pointer}
 .zmp-bal{text-align:right}
 .zmp-bal .n b{font:inherit;display:inline-block}
 .zmp-bal .n{display:inline-flex;align-items:center;gap:8px;font:900 clamp(30px,8vw,42px)/1 ZM Num,ZM Serif,Georgia,serif;font-variant-numeric:tabular-nums}
@@ -46,7 +49,7 @@
 .zmp-bal .up{color:#3f7a52}.zmp-bal .dn{color:#b4392c}
 @media(max-width:480px){.zmp-hero{grid-template-columns:auto minmax(0,1fr)}.zmp-bal{grid-column:1/-1;text-align:left}.zmp-bal .sub{justify-content:flex-start}}
 .zmp-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px;font-size:15px;font-weight:700}
-.zmp-h small{font:600 12px system-ui,sans-serif;color:#6a6358}
+.zmp-h small{font:600 12px ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;color:#6a6358}
 .zmp-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 .zmp-day{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 7px;border:1.5px solid #d9cfbd;border-radius:14px;background:#f3eee3;font:700 13px/1 ZM Num,ZM Serif,Georgia,serif;color:#6a6358;cursor:default}
 .zmp-day .zmw-fish{width:26px;height:16px;opacity:.35}
@@ -54,15 +57,16 @@
 .zmp-day.is-done .zmw-fish{opacity:1}
 .zmp-day.is-now{border-color:#b4392c;color:#b4392c;background:#fffdf8;cursor:pointer;box-shadow:0 0 0 3px rgba(180,57,44,.18)}
 .zmp-day.is-now .zmw-fish{opacity:1}
-.zmp-task{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding:9px 10px 9px 12px;border:1.5px solid #d9cfbd;border-radius:14px;background:#f3eee3;font:600 14px/1.2 system-ui,"Noto Sans SC",sans-serif;color:#6a6358}
+.zmp-task{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding:9px 10px 9px 12px;border:1.5px solid #d9cfbd;border-radius:14px;background:#f3eee3;font:600 14px/1.2 ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;color:#6a6358}
 .zmp-task b{display:inline-flex;align-items:center;gap:4px;margin-left:8px;font:700 14px/1 ZM Num,ZM Serif,Georgia,serif;color:#6a6358}
 .zmp-task b .zmw-fish{width:22px;height:14px}
 .zmp-task.is-ready{border-color:#b4392c;background:#fffdf8;color:#1d1b18;box-shadow:0 0 0 3px rgba(180,57,44,.12)}
 .zmp-task.is-ready b{color:#3f7a52}
-.zmp-task button{cursor:pointer;flex:none;padding:8px 16px;border-radius:999px;border:1.5px solid #1d1b18;background:#b4392c;color:#fffdf8;font:600 14px/1 system-ui,"Noto Sans SC",sans-serif;box-shadow:0 2px 0 #1d1b18}
+.zmp-task button{cursor:pointer;flex:none;min-width:5.4em;text-align:center;padding:8px 14px;border-radius:999px;border:1.5px solid #1d1b18;background:#b4392c;color:#fffdf8;font:600 14px/1 ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;box-shadow:0 2px 0 #1d1b18}
 .zmp-task button.go{background:#fffdf8;color:#1d1b18}
 .zmp-task button:active{transform:translateY(2px);box-shadow:none}
-.zmp-task em{font-style:normal;font-size:13px;color:#8a8275}
+/* 领过 / 暂时领不了（2026-11-27 用户：「已领取」要在原来按钮的位置、居中，按钮样子留着、整颗变灰） */
+.zmp-task em{flex:none;min-width:5.4em;text-align:center;padding:8px 14px;border-radius:999px;border:1.5px solid #cfc6b6;background:#ebe5d8;color:#a69c8a;font:600 14px/1 ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;font-style:normal;box-shadow:0 2px 0 #cfc6b6}
 .zmp-day.is-big{background-image:radial-gradient(circle at 50% 30%,rgba(227,168,63,.28),transparent 70%)}
 @media(prefers-reduced-motion:no-preference){.zmp-day.is-now{animation:zmpPulse 1.6s ease-in-out infinite}@keyframes zmpPulse{50%{box-shadow:0 0 0 7px rgba(180,57,44,.08)}}}
 .zmp-spark{position:relative;height:118px}
@@ -87,8 +91,8 @@
 .zmp-rec .rk svg{width:18px;height:18px}
 .zmp-rec .d{font:700 13px/1 ZM Num,ZM Serif,Georgia,serif;font-variant-numeric:tabular-nums}
 .zmp-rec .d.up{color:#3f7a52}.zmp-rec .d.dn{color:#b4392c}
-.zmp-rec .nn{font:600 11px/1 system-ui,sans-serif;color:#6a6358}
-.zmp-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font:12px system-ui,sans-serif;color:#6a6358}
+.zmp-rec .nn{font:600 11px/1 ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;color:#6a6358}
+.zmp-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font:12px ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;color:#6a6358}
 .zmp-legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
 .zmp details{margin-top:14px}
 .zmp summary{cursor:pointer;font-size:15px;font-weight:700;padding:6px 0}
@@ -96,10 +100,10 @@
 .zmp-led li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px dashed #d9cfbd;font-size:14px}
 .zmp-led .ic{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#ebe5d8}
 .zmp-led .ic svg{width:15px;height:15px}
-.zmp-led time{color:#6a6358;font:12px system-ui,sans-serif;white-space:nowrap}
+.zmp-led time{color:#6a6358;font:12px ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;white-space:nowrap}
 .zmp-led b{font:700 14px ZM Num,ZM Serif,Georgia,serif;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;min-width:3.5em}
 .zmp-led b.up{color:#3f7a52}.zmp-led b.dn{color:#b4392c}
-.zmp-empty{color:#6a6358;font:14px system-ui,sans-serif;text-align:center;padding:12px 0}
+.zmp-empty{color:#6a6358;font:14px ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;text-align:center;padding:12px 0}
 .zmp-wait{width:56px;height:8px;margin:40px auto;border-radius:4px;background:linear-gradient(90deg,#ebe5d8,#d9cfbd,#ebe5d8);background-size:200% 100%;animation:zmpWait 1s linear infinite}
 @keyframes zmpWait{to{background-position:-200% 0}}
 .zmp-act{display:grid;grid-template-columns:repeat(28,minmax(0,1fr));gap:2px;margin-top:8px}
@@ -107,20 +111,20 @@
 .zmp-act i.ck{background:#1d1b18}
 .zmp-act i.now{box-shadow:0 0 0 1.5px #b4392c}
 .zmp-lf{display:flex;gap:6px;margin:8px 0 2px}
-.zmp-lf button{border:1.5px solid #d9cfbd;background:#f3eee3;color:#6a6358;border-radius:999px;padding:6px 13px;font:600 13px/1 system-ui,sans-serif;cursor:pointer}
+.zmp-lf button{border:1.5px solid #d9cfbd;background:#f3eee3;color:#6a6358;border-radius:999px;padding:6px 13px;font:600 13px/1 ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;cursor:pointer}
 .zmp-lf button.on{border-color:#1d1b18;background:#1d1b18;color:#f3eee3}
-.zmp-lday{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 0;padding-bottom:4px;border-bottom:1.5px solid #1d1b18;font:700 13px/1.2 system-ui,sans-serif;color:#1d1b18}
+.zmp-lday{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 0;padding-bottom:4px;border-bottom:1.5px solid #1d1b18;font:700 13px/1.2 ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;color:#1d1b18}
 .zmp-lday b{font:700 13px ZM Num,ZM Serif,Georgia,serif;font-variant-numeric:tabular-nums}
 .zmp-lday b.up{color:#3f7a52}.zmp-lday b.dn{color:#b4392c}
 .zmp-led li.g{cursor:pointer}
-.zmp-led .nm small{display:block;margin-top:2px;font:12px/1.2 system-ui,sans-serif;color:#6a6358}
+.zmp-led .nm small{display:block;margin-top:2px;font:12px/1.2 ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;color:#6a6358}
 .zmp-led .nm small.warn{color:#b4392c}
-.zmp-led li .parts{grid-column:2/-1;display:none;font:12px/1.6 system-ui,sans-serif;color:#6a6358}
+.zmp-led li .parts{grid-column:2/-1;display:none;font:12px/1.6 ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;color:#6a6358}
 .zmp-led li.open .parts{display:block}
 .zmp-led li .parts span{display:flex;justify-content:space-between}
 .zmp-led li .parts em{font-style:normal}
 .zmp-led li .parts b{font:600 12px ZM Num,ZM Serif,Georgia,serif;min-width:0;color:#6a6358}
-.zmp-lmore{display:block;width:100%;margin-top:10px;padding:10px;border:1.5px dashed #d9cfbd;border-radius:12px;background:none;color:#6a6358;font:600 14px/1 system-ui,sans-serif;cursor:pointer}
+.zmp-lmore{display:block;width:100%;margin-top:10px;padding:10px;border:1.5px dashed #d9cfbd;border-radius:12px;background:none;color:#6a6358;font:600 14px/1 ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;cursor:pointer}
 .zmp-ledsum{display:flex;align-items:center;gap:10px}
 .zmp-ledsum .sp{flex:1;height:28px;min-width:60px}
 .zmp-ledsum .sp svg{width:100%;height:100%;display:block}
@@ -129,7 +133,7 @@
 .zmp-bcard{width:min(320px,100%);background:#fffdf8;border:1.5px solid #1d1b18;border-radius:18px;box-shadow:0 3px 0 #1d1b18;padding:18px 16px 16px;text-align:center}
 .zmp-bcard .big svg{width:120px;height:120px;filter:drop-shadow(0 4px 6px rgba(29,27,24,.18))}
 .zmp-bcard h3{margin:4px 0 2px;font-size:21px;letter-spacing:.04em}
-.zmp-bcard .how{font:14px/1.4 system-ui,sans-serif;color:#6a6358}
+.zmp-bcard .how{font:14px/1.4 ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;color:#6a6358}
 .zmp-bcard .lad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:14px}
 .zmp-bcard .lad div{border:1.5px solid #d9cfbd;border-radius:12px;padding:8px 2px 7px;background:#f3eee3;color:#a69c8a;display:flex;flex-direction:column;align-items:center;gap:3px}
 .zmp-bcard .lad svg{width:38px;height:38px;display:block}
@@ -185,9 +189,9 @@
 .zmp-ed .avs button{aspect-ratio:1;padding:0;border:2px solid transparent;border-radius:50%;background:none;cursor:pointer;overflow:hidden;-webkit-tap-highlight-color:transparent}
 .zmp-ed .avs button svg{width:100%;height:100%;display:block}
 .zmp-ed .avs button.on{border-color:#b4392c;box-shadow:0 0 0 2px #fffdf8,0 0 0 4px rgba(180,57,44,.35)}
-.zmp-ed .err{margin:10px 0 0;color:#b4392c;font:13px/1.4 system-ui,sans-serif}
+.zmp-ed .err{margin:10px 0 0;color:#b4392c;font:13px/1.4 ZM Serif,'Songti SC','STSong','Noto Serif SC',serif}
 .zmp-ed .act{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
-.zmp-ed .act button{padding:10px 20px;border-radius:999px;border:1.5px solid #1d1b18;background:#fffdf8;color:#1d1b18;font:600 15px/1 system-ui,"Noto Sans SC",sans-serif;cursor:pointer;box-shadow:0 2px 0 #1d1b18}
+.zmp-ed .act button{padding:10px 20px;border-radius:999px;border:1.5px solid #1d1b18;background:#fffdf8;color:#1d1b18;font:600 15px/1 ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;cursor:pointer;box-shadow:0 2px 0 #1d1b18}
 .zmp-ed .act button.go{background:#b4392c;color:#fffdf8}
 .zmp-ed .act button:active{transform:translateY(2px);box-shadow:none}
 /* 站点登录弹层（auth.html）在游戏页里没有站点的颜色变量：给它一套游戏的 */
@@ -488,24 +492,43 @@
   function fwHtml(p) {
     const f = p.firstWin;
     if (!f) return '';
-    const st = f.ready ? '<button type="button" data-fw>领取</button>' : f.done ? '<em>已领</em>' : '<button type="button" class="go" data-go>去完成</button>';   // 2026-11-27 用户：「赢一局就有」不对，改「去完成」（点了回主页面开局）
+    const st = f.ready ? '<button type="button" data-fw>领取</button>' : f.done ? '<em>已领取</em>' : '<button type="button" class="go" data-go>去完成</button>';   // 2026-11-27 用户：「赢一局就有」不对，改「去完成」（点了回主页面开局）
     return '<div class="zmp-task' + (f.ready ? ' is-ready' : '') + '"><span>今日首胜<b>' + W().FISH + '+' + fmt(f.amount || 1000) + '</b></span>' + st + '</div>';
   }
   /* 2026-11-26 用户：点了领取，按钮要当场变「已领」（以前等服务器回来要好几秒，中间还能一直点）。
    * 点下去：这一行马上换成「已领」、鱼游进余额；服务器回来再按服务器的重摆；没领成就摆回「领取」、余额退回去 */
+  /* 鱼游进余额（签到、今日首胜、内测任务共用，ZhamaoProfile.fishTo）。2026-11-27 用户：滑到「今日任务」时上面的余额已经看不见了——
+   * 余额在屏上就游进余额；看不见就在顶栏（返回键旁）冒出一枚小鱼干胶囊，从当时的数滚上去，鱼游进它，放完一会儿胶囊淡掉。
+   * 两种情况第一格里的大数字都会改成新数。返回动画的 Promise */
+  let miniT = 0;
+  function fishTo(fromEl, from, to, n) {
+    const num = body && body.querySelector('[data-num]'), fx = root.ZhamaoWalletFx, on = fx && W().fxOn && W().fxOn();
+    if (!num) return Promise.resolve();
+    const br = body.getBoundingClientRect(), r = num.getBoundingClientRect();
+    const seen = r.bottom > br.top + 8 && r.top < br.bottom - 8;
+    if (seen || !on) {
+      if (on) return fx.school(W().FISH, fromEl, num.parentNode, n, { spread: 16, gap: 90, dur: 700, lift: -50, size: 26, onLand: () => fx.roll(num, from, to, 520) });
+      if (fx) return fx.roll(num, from, to, 420);
+      num.textContent = fmt(to); return Promise.resolve();
+    }
+    let mini = el.querySelector('.zmp-mini');
+    if (!mini) { mini = document.createElement('span'); mini.className = 'zmp-mini'; mini.innerHTML = W().FISH + '<b></b>'; el.querySelector('.zmp-top h2').after(mini); }
+    const b = mini.querySelector('b');
+    b.textContent = fmt(from); num.textContent = fmt(to);
+    clearTimeout(miniT); mini.classList.add('on');
+    return fx.school(W().FISH, fromEl, mini, n, { spread: 16, gap: 90, dur: 700, lift: -40, size: 24, onLand: () => fx.roll(b, from, to, 520) })
+      .then(() => { miniT = setTimeout(() => mini.classList.remove('on'), 1600); });
+  }
   let fwBusy = false;
   function claimFw(btn) {
     if (!last || fwBusy || !last.firstWin || !last.firstWin.ready) return;
     fwBusy = true;
     const prev = last.firstWin, amt = prev.amount || 1000, from = last.bal, to = from + amt;
     const row = btn.closest('.zmp-task');
-    const num = body.querySelector('[data-num]'), fx = root.ZhamaoWalletFx;
-    let anim;
-    if (fx && W().fxOn && W().fxOn()) anim = fx.school(W().FISH, btn, num.parentNode, 3, { spread: 16, gap: 90, dur: 700, lift: -50, size: 26, onLand: () => fx.roll(num, from, to, 520) });
-    else { num.textContent = fmt(to); anim = Promise.resolve(); }
+    const anim = fishTo(btn, from, to, 3);
     last.bal = to;
     last.firstWin = Object.assign({}, prev, { ready: false, done: true });
-    if (row) { row.classList.remove('is-ready'); row.dataset.busy = '1'; btn.outerHTML = '<em>已领</em>'; }   // data-busy：领的路上别被晚到的旧档案盖回「领取」
+    if (row) { row.classList.remove('is-ready'); row.dataset.busy = '1'; btn.outerHTML = '<em>已领取</em>'; }   // data-busy：领的路上别被晚到的旧档案盖回「领取」
     const done = () => { fwBusy = false; if (row) delete row.dataset.busy; };
     W().claimFirstWin().then(() => anim).then(() => { done(); setTimeout(() => load(true), 350); })
       .catch(() => { done(); if (last) { last.firstWin = prev; last.bal = from; render(last); } load(true); });
@@ -520,11 +543,7 @@
     const amt = Number(ck.getAttribute('aria-label').split(' ').pop()) || 0, from = last.bal, to = from + amt;
     ck.classList.remove('is-now'); ck.classList.add('is-done');
     const sk = body.querySelector('.zmp-h small'); if (sk) sk.textContent = '连签 ' + (last.checkin.streak + 1) + ' 天';
-    const num = body.querySelector('[data-num]'), fx = root.ZhamaoWalletFx;
-    let anim;
-    if (fx && W().fxOn && W().fxOn()) anim = fx.school(W().FISH, ck, num.parentNode, Math.min(4, 2 + Math.round(amt / 100)), { spread: 16, gap: 90, dur: 700, lift: -50, size: 26, onLand: () => fx.roll(num, from, to, 520) });
-    else if (fx) anim = fx.roll(num, from, to, 420);
-    else { num.textContent = fmt(to); anim = Promise.resolve(); }
+    const anim = fishTo(ck, from, to, Math.min(4, 2 + Math.round(amt / 100)));
     last.bal = to;
     // 签成功、鱼游完：交给 root.ZhamaoAfterCheckin(amt)（2026-11-27 用户：签到成功弹窗「知道了 / 看广告领翻倍」，关了就没有第二次机会；弹窗由内测 zhamao-beta.js 挂这个钩子）
     W().checkin().then(() => anim).then(() => { setTimeout(() => load(true), 350); if (typeof root.ZhamaoAfterCheckin === 'function') { try { root.ZhamaoAfterCheckin(amt); } catch (_) { /* 内测钩子出错不影响签到 */ } } }).catch(() => load(true));
@@ -554,5 +573,5 @@
   }
   function close() { hide(); }
 
-  root.ZhamaoProfile = { open, close, login, isOpen, badgeSvg: (id) => badgeSvg(id), badgeHow };   // 「解锁勋章」整页弹窗借用勋章图和说明（zhamao-wallet.js badgeShow）
+  root.ZhamaoProfile = { open, close, login, isOpen, fishTo: (fromEl, from, to, n) => (body ? fishTo(fromEl, from, to, n || 3) : Promise.resolve()), badgeSvg: (id) => badgeSvg(id), badgeHow };   // 「解锁勋章」整页弹窗借用勋章图和说明（zhamao-wallet.js badgeShow）
 })(window);

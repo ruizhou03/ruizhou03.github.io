@@ -31,11 +31,11 @@
 .zmfb-mv .zm-card .zm-nm{display:none}
 .zmfb-cards{display:flex;gap:2px}
 .zmfb-arrow{color:var(--zm-ink-faint,#aaa294);font-size:14px}
-.zmfb-pos{font:600 12px/1 system-ui;color:var(--zm-seal,#b4392c);background:#fbeee9;border-radius:8px;padding:3px 6px}
-.zmfb-n{position:absolute;top:-7px;left:-7px;min-width:18px;height:18px;border-radius:9px;background:var(--zm-ink,#1d1b18);color:var(--zm-paper,#f3eee3);font:600 10px/18px system-ui;text-align:center}
+.zmfb-pos{font:600 12px/1 ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;color:var(--zm-seal,#b4392c);background:#fbeee9;border-radius:8px;padding:3px 6px}
+.zmfb-n{position:absolute;top:-7px;left:-7px;min-width:18px;height:18px;border-radius:9px;background:var(--zm-ink,#1d1b18);color:var(--zm-paper,#f3eee3);font:600 10px/18px ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;text-align:center}
 .zmfb-why{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;opacity:.35;pointer-events:none;transition:opacity .15s}
 .zmfb-why.is-ready{opacity:1;pointer-events:auto}
-.zmfb-why button{border:1px solid var(--zm-ink,#1d1b18);background:var(--zm-paper,#f3eee3);border-radius:999px;padding:7px 12px;font:14px/1 system-ui;cursor:pointer;color:var(--zm-ink,#1d1b18)}
+.zmfb-why button{border:1px solid var(--zm-ink,#1d1b18);background:var(--zm-paper,#f3eee3);border-radius:999px;padding:7px 12px;font:14px/1 ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;cursor:pointer;color:var(--zm-ink,#1d1b18)}
 .zmfb-why button.is-on{background:var(--zm-ink,#1d1b18);color:var(--zm-paper,#f3eee3)}
 .zmfb-mask.is-sent .zmfb-why button{pointer-events:none}
 .zmfb-why .zmw-fbrw{margin-left:auto}

@@ -275,7 +275,7 @@
 .zb-q button[disabled]{opacity:.35}
 .zb-q b{min-width:22px;text-align:center;font-size:20px;margin:0!important;font-family:'ZM Num',Georgia,serif}
 .zb-chip i.inv{min-width:18px;height:18px;border-radius:9px;background:#3f7a52;color:#fbf6ec;justify-content:center;font-weight:700;font-size:11px;padding:0 5px}
-.zb-pshop{display:inline-flex;align-items:center;gap:5px;height:36px;padding:0 14px 0 11px;border-radius:18px;border:1.5px solid #1d1b18;background:#b4392c;color:#fffdf8;font:600 14px/1 system-ui,'Noto Sans SC',sans-serif;box-shadow:0 2px 0 #1d1b18;cursor:pointer}
+.zb-pshop{display:inline-flex;align-items:center;gap:5px;height:36px;padding:0 14px 0 11px;border-radius:18px;border:1.5px solid #1d1b18;background:#b4392c;color:#fffdf8;font:700 14px/1 ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;box-shadow:0 2px 0 #1d1b18;cursor:pointer}
 .zb-pshop svg{width:18px;height:18px}
 .zb-pshop:active{transform:translateY(2px);box-shadow:none}
 
