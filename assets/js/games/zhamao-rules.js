@@ -147,13 +147,14 @@
   // 2026-11-15 用户：技能要简单直接、一句话一个效果，不靠打补丁平衡；哪个方向平衡不了就换方向
   // 2026-11-18 改名（用户定）：角色名不再用品种名——以前「三花 / 奶牛猫 / 狸花」和猫牌同名、「胖橘」和橘猫牌几乎一样，说起来分不清是牌还是人。
   // id 不变（存档 / 机器猫照旧）
+  // 2026-11-27 用户：技能说明改成宣传图上那版更短的说法
   const ROLES = Object.freeze([
-    { id: 'timid', name: T('role.timid.name', '胆小猫'), desc: T('role.timid.desc', '被甩锅，先偷看顶上 3 张'), once: false },
-    { id: 'fat', name: T('role.fat.name', '贪吃猫'), desc: T('role.fat.desc', '出索要，对方要给 2 张'), once: false },
-    { id: 'shadow', name: T('role.shadow.name', '影子猫'), desc: T('role.shadow.desc', '两张偷牌指不到它'), once: false },
-    { id: 'cow', name: T('role.cow.name', '扛锅猫'), desc: T('role.cow.desc', '被甩锅，只摸 1 张'), once: false },
-    { id: 'calico', name: T('role.calico.name', '百搭猫'), desc: T('role.calico.desc', '猫牌一到手就变万能猫'), once: false },
-    { id: 'tabby', name: T('role.tabby.name', '截胡猫'), desc: T('role.tabby.desc', '作废成功，顺走对方一张'), once: false },
+    { id: 'timid', name: T('role.timid.name', '胆小猫'), desc: T('role.timid.desc', '被甩锅，先看三张'), once: false },
+    { id: 'fat', name: T('role.fat.name', '贪吃猫'), desc: T('role.fat.desc', '索要时，对方给两张'), once: false },
+    { id: 'shadow', name: T('role.shadow.name', '影子猫'), desc: T('role.shadow.desc', '凑对偷牌，偷不到它'), once: false },
+    { id: 'cow', name: T('role.cow.name', '扛锅猫'), desc: T('role.cow.desc', '锅再多，也只摸一张'), once: false },
+    { id: 'calico', name: T('role.calico.name', '百搭猫'), desc: T('role.calico.desc', '手里的猫都是万能猫'), once: false },
+    { id: 'tabby', name: T('role.tabby.name', '截胡猫'), desc: T('role.tabby.desc', '作废成功，顺走一张'), once: false },
   ]);
   const ROLE_IDS = ROLES.map((r) => r.id);
   const roleOf = (s, seat) => (s.roles ? s.roles[seat] : null);
