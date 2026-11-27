@@ -25,7 +25,7 @@
 .zmp-x{width:44px;height:44px;border:0;background:none;padding:0;cursor:pointer;display:grid;place-items:center;border-radius:50%}
 .zmp-x svg{width:30px;height:30px}
 .zmp-x:active svg{transform:scale(.92)}
-.zmp-mini{display:inline-flex;align-items:center;gap:5px;margin-left:6px;padding:5px 11px 5px 8px;border-radius:999px;background:#fffdf8;border:1.5px solid #1d1b18;font:700 16px/1 ZM Num,ZM Serif,Georgia,serif;font-variant-numeric:tabular-nums;opacity:0;transform:translateY(-4px) scale(.92);transition:opacity .2s,transform .2s;pointer-events:none}
+.zmp-mini{display:inline-flex;align-items:center;gap:5px;margin:0 auto;padding:5px 11px 5px 8px;border-radius:999px;background:#fffdf8;border:1.5px solid #1d1b18;font:700 16px/1 ZM Num,ZM Serif,Georgia,serif;font-variant-numeric:tabular-nums;opacity:0;transform:translateY(-4px) scale(.92);transition:opacity .2s,transform .2s;pointer-events:none}
 .zmp-mini.on{opacity:1;transform:none}
 .zmp-mini .zmw-fish{width:26px;height:16px}
 .zmp-topr{margin-left:auto;display:flex;align-items:center;gap:8px;padding-right:env(safe-area-inset-right,0px)}
@@ -368,7 +368,7 @@
       '<div class="zmp-card zmp-hero3"><div class="zmp-id"><button type="button" class="zmp-av" data-edit aria-label="改头像">' + me.face + '</button><div class="info">' +
         '<button type="button" class="zmp-nick" data-edit aria-label="改名字"><span>' + esc(me.nick) + '</span>' + PEN + '</button>' +
         (tops ? '<div class="zmp-tops">' + tops + '</div>' : '') +
-        '<div class="zmp-bal"><span class="n">' + FISH + '<b data-num>' + fmt(p.bal) + '</b></span></div>' +   // 2026-11-26 用户：余额旁边不要「近 7 天对局」和「多少局」
+        '<div class="zmp-bal"><span class="n">' + FISH + '<b data-num>' + fmt(shown(p.bal)) + '</b></span></div>' +   // 2026-11-26 用户：余额旁边不要「近 7 天对局」和「多少局」
         (p.owner === 'account' ? '' : '<button type="button" class="zmp-login" data-login>登录保存</button>') +
         '</div></div>' + rings + '</div>' +
       wall +
@@ -437,6 +437,7 @@
     document.body.appendChild(el);
     body = el.querySelector('.zmp-body');
     el.querySelector('.zmp-x').addEventListener('click', close);
+    body.addEventListener('scroll', syncMini, { passive: true });
     body.addEventListener('click', (e) => {
       const bd = e.target.closest('[data-ser]');
       if (bd && last) { badgeCard(bd.dataset.ser); return; }
@@ -482,6 +483,7 @@
       const keep = led.all.length > (p.ledger || []).length && led.all[0] && p.ledger && p.ledger[0] && led.all[0].at === p.ledger[0].at;   // 翻过页、又没有新流水：留着翻到的
       if (!keep) led = Object.assign({}, led, { all: (p.ledger || []).slice(), more: !!p.ledgerMore });
       body.innerHTML = html(p);
+      requestAnimationFrame(syncMini);
       const dt = body.querySelector('details.zmp-card'); if (dt) dt.addEventListener('toggle', () => { led.open = dt.open; });
       // 打开档案就算看过了：拿到的徽章不再让左上角亮小黄点
       if (W().markBadgesSeen) W().markBadgesSeen((p.badgeList || []).filter((b) => b.got).map((b) => b.id));
@@ -503,38 +505,58 @@
   /* 鱼游进余额（签到、今日首胜、内测任务共用，ZhamaoProfile.fishTo）。2026-11-27 用户：滑到「今日任务」时上面的余额已经看不见了——
    * 余额在屏上就游进余额；看不见就在顶栏（返回键旁）冒出一枚小鱼干胶囊，从当时的数滚上去，鱼游进它，放完一会儿胶囊淡掉。
    * 两种情况第一格里的大数字都会改成新数。返回动画的 Promise */
-  let miniT = 0;
+  // 内测本机账（zhamao-beta.js 挂 ZhamaoProfileBalAdj）：档案里显示的余额 = 服务器余额 + 这份，内测加的鱼直接算进总额（2026-11-27 用户：不要单独一行小计）
+  const adj = () => { try { return typeof root.ZhamaoProfileBalAdj === 'function' ? Number(root.ZhamaoProfileBalAdj()) || 0 : 0; } catch (_) { return 0; } };
+  const shown = (b) => Math.max(0, b + adj());
+  /* 顶栏小鱼干（2026-11-27 用户：往上滑到看不见第一格的余额时，顶栏中间一直挂着余额；滑回来就收起） */
+  let miniBusy = false;
+  function miniEl() {
+    let mini = el.querySelector('.zmp-mini');
+    if (!mini) { mini = document.createElement('span'); mini.className = 'zmp-mini'; mini.innerHTML = W().FISH + '<b></b>'; el.querySelector('.zmp-top h2').after(mini); }
+    return mini;
+  }
+  const heroSeen = (num) => { const br = body.getBoundingClientRect(), r = num.getBoundingClientRect(); return r.bottom > br.top + 8 && r.top < br.bottom - 8; };
+  function syncMini() {
+    if (!el || miniBusy) return;
+    const num = body.querySelector('[data-num]');
+    const show = !!num && !heroSeen(num), mini = el.querySelector('.zmp-mini');
+    if (!show) { if (mini) mini.classList.remove('on'); return; }
+    const m = miniEl(); m.querySelector('b').textContent = num.textContent; m.classList.add('on');
+  }
   function fishTo(fromEl, from, to, n) {
     const num = body && body.querySelector('[data-num]'), fx = root.ZhamaoWalletFx, on = fx && W().fxOn && W().fxOn();
     if (!num) return Promise.resolve();
-    const br = body.getBoundingClientRect(), r = num.getBoundingClientRect();
-    const seen = r.bottom > br.top + 8 && r.top < br.bottom - 8;
-    if (seen || !on) {
+    if (heroSeen(num) || !on) {
       if (on) return fx.school(W().FISH, fromEl, num.parentNode, n, { spread: 16, gap: 90, dur: 700, lift: -50, size: 26, onLand: () => fx.roll(num, from, to, 520) });
       if (fx) return fx.roll(num, from, to, 420);
       num.textContent = fmt(to); return Promise.resolve();
     }
-    let mini = el.querySelector('.zmp-mini');
-    if (!mini) { mini = document.createElement('span'); mini.className = 'zmp-mini'; mini.innerHTML = W().FISH + '<b></b>'; el.querySelector('.zmp-top h2').after(mini); }
-    const b = mini.querySelector('b');
-    b.textContent = fmt(from); num.textContent = fmt(to);
-    clearTimeout(miniT); mini.classList.add('on');
+    const mini = miniEl(), b = mini.querySelector('b');
+    miniBusy = true;
+    b.textContent = fmt(from); num.textContent = fmt(to); mini.classList.add('on');
     return fx.school(W().FISH, fromEl, mini, n, { spread: 16, gap: 90, dur: 700, lift: -40, size: 24, onLand: () => fx.roll(b, from, to, 520) })
-      .then(() => { miniT = setTimeout(() => mini.classList.remove('on'), 1600); });
+      .then(() => { miniBusy = false; syncMini(); }, () => { miniBusy = false; syncMini(); });
+  }
+  // 从某处加 amt 条鱼进显示的余额（内测：任务、广告翻倍、救济）：按眼下摆着的数往上滚
+  function addFish(fromEl, amt, n) {
+    const num = body && body.querySelector('[data-num]');
+    if (!num) return Promise.resolve();
+    const from = Number(String(num.textContent).replace(/[^0-9]/g, '')) || 0;
+    return fishTo(fromEl || num, from, from + amt, n || Math.min(4, 2 + Math.round(Math.log10(Math.max(10, amt)) - 2)));
   }
   let fwBusy = false;
   function claimFw(btn) {
     if (!last || fwBusy || !last.firstWin || !last.firstWin.ready) return;
     fwBusy = true;
-    const prev = last.firstWin, amt = prev.amount || 1000, from = last.bal, to = from + amt;
+    const prev = last.firstWin, amt = prev.amount || 1000, from = shown(last.bal), to = from + amt;
     const row = btn.closest('.zmp-task');
     const anim = fishTo(btn, from, to, 3);
-    last.bal = to;
+    last.bal += amt;
     last.firstWin = Object.assign({}, prev, { ready: false, done: true });
     if (row) { row.classList.remove('is-ready'); row.dataset.busy = '1'; btn.outerHTML = '<em>已领取</em>'; }   // data-busy：领的路上别被晚到的旧档案盖回「领取」
     const done = () => { fwBusy = false; if (row) delete row.dataset.busy; };
     W().claimFirstWin().then(() => anim).then(() => { done(); setTimeout(() => load(true), 350); })
-      .catch(() => { done(); if (last) { last.firstWin = prev; last.bal = from; render(last); } load(true); });
+      .catch(() => { done(); if (last) { last.firstWin = prev; last.bal -= amt; render(last); } load(true); });
   }
   /* 签到（2026-11-22 用户：点了要马上有反应，鱼要飞进档案里的余额，不是飞去后面的左上角）：
    * 点下去这格当场变成「已签」，连签数 +1，余额从格子里游出几条鱼进到上面的大数字、数字滚上去；同时发给服务器，
@@ -543,11 +565,11 @@
     if (!last || ck.dataset.busy) return;
     ck.dataset.busy = '1';
     ck.disabled = true;
-    const amt = Number(ck.getAttribute('aria-label').split(' ').pop()) || 0, from = last.bal, to = from + amt;
+    const amt = Number(ck.getAttribute('aria-label').split(' ').pop()) || 0, from = shown(last.bal), to = from + amt;
     ck.classList.remove('is-now'); ck.classList.add('is-done');
     const sk = body.querySelector('.zmp-h small'); if (sk) sk.textContent = '连签 ' + (last.checkin.streak + 1) + ' 天';
     const anim = fishTo(ck, from, to, Math.min(4, 2 + Math.round(amt / 100)));
-    last.bal = to;
+    last.bal += amt;
     // 签成功、鱼游完：交给 root.ZhamaoAfterCheckin(amt)（2026-11-27 用户：签到成功弹窗「知道了 / 看广告领翻倍」，关了就没有第二次机会；弹窗由内测 zhamao-beta.js 挂这个钩子）
     W().checkin().then(() => anim).then(() => { setTimeout(() => load(true), 350); if (typeof root.ZhamaoAfterCheckin === 'function') { try { root.ZhamaoAfterCheckin(amt); } catch (_) { /* 内测钩子出错不影响签到 */ } } }).catch(() => load(true));
   }
@@ -576,5 +598,5 @@
   }
   function close() { hide(); }
 
-  root.ZhamaoProfile = { open, close, login, isOpen, fishTo: (fromEl, from, to, n) => (body ? fishTo(fromEl, from, to, n || 3) : Promise.resolve()), badgeSvg: (id) => badgeSvg(id), badgeHow };   // 「解锁勋章」整页弹窗借用勋章图和说明（zhamao-wallet.js badgeShow）
+  root.ZhamaoProfile = { open, close, login, isOpen, fishTo: (fromEl, from, to, n) => (body ? fishTo(fromEl, from, to, n || 3) : Promise.resolve()), addFish, refreshBal: () => { const num = body && body.querySelector('[data-num]'); if (num && last) num.textContent = fmt(shown(last.bal)); syncMini(); }, badgeSvg: (id) => badgeSvg(id), badgeHow };   // 「解锁勋章」整页弹窗借用勋章图和说明（zhamao-wallet.js badgeShow）
 })(window);

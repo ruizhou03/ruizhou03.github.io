@@ -992,7 +992,7 @@
       const fishAmt = (amt) => '<b>' + FISH() + '+' + fmt(amt) + '</b>';
       const line = (name, amt, sub, ready, right) => '<div class="zmp-task' + (ready ? ' is-ready' : '') + '"><span>' + name + fishAmt(amt) + (sub ? '<small class="zb-sub">' + sub + '</small>' : '') + '</span>' + right + '</div>';
       const ad = (k, ok) => (ok ? '<button type="button" data-zbad="' + k + '">▶ 看广告</button>' : '');
-      let h = '<div data-zbcard><div class="zb-tline"><span class="zb-seal">内测</span><span class="zb-bal">' + FISH() + '<b data-zbbal>' + fmt(bal()) + '</b></span></div>';
+      let h = '<div data-zbcard>';   // 2026-11-27 用户：任务 / 内测右边不要单独一行小计，加的鱼直接算进档案第一格的总额（ZhamaoProfileBalAdj）
       TASKS.forEach(([k, name, goal, amt]) => {
         const v = Math.min(goal, r[k] || 0), got = r.got[k] || 0;
         // 没做完：「去完成」（同今日首胜，点了关档案、打开单机 / 联机设置单），进度写在名字底下
@@ -1004,15 +1004,10 @@
       if (rl.left === 0) h += line('额外救济', RELIEF, '今天 ' + r.extra + ' / ' + EXTRA_MAX, r.extra < EXTRA_MAX, r.extra < EXTRA_MAX ? ad('extra', true) : '<em>明天再来</em>');
       return h + '</div>';
     }
-    /* 领任务的鱼（11-27 用户：档案滑到任务时上面的余额看不见了，领的时候要有动画）：内测的余额就在任务这张卡顶上那行，
-     * 鱼从这一行游进那行的数字、数字滚上去（和档案的 ZhamaoProfile.fishTo 一个样子；内测记的是本机账，不动档案第一格的服务器余额） */
-    function fishIn(bodyEl, k, from) {
-      const fx = root.ZhamaoWalletFx, num = bodyEl.querySelector('[data-zbcard] [data-zbbal]');
-      const src = bodyEl.querySelector('[data-zbcard] [data-zbad="t2:' + k + '"]') || num;
-      if (!fx || !num || !fx.school || (W() && W().fxOn && !W().fxOn())) return;
-      const to = bal(); num.textContent = fmt(from);
-      fx.school(FISH(), src, num.parentNode, 3, { spread: 16, gap: 90, dur: 700, lift: -50, size: 26, onLand: () => fx.roll(num, from, to, 520) });
-    }
+    /* 领到的鱼游进档案的总额（2026-11-27 用户：看完广告回来要有反应——按钮已经变「已领取」，鱼从那一行游进余额；余额滑出屏幕就进顶栏的小鱼干） */
+    root.ZhamaoProfileBalAdj = () => d.delta;
+    const fishIn = (src, amt) => { if (root.ZhamaoProfile && root.ZhamaoProfile.addFish) root.ZhamaoProfile.addFish(src, amt); };
+    const rowAt = (bodyEl, i) => { const rows = bodyEl.querySelectorAll('[data-zbcard] .zmp-task'); return rows[Math.min(i, rows.length - 1)] || bodyEl.querySelector('[data-zbcard]'); };
     function mountCard(bodyEl) {
       const week = bodyEl.querySelector('.zmp-week');
       const cardEl = week && week.closest('.zmp-card');
@@ -1027,13 +1022,14 @@
         const go = e.target.closest('[data-zbgo]');
         if (go) { if (root.ZhamaoProfile) root.ZhamaoProfile.close(); const k = go.dataset.zbgo; setTimeout(() => { const b = document.querySelector('.zm-cover:not([hidden]) [data-cover="' + k + '"]'); if (b) b.click(); }, 350); return; }
         const a = e.target.closest('[data-zbad]'), t = e.target.closest('[data-zbt]');
-        const r = dayRec();
-        if (t && !t.disabled) { const k = t.dataset.zbt, row = TASKS.find((x) => x[0] === k), from = bal(); r.got[k] = 1; save(); book(row[3], '每日任务「' + row[1] + '」'); mountCard(bodyEl); fishIn(bodyEl, k, from); return; }
+        const r = dayRec(), row0 = (a || t) && (a || t).closest('.zmp-task'), idx = row0 ? [...card.querySelectorAll('.zmp-task')].indexOf(row0) : 0;
+        const gain = (amt, why) => { book(amt, why); mountCard(bodyEl); fishIn(rowAt(bodyEl, idx), amt); };
+        if (t && !t.disabled) { const k = t.dataset.zbt, row = TASKS.find((x) => x[0] === k); r.got[k] = 1; save(); gain(row[3], '每日任务「' + row[1] + '」'); return; }
         if (!a || a.disabled) return;
         const k = a.dataset.zbad;
-        if (k === 'relief') adThen('relief', () => { r.rAd++; save(); book(RELIEF, '救济·看广告翻倍'); mountCard(bodyEl); });
-        if (k === 'extra') adThen('relief-extra', () => { r.extra++; save(); book(RELIEF, '额外救济·看广告'); mountCard(bodyEl); });
-        if (k.startsWith('t2:')) { const kk = k.slice(3), row = TASKS.find((x) => x[0] === kk); adThen('task', () => { r.got[kk] = 2; save(); book(row[3], '每日任务·看广告'); mountCard(bodyEl); }); }
+        if (k === 'relief') adThen('relief', () => { r.rAd++; save(); gain(RELIEF, '救济·看广告翻倍'); });
+        if (k === 'extra') adThen('relief-extra', () => { r.extra++; save(); gain(RELIEF, '额外救济·看广告'); });
+        if (k.startsWith('t2:')) { const kk = k.slice(3), row = TASKS.find((x) => x[0] === kk); adThen('task', () => { r.got[kk] = 2; save(); gain(row[3], '每日任务·看广告'); }); }
       });
     }
     /* 签到成功弹窗（2026-11-27 用户）：「签到成功 +N」，两个键「知道了」/「看广告领翻倍」；关掉就当天没有第二次机会。
@@ -1053,7 +1049,7 @@
         const b = e.target.closest('[data-ck]');
         if (!b) { if (e.target === m) close(); return; }
         close();
-        if (b.dataset.ck === 'ad') adThen('checkin', () => { book(amt, '签到·看广告翻倍'); dayRec().ck = true; save(); });
+        if (b.dataset.ck === 'ad') adThen('checkin', () => { book(amt, '签到·看广告翻倍'); dayRec().ck = true; save(); const days = [...document.querySelectorAll('.zmp .zmp-day.is-done')]; fishIn(days[days.length - 1], amt); });
       });
     };
 
