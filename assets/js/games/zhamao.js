@@ -1243,7 +1243,7 @@
       const el = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       el.setAttribute('d', d); el.style.stroke = c; el.style.color = c;
       L.g.appendChild(el);
-      const len = el.getTotalLength(), w = 34;
+      const len = el.getTotalLength(), w = 52;   // 2026-11-27：彗星拉长一点，五色看得出是五种猫
       el.style.strokeDasharray = w + ' ' + (len - w);
       const a = -start, b = dir === 1 ? -start - len : -start + len;
       animTwins([...glowTwin(el, 6), el], [{ strokeDashoffset: a, opacity: 0 }, { opacity: 1, offset: 0.08 }, { opacity: 1, offset: 0.85 }, { strokeDashoffset: b, opacity: 0 }], { duration: 1700, delay: k * 110, easing: 'cubic-bezier(.35,.1,.3,1)', fill: 'both' });
@@ -2626,7 +2626,7 @@
     els.stage.classList.remove('is-cancelled', 'is-out');
     const named = '';   // 点名要：桌上只摆三张猫，点名的那张不再放旁边（2026-11-18 用户）——到结算时在被点名的人旁边走原来那套对话泡动画
     els.stage.innerHTML = '<div class="zm-stage-inner">' +
-      '<div class="zm-stage-cards">' + p.cards.map((id, i) => cardHtml(id, hidden ? 'is-incoming' : '', 'transform:rotate(' + ((i - (p.cards.length - 1) / 2) * 5).toFixed(1) + 'deg)', wildSeat(p.by))).join('') + named + '<div class="zm-stage-nopes"></div></div>' +
+      '<div class="zm-stage-cards' + (p.cards.length >= 4 ? ' is-many' : '') + '">' + p.cards.map((id, i) => cardHtml(id, hidden ? 'is-incoming' : '', 'transform:rotate(' + ((i - (p.cards.length - 1) / 2) * 5).toFixed(1) + 'deg)', wildSeat(p.by))).join('') + named + '<div class="zm-stage-nopes"></div></div>' +
       '<div class="zm-fuse" aria-hidden="true"><i class="rope"></i><i class="spark"></i></div></div>';
     placeStage();
     setActing(p.by);
@@ -2638,6 +2638,13 @@
     const sr = els.stage.getBoundingClientRect(), dr = discardRect();   // 对准弃牌堆最上面那张（堆高了就跟着高），结算时原地压下去，不再往上跳一截
     inner.style.left = (dr.left + dr.width / 2 - sr.left).toFixed(1) + 'px';
     inner.style.top = (dr.top + dr.height / 2 - sr.top).toFixed(1) + 'px';
+    // 一次出好几张（五猫）时一排比弃牌堆宽：往桌子里收，别出桌框、被屏幕边切掉（2026-11-27 实测 390 宽竖屏五猫右边那张切了一半、压住右边那家）
+    const cs = inner.querySelector('.zm-stage-cards');
+    const r = cs && cs.getBoundingClientRect(), fr = frameX(0);
+    if (r && r.width) {
+      const dx = r.right > fr.r ? fr.r - r.right : r.left < fr.l ? fr.l - r.left : 0;
+      if (dx) inner.style.left = (parseFloat(inner.style.left) + dx).toFixed(1) + 'px';
+    }
   }
   function setActing(seat) {
     document.querySelectorAll('.zm-seat.is-acting').forEach((b) => b.classList.remove('is-acting'));
@@ -2820,7 +2827,7 @@
     el.classList.remove('is-timed', 'is-hurry', 'is-paused');
     void el.offsetWidth;
     el.classList.add('is-timed');
-    if (!els.mask.hidden || (menu && !menu.hidden)) pauseClock(); else runClock();
+    if (!game.online && (!els.mask.hidden || (menu && !menu.hidden))) pauseClock(); else runClock();
   }
   function runClock() {
     const my = token, seat = clock.seat;
@@ -2833,8 +2840,11 @@
     }, Math.max(0, clock.left - HURRY_MS));
     if (clock.onTimeout) clock.t2 = setTimeout(() => { if (my !== token || clock.seat !== seat) return; const f = clock.onTimeout; stopClock(); f(); }, clock.left);
   }
-  function pauseClock() {
+  /* 联机的钟只有房主暂停（force）才停（2026-11-27 用户：三张一样点名时顶上冒「还没轮到你」）——
+   * 以前开弹窗 / 菜单就把红环停住，可服务器那边照样在走：点名弹窗里红环不动、以为还有时间，服务器到点替我摸了牌，再点名就被拒 */
+  function pauseClock(force) {
     if (clock.seat < 0 || clock.paused) return;
+    if (game && game.online && !force) return;
     clearTimeout(clock.t1); clearTimeout(clock.t2); clearInterval(clock.tk);
     if (clock.at) clock.left = Math.max(0, clock.left - (performance.now() - clock.at));
     clock.at = 0;
@@ -2844,6 +2854,7 @@
   }
   function resumeClock() {
     if (clock.seat < 0 || !clock.paused || !els.mask.hidden) return;
+    if (game && game.online && online && online.pausedAt) return;   // 房主暂停着：等继续
     clock.paused = false;
     const el = seatEl(clock.seat);
     if (el) el.classList.remove('is-paused');
@@ -3326,22 +3337,32 @@
     const to = discardRect();
     const pu = PU();
     // 百搭：桌上画成万能猫的猫，生效完了先原地刷回本身，再扫进弃牌堆（2026-11-26 用户）
+    // 2026-11-27 用户：现原形突兀——等生效那下金光收完再拉幕；一张接一张、每张拉幕时轻轻抬一下（像被翻过来看了一眼），拉完停一拍再扫走
     const wilds = cs.filter((c) => c.dataset.v === R.WILD);
     if (wilds.length) {
-      snd('flip');
-      await Promise.all(wilds.map((c, i) => curtainFace(c, cardHtml(+c.dataset.id, c.className.replace(/\bzm-card\b/, '').trim()), i * ms(60), t)));
+      await wait(ms(220));
       if (t !== token) return;
-      await wait(ms(160));
+      snd('flip');
+      await Promise.all(wilds.map((c, i) => {
+        const d = i * ms(90);
+        if (!fx.reduce()) c.animate([{ translate: '0 0' }, { translate: '0 -5px', offset: 0.45 }, { translate: '0 0' }], { duration: ms(400), delay: d / turboK(), easing: 'ease-in-out' });
+        return curtainFace(c, cardHtml(+c.dataset.id, c.className.replace(/\bzm-card\b/, '').trim()), d, t);
+      }));
+      if (t !== token) return;
+      await wait(ms(260));
       if (t !== token) return;
     }
-    const items = cs.map((c) => ({ id: +c.dataset.id, r: c.getBoundingClientRect(), gray: els.stage.classList.contains('is-cancelled') }));
+    // 起飞那一帧要和桌上那张严丝合缝（2026-11-27 慢放：以前拿转过角度的外框宽当牌宽，起飞瞬间整排大一圈、往上一跳）：
+    // 用没转之前的宽、带上它本来的角度
+    const rotOf = (c) => { const m = /rotate\((-?[\d.]+)deg\)/.exec(c.style.transform || ''); return m ? +m[1] : 0; };
+    const items = cs.map((c) => ({ id: +c.dataset.id, r: c.getBoundingClientRect(), w: c.offsetWidth, rot: rotOf(c), gray: els.stage.classList.contains('is-cancelled') }));
     if (inner && !fx.reduce()) inner.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' });
     cs.forEach((c) => { c.style.visibility = 'hidden'; });
     setTimeout(() => { if (t === token) clearStage(true); }, 170);   // 桌沿连线留着：等牌真的拿到 / 给到再缩回
     snd('sweep');
     await Promise.all(items.map((it, i) => fx.fly({
-      html: cardHtml(it.id), from: it.r, to, w: pu, s0: it.r.width / pu, s1: 1, r0: 0, r1: pileRot(it.id),
-      dur: ms(220), delay: i * ms(40), lift: 6, cls: it.gray ? 'is-gray' : '',
+      html: cardHtml(it.id), from: it.r, to, w: pu, s0: (it.w || it.r.width) / pu, s1: 1, r0: it.rot, r1: pileRot(it.id),
+      dur: ms(260), delay: i * ms(45), lift: 6, swell: 0.02, cls: it.gray ? 'is-gray' : '',
     }).then(() => {
       if (t !== token || !ov) return;
       ov.discard.push(it.id);
@@ -3733,13 +3754,36 @@
       els.app.classList.remove('is-peeking');
       lay.remove();
       if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
-      // 翻回去、倒着落回牌堆
-      await Promise.all(nodes.map((n, i) => {
-        if (!n) return null;
-        n.remove();
-        const id = e.cards[i];
-        return fx.fly({ html: cardHtml(id), back: backHtml(), flip: open0(i) ? null : 'down', flipAt: 0.05, from: spots[i], to: deckTopRect(), w: u, s0: 1, s1: pu / u, dur: ms(480), delay: (e.cards.length - 1 - i) * ms(110), lift: 40 });
-      }));
+      // 放回去（2026-11-27 用户：以前边飞边翻、几张在牌堆上叠成一团再「融」进去，不够精细）——分三拍：
+      // ① 原地一张张翻回牌背（从最下面那张起，最上面那张最后翻；透视那张本来就正面朝上、不翻）；
+      // ② 从最下面那张起依次落回牌堆，每张落定牌堆就厚一张、轻轻一沉；③ 最上面那张最后盖上去，正好是牌堆顶
+      if (fx.reduce()) {
+        nodes.forEach((n) => n && n.remove());
+      } else {
+        const k = e.cards.length, order = e.cards.map((_, i) => k - 1 - i);
+        // 飞出来时就是一张两面牌（正面 + 牌背），这里直接把它原地转过去
+        const turned = nodes;
+        await Promise.all(nodes.map((n, i) => {
+          if (!n || open0(i)) return null;
+          const inner = n.firstElementChild;
+          if (!inner || !inner.querySelector('[class*="-side-back"]')) return null;
+          return inner.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(180deg)' }], { duration: ms(300), delay: order.indexOf(i) * ms(80) / turboK(), easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished.catch(() => {});
+        }));
+        if (t !== token) { turned.forEach((n) => n && n.remove()); return; }
+        await Promise.all(order.map((i, j) => {
+          const n = turned[i];
+          if (!n) return null;
+          n.remove();
+          return fx.fly({ html: open0(i) ? cardHtml(e.cards[i]) : backHtml(), from: spots[i], to: deckTopRect(), w: u, s0: 1, s1: pu / u, r0: 0, r1: 0, dur: ms(400), delay: j * ms(150), lift: 26, swell: 0.03 }).then(() => {
+            if (t !== token) return;
+            snd('thud');
+            if (ov) { ov.lifted = Math.max(0, (ov.lifted || 0) - 1); if (j === k - 1) restoreTopFace(tf); renderPiles(); }
+            (els.deck.querySelector('.zm-deck-stack') || els.deck).animate([{ transform: 'none' }, { transform: 'translateY(2px) scaleY(.985)', offset: 0.35 }, { transform: 'none' }], { duration: 220, easing: 'ease-out' });
+          });
+        }));
+        if (t !== token) return;
+        return;
+      }
       snd('thud');
       if (ov) ov.lifted -= e.cards.length;
       restoreTopFace(tf);
@@ -4348,30 +4392,57 @@
   }
 
   /* 五张不同：弃牌堆一下子摊开成扇面，挑中的那张升起、闪金光，飞进他手里 */
+  /* 从弃牌堆捡一张（五猫）——2026-11-27 用户要优化：以前扇开的几张里没有被捡的那张，它凭空从扇子上方冒出来。
+   * 现在：弃牌堆扇开、被捡的那张就在扇子正中（正面），它往上一抬、金光一圈，其余几张合回弃牌堆，它再飞到捡牌的人那儿 */
   async function animPick(e, t) {
-    const r = discardRect(), c = fx.center(r), pu = PU();
-    const fan = ov.discard.slice(-6).filter((id) => id !== e.card).slice(-4);
+    const r = discardRect(), pu = PU();
+    const others = ov.discard.slice(-7).filter((id) => id !== e.card).slice(-4);
+    const mid = Math.floor(others.length / 2);
+    const fan = others.slice(0, mid).concat([e.card], others.slice(mid));
+    const k = fan.length, ci = fan.indexOf(e.card);
+    const off = (i) => i - (k - 1) / 2;
+    // 扇面别出桌框（弃牌堆靠右时往里收）
+    const c = fx.center(r), fr = frameX(4), half = (k - 1) / 2 * pu * 0.42 + pu * 0.55;
+    c.x = Math.max(fr.l + half, Math.min(fr.r - half, c.x));
     snd('fan');
-    const outs = fan.map((id, i) => fx.fly({ html: cardHtml(id), from: r, to: { x: c.x + (i - (fan.length - 1) / 2) * pu * 0.45, y: c.y - pu * 0.25 }, w: pu, s0: 1, s1: 0.9, r0: pileRot(id), r1: (i - (fan.length - 1) / 2) * 12, dur: ms(300), delay: i * 40, lift: 10, keep: true, land: false }));
     ov.discard = ov.discard.filter((x) => x !== e.card);
     renderPiles();
+    const outs = fan.map((id, i) => fx.fly({ html: cardHtml(id), from: r, to: { x: c.x + off(i) * pu * 0.42, y: c.y - pu * 0.22 + Math.abs(off(i)) * 3 }, w: pu, s0: 1, s1: 0.92, r0: pileRot(id), r1: off(i) * 11, dur: ms(320), delay: Math.abs(off(i)) * ms(40), lift: 10, keep: true, land: false }));
     const nodes = await Promise.all(outs);
     if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
-    fx.burst(c.x, c.y - pu * 0.5, { n: 12, shapes: ['star'], colors: GOLDS, radius: pu, size: [6, 16], life: 800 });
+    const pick = nodes[ci];
+    if (pick) pick.style.zIndex = '3';
+    // 被捡的那张抬起来、放大一点、金光一圈；别的几张微微压暗
+    const up = { x: c.x + off(ci) * pu * 0.42, y: c.y - pu * 0.62 };
+    if (pick && !fx.reduce()) {
+      const cur = getComputedStyle(pick).transform;
+      await pick.animate([
+        { transform: cur, boxShadow: '0 4px 10px rgba(29,27,24,.18)' },
+        { transform: fx.T(up.x - pick.offsetWidth / 2, up.y - pick.offsetHeight / 2, 1.12, 0), boxShadow: '0 0 0 3px #e2b85c, 0 0 26px rgba(226,184,92,.75), 0 14px 24px rgba(29,27,24,.22)' },
+      ], { duration: ms(280), easing: 'cubic-bezier(.3,.8,.4,1.2)', fill: 'forwards' }).finished.catch(() => {});
+      if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
+    }
+    nodes.forEach((n, i) => { if (n && i !== ci && !fx.reduce()) n.animate([{ filter: 'brightness(1)' }, { filter: 'brightness(.88)' }], { duration: ms(200), fill: 'forwards' }); });
+    fx.burst(up.x, up.y, { n: 14, shapes: ['star'], colors: GOLDS, radius: pu * 0.9, size: [6, 15], life: 760, pattern: 'ring' });
     snd('ding');
-    const to = e.seat === 0 ? reserveHandSlot(e.card) : avPoint(e.seat);
-    const u = e.seat === 0 ? HU() : U();
-    const flight = fx.fly({ html: cardHtml(e.card), from: { x: c.x, y: c.y - pu * 0.6 }, to, w: u, s0: pu / u * 1.2, s1: e.seat === 0 ? 1 : 0.45, fadeOut: e.seat !== 0, dur: ms(620), lift: 90, swell: 0.3 });
+    await wait(ms(260));
+    if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
+    // 其余合回弃牌堆
     nodes.forEach((n, i) => {
-      if (!n) return;
+      if (!n || i === ci) return;
       const rr = n.getBoundingClientRect();
       n.remove();
-      fx.fly({ html: cardHtml(fan[i]), from: rr, to: r, w: pu, s0: 0.9, s1: 1, r0: (i - (fan.length - 1) / 2) * 12, r1: pileRot(fan[i]), dur: ms(260), delay: i * 30, lift: 6 });
+      fx.fly({ html: cardHtml(fan[i]), from: rr, to: r, w: pu, s0: 0.92, s1: 1, r0: off(i) * 11, r1: pileRot(fan[i]), dur: ms(240), delay: Math.abs(off(i)) * ms(30), lift: 4 });
     });
+    const to = e.seat === 0 ? reserveHandSlot(e.card) : avPoint(e.seat);
+    const u = e.seat === 0 ? HU() : U();
+    const pr = pick ? pick.getBoundingClientRect() : null;
+    if (pick) pick.remove();
+    const flight = fx.fly({ html: cardHtml(e.card), from: pr ? fx.center(pr) : up, to, w: u, s0: pu * 1.12 / u, s1: e.seat === 0 ? 1 : 0.45, fadeOut: e.seat !== 0, dur: ms(560), lift: 60, swell: 0.12 });
     await flight;
     if (t !== token) return;
     if (e.seat === 0) revealHandCard(e.card); else { ov.counts[e.seat] += 1; renderSeat(e.seat); fx.pop(avEl(e.seat), { scale: 1.15 }); }
-    await wait(ms(200));
+    await wait(ms(160));
   }
 
   /* 摸牌：牌堆顶那张先被捏起来、悬一下（危险时多悬一会儿、心跳），再飞走。
@@ -6383,12 +6454,24 @@
 
   function nameDialog(cb) {
     const kinds = R.KINDS.filter((k) => k !== R.BOOM);
+    // 联机：这一步还剩多久藏进「算了」里（和别的弹窗一样，按钮填满、时间条往回退）；到点 = 算了，牌飞回手里，服务器随后照常替我摸牌——
+    // 不再出现「弹窗还开着、服务器已经替我摸了、点名被拒、顶上冒还没轮到你」（2026-11-27 用户）
+    const limit = game && game.online ? onlineRemain() : 0;
     openStage('<h2>' + T('ui.name.title', '点名要哪种牌？') + '</h2><p class="zm-muted">' + T('ui.name.tip', '他手里有，就得给你一张；没有就落空') + '</p>' +
       '<div class="zm-grid" data-stagger>' + kinds.map((k) => '<button type="button" data-k="' + k + '">' + cardHtml(k) + '</button>').join('') + '</div>' +
-      '<div class="zm-actions"><button type="button" class="zm-btn" data-cancel>' + T('ui.nevermind', '算了') + '</button></div>', (d) => {
+      '<div class="zm-actions"><button type="button" class="zm-btn' + (limit ? ' zm-timed' : '') + '" data-cancel>' + (limit ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '') + '<b>' + T('ui.nevermind', '算了') + '</b></button></div>', (d) => {
       d.classList.add('is-cards');
-      d.querySelectorAll('[data-k]').forEach((b) => b.addEventListener('click', () => { closeDialog(); cb(b.dataset.k); }));
-      d.querySelector('[data-cancel]').addEventListener('click', () => { closeDialog(); if (game.previewSrc) { preview = { cards: Object.keys(game.previewSrc).map(Number) }; endPreview(); } renderBand(); });
+      let done = false, timer = 0;
+      const cancelBtn = d.querySelector('[data-cancel]');
+      const cancel = () => { if (done || !cancelBtn.isConnected) return; done = true; clearTimeout(timer); closeDialog(); if (game.previewSrc) { preview = { cards: Object.keys(game.previewSrc).map(Number) }; endPreview(); } renderBand(); };
+      d.querySelectorAll('[data-k]').forEach((b) => b.addEventListener('click', () => { if (done) return; done = true; clearTimeout(timer); closeDialog(); cb(b.dataset.k); }));
+      cancelBtn.addEventListener('click', cancel);
+      if (limit) {
+        const my = token, bar = d.querySelector('.zm-dlg-timer');
+        bar.querySelector('i').animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: limit, easing: 'linear', fill: 'forwards' });
+        setTimeout(() => { if (my === token && !done && cancelBtn.isConnected) bar.classList.add('is-hurry'); }, Math.max(0, limit - HURRY_MS));
+        timer = setTimeout(() => { if (my === token) cancel(); }, limit);
+      }
     });
   }
 
@@ -9164,7 +9247,7 @@
     if (on) {
       online.pausedAt = performance.now();
       clearTimeout(reactAuto);
-      pauseClock();
+      pauseClock(true);
       els.nopeBtn.querySelectorAll('.zm-nope-ring').forEach((r) => r.getAnimations().forEach((a) => a.pause()));   // 方形导火索读的就是这个钟：一起停
       busy = true;
       showOnlinePause();
@@ -9394,6 +9477,7 @@
       // 作废没打出去（别人先作废了 / 这一轮已经结算）：不弹文字（2026-11-17 用户：文字提示很蠢），手里的作废抖一下表示「没出去、还在手里」；
       // 桌沿的颜色会从先出作废的那个人那儿重新铺开，一看就知道发生了什么
       if (d.type === 'nope' && err && (err.error === 'stale' || err.error === 'no_reaction' || err.error === 'not_your_call')) els.hand.querySelectorAll('.zm-card[data-k="nope"]').forEach((c) => shake(c));
+      else if (err && err.error === 'not_your_turn' && (d.type === 'play' || d.type === 'draw')) { /* 服务器已经到点替我走了：不冒字，跟上局面就看得到它替我摸的那张 */ }
       else if (err && err.error !== 'stale') toast(NET.message(err));
       resync();
     }
@@ -10758,6 +10842,8 @@
       triple: () => { give(bot, 'tabby'); give(bot, 'tabby'); give(bot, 'tabby'); s.turn = bot; apply(bot, { type: 'play', cards: s.hands[bot].filter((id) => R.KIND_OF[id] === 'tabby').slice(0, 3), target: 0, named: R.DEFUSE }); },
       // 万能猫上桌：狸花 + 万能猫凑对偷机器猫一张；三种猫 + 两张万能猫凑五种各一张
       wildpair: () => { give(0, 'tabby'); give(0, R.WILD); s.turn = 0; apply(0, { type: 'play', cards: [R.findKind(s.hands[0], 'tabby'), R.findKind(s.hands[0], R.WILD)], target: bot }); },
+      five: () => { R.CATS.forEach((k) => give(0, k)); s.turn = 0; release(); renderAll(); },   // 五种猫各一张在我手里：自己选五张打出、看捡牌
+      fivebot: () => { s.hands = s.hands.map((h) => h.filter((id) => R.KIND_OF[id] !== R.NOPE)); R.CATS.forEach((k) => give(bot, k)); s.turn = bot; apply(bot, { type: 'play', cards: R.CATS.map((k) => R.findKind(s.hands[bot], k)) }); },   // 机器猫打五猫、从弃牌堆捡一张
       wildfive: () => { ['orange', 'calico', 'cow', R.WILD, R.WILD].forEach((k) => give(0, k)); s.turn = 0; const w = s.hands[0].filter((id) => R.KIND_OF[id] === R.WILD).slice(0, 2); apply(0, { type: 'play', cards: ['orange', 'calico', 'cow'].map((k) => R.findKind(s.hands[0], k)).concat(w) }); },
       // 我点名要机器猫的「跳过」（他有）/ 机器猫点名要我的「交换」（没开交换牌，一定落空）
       triplehit: () => { give(0, 'tabby'); give(0, 'tabby'); give(0, 'tabby'); give(bot, R.SKIP); s.turn = 0; apply(0, { type: 'play', cards: s.hands[0].filter((id) => R.KIND_OF[id] === 'tabby').slice(0, 3), target: bot, named: R.SKIP }); },
@@ -10783,6 +10869,7 @@
       allwildpeek: () => { s.flux = 'allwild'; ['tabby', R.SKIP, 'orange'].forEach(onTop); plays.future(); },
       allwilddraw: () => { s.flux = 'allwild'; onTop('cow'); plays.draw(); },
       allwildalter: () => { s.flux = 'allwild'; ['siamese', 'calico'].forEach(onTop); plays.alter(); },
+      allwildtriple: () => { s.flux = 'allwild'; for (let j = 1; j < s.n; j++) s.hands[j] = s.hands[j].filter((id) => R.KIND_OF[id] !== R.NOPE); renderAll(); plays.triplehit(); },   // 百搭：三张点名要牌，结算时桌上三张现原形再进弃牌堆
       allwild: () => { s.flux = 'allwild'; give(0, 'orange'); give(0, 'cow'); give(0, 'tabby'); s.turn = 0; renderAll(); },   // 百变「百搭」：手里三只不同的猫，自己挑着出
       nine: () => { s.flux = 'nine'; s.nineUsed = s.hands.map(() => false); s.hands[bot] = s.hands[bot].filter((id) => R.KIND_OF[id] !== R.DEFUSE); top(R.BOOM); s.turn = bot; apply(bot, { type: 'draw' }); },
       bottom1: () => { const keep = s.deck.find((id) => R.KIND_OF[id] !== R.BOOM); s.removed.push(...s.deck.filter((id) => id !== keep)); s.deck = [keep]; give(bot, 'bottom'); s.turn = bot; apply(bot, { type: 'play', cards: [s.hands[bot].find((id) => R.KIND_OF[id] === 'bottom')] }); },
