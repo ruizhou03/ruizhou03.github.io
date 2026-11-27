@@ -9783,7 +9783,6 @@
       if (!game.tutorial && s && !s.alive[meSeat()] && (s.phase !== 'over' || ov) && game.fastOut && !game.turboOff) mode = 'ff';
       // 2026-11-22 用户：我出局了就直接 5 倍速播（以前要自己点 ⏩ 才 5 倍）；⏩ 改成「直接看结果」
       if (mode === 'ff' && !game.turbo && !game.autoTurbo) { game.autoTurbo = true; setTurbo(true); }
-      if (mode === 'ff') ffPrecompute();   // 键一出来就在后台把剩下的预演完，点了直接用
       if (game.ffJump && s && (s.phase !== 'over' || ov)) mode = 'ff';   // 点了「直接看结果」、剩下几步还在算：键一直亮着，算完进结算再收
     } else {
       const g = online && game && game.online ? G() : null;
@@ -9885,6 +9884,11 @@
   }
   // cheap：点了「直接看结果」后还没预演到的那几步，高手按普通的现算（推演太慢；我的名次早定了，只影响机器猫之间谁先谁后）
   function botDecide(s, seat, tier, cheap) {
+    /* 2026-11-27 用户：我出局后点右下角快进键常常没反应、不变金色，要点好多下。实测（手机级 CPU）：我出局后 5 倍速播的时候，
+     * 高手机器猫每次要不要作废 / 改命都在主线程里推演（hardEscNope / hardAlter），连着占住主线程几十秒，点击排不上队。
+     * 我出局了名次已定，剩下只是机器猫之间谁先谁后（同「直接看结果」的 cheap）：高手一律按普通现算，主线程一直空着，键一点就亮；
+     * 不再在后台预演（预演本身也在主线程里抢时间） */
+    if (game && !game.online && !game.tutorial && game.fastOut && !game.state.alive[meSeat()] && tier === 'hard') tier = 'normal';
     if (!game || ffMemo.g !== game) return AI.decide(s, seat, tier);
     const k = memoKey(s, seat, tier), hit = ffMemo.map.get(k);
     if (hit) return JSON.parse(hit);
@@ -9892,14 +9896,6 @@
     const d = AI.decide(s, seat, tier);
     ffMemo.map.set(k, JSON.stringify(d));
     return d;
-  }
-  function ffPrecompute() {
-    if (!game || game.online || ffMemo.g === game) return;
-    const g0 = game, run = ++ffMemo.run;
-    ffMemo.g = game; ffMemo.map = new Map();
-    let s;
-    try { s = JSON.parse(JSON.stringify(game.state)); } catch (_) { return; }
-    simulateRest(s, () => ffMemo.run === run && game === g0 && !g0.ffJump, { tiers: g0.tiers.slice(), quiet: true, slice: 6 }).catch(() => {});
   }
   async function simulateRest(s, alive, opt) {
     opt = opt || {};
