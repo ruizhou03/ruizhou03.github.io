@@ -9588,8 +9588,14 @@
     if (ffBtn && ffBtn.dataset.mode === 'next') ffBtn.classList.toggle('is-on', k === 'on');
   }
   // 组队结算（单机 / 联机共用）：赢的那一队都写「胜利」、都挂奖牌，下面一道线隔开输的
+  /* 排行榜上「我」在本地第几座：联机出局后坐到别人身后看（game.spectator 也是 true），我还是这一局的人——照样标「我」、放我的小鱼干
+   * （2026-11-27 用户：联机打完没有当场结算——就是出局后在看别人，排行榜把我当成纯观战，小鱼干那行没了） */
+  function rankMe() {
+    if (game && game.online) { const st = online && online.st; return st && !st.spectator && st.mySeat >= 0 ? locOf(st.mySeat) : -1; }
+    return game && game.spectator ? -1 : 0;
+  }
   function teamRankHtml(order, w, won) {
-    const s = game.state, me = game.spectator ? -1 : 0;
+    const s = game.state, me = rankMe();
     // 每一队一个名次（2026-11-18 用户：不只第一队有奖牌）：赢的队第 1，其余按「全队出局得越晚越靠前」——order 里输的人本来就是越晚出局越靠前，
     // 按队第一次出现的先后定名次；同一队的人排在一起，队与队之间一道线
     const tr = new Map();
@@ -9617,21 +9623,22 @@
     if (rec && lastM === g.matchNo) rows = rec.rows.map((r) => ({ r, k: r.ranks.find((x) => x.m === lastM) })).filter((x) => x.k).sort((a, b) => a.k.r - b.k.r).map((x) => x.r);
     const order = order0 || (g.ranking || []).map(locOf);
     const face = (r) => (r.avatar && AV && AV.byId[r.avatar] ? AV.byId[r.avatar].svg : '<span>' + esc((r.nick || '?').slice(0, 1)) + '</span>');
-    const items = rows ? rows.map((r) => ({ me: r.id === st.me && !game.spectator, face: face(r), nick: r.nick }))
-      : order.map((seat) => ({ me: seat === 0 && !game.spectator, face: avatarHtml(seat), nick: nameOf(seat) }));
+    const meL = rankMe(), spec = meL < 0;
+    const items = rows ? rows.map((r) => ({ me: r.id === st.me && !spec, face: face(r), nick: r.nick }))
+      : order.map((seat) => ({ me: seat === meL, face: avatarHtml(seat), nick: nameOf(seat) }));
     const teamW = teamGame() ? (g.winners || 1) : 0;   // 组队：赢的那一队都算赢，不上领奖台，用队伍名单
     openDialog((host ? '<button type="button" class="zm-icbtn zm-rank-edit is-corner" data-edit aria-label="' + T('ui.host.edit', '调座位 / 请人离开') + '" title="' + T('ui.host.edit', '调座位 / 请人离开') + '">' + HOST_IC.swap + '</button>' : '') +
-      rankPages(teamW ? teamRankHtml(order, teamW, !game.spectator && order.slice(0, teamW).indexOf(0) >= 0) + (WAL && g.pay && !game.spectator && !g.pay.refund ? WAL.slot() : '') : podiumHtml(items, WAL && g.pay && !game.spectator && !g.pay.refund ? WAL.slot() : ''), rec, face) +
+      rankPages(teamW ? teamRankHtml(order, teamW, !spec && order.slice(0, teamW).indexOf(meL) >= 0) + (WAL && g.pay && !spec && !g.pay.refund ? WAL.slot() : '') : podiumHtml(items, WAL && g.pay && !spec && !g.pay.refund ? WAL.slot() : ''), rec, face) +
       (readyPhaseOk(st) ? readyRowHtml(st) : '') +
       '<div class="zm-actions' + (readyPhaseOk(st) && readyMine(st) === 'on' ? ' is-ready' : '') + '"><button type="button" class="zm-btn" data-leave>' + T('ui.leaveRoom', '离开房间') + '</button>' + (host ? '<button type="button" class="zm-btn" data-again>' + T('ui.room.backShort', '回房间') + '</button>' : '') + (readyPhaseOk(st) ? readyBtnHtml(st, true) : '') + '</div>', (d) => {
       if (!teamW) { d.classList.add('is-podium'); animPodium(d); }
       wireRankPages(d);
-      if (WAL) { const mi = teamW ? -1 : items.findIndex((x) => x.me); WAL.fillOnline(d, !game.spectator && g.pay ? Object.assign({}, g.pay, mi >= 0 ? { rank: mi + 1 } : {}) : null, game); }
+      if (WAL) { const mi = teamW ? -1 : items.findIndex((x) => x.me); WAL.fillOnline(d, !spec && g.pay ? Object.assign({}, g.pay, mi >= 0 ? { rank: mi + 1 } : {}) : null, game); }
       d.querySelector('[data-leave]').addEventListener('click', () => { closeDialog(); leaveOnline(true); });
       const a = d.querySelector('[data-again]');
       if (a) a.addEventListener('click', () => { a.disabled = true; onlineAct('rematch'); });
       const nx = d.querySelector('[data-ready]');
-      if (nx && WAL && WAL.costTag && g.pay && !g.pay.refund && !game.spectator) WAL.costTag(nx, g.pay.price);   // 2026-11-24 用户：「下一局」也要看得出花多少（同一桌同样的门票）——现在挂在「准备」上
+      if (nx && WAL && WAL.costTag && g.pay && !g.pay.refund && !spec) WAL.costTag(nx, g.pay.price);   // 2026-11-24 用户：「下一局」也要看得出花多少（同一桌同样的门票）——现在挂在「准备」上
       if (nx) nx.addEventListener('click', () => readyToggle(nx));
       const ed = d.querySelector('[data-edit]');
       if (ed) ed.addEventListener('click', () => { closeDialog(); enterEdit('table'); });
@@ -9665,8 +9672,8 @@
     const face = (r) => (r.avatar && AV && AV.byId[r.avatar] ? AV.byId[r.avatar].svg : '<span>' + esc((r.nick || '?').slice(0, 1)) + '</span>');
     const ms = rec.matches;
     return '<div class="zm-record"><div class="zm-record-h">' + T('ui.record.title', '本房间战绩 · {n} 局', { n: ms.length }) + '<small>' + T('ui.record.by', '按平均名次') + '</small></div><div class="zm-record-scroll">' +
-      '<table><thead><tr><th></th><th class="nm"></th><th>' + T('ui.record.avg', '平均名次') + '</th>' + ms.map((m, i) => '<th class="rk">' + (i + 1) + '</th>').join('') + '</tr></thead><tbody>' +
-      rec.rows.map((r, i) => '<tr class="' + (r.id === me ? 'is-me' : '') + '"><td class="pos">' + (medals && i < 3 ? medal(i) : i + 1) + '</td><td class="nm"><span class="mini">' + face(r) + '</span><span>' + esc(r.nick) + '</span></td>' +
+      '<table><thead><tr><th></th><th class="nm"></th><th class="avg">' + T('ui.record.avg', '平均名次') + '</th>' + ms.map((m, i) => '<th class="rk">' + (i + 1) + '</th>').join('') + '</tr></thead><tbody>' +
+      rec.rows.map((r, i) => '<tr class="' + (r.id === me ? 'is-me' : '') + '"><td class="pos">' + (medals && i < 3 ? medal(i) : i + 1) + '</td><td class="nm"><span class="nmw"><span class="mini">' + face(r) + '</span><span>' + esc(r.nick) + '</span></span></td>' +
         '<td class="avg">' + r.avg.toFixed(1) + '</td>' +
         ms.map((m) => { const x = r.ranks.find((k) => k.m === m); return '<td class="rk' + (x && x.r === 1 ? ' is-win' : '') + '">' + (x ? x.r : '–') + '</td>'; }).join('') + '</tr>').join('') +
       '</tbody></table></div></div>';
