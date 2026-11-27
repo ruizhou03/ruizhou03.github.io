@@ -2145,3 +2145,16 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zm-rank li > .zmw-res.is-inline .zmw-ln > b .zmw-fish { width: 28px; height: 18px; }
 .zm-rank-rest.is-grid li > .zmw-res.is-inline .zmw-ln > b { font-size: 14px; }
 .zm-rank-rest.is-grid li > .zmw-res.is-inline .zmw-ln > b .zmw-fish { width: 20px; height: 13px; }
+
+/* 排行榜两页（2026-11-27）：这一局 · 本房间 */
+.zm-rk-tabs { position: relative; display: inline-flex; margin: -10px auto 12px; left: 50%; transform: translateX(-50%); padding: 3px; border-radius: 999px; background: var(--zm-wash); --k: 0; }
+.zm-rk-tabs button { position: relative; z-index: 1; border: 0; background: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--zm-ink-mute); padding: 5px 14px; border-radius: 999px; cursor: pointer; transition: color 0.2s; letter-spacing: 0.04em; }
+.zm-rk-tabs button[aria-selected="true"] { color: var(--zm-ink); }
+.zm-rk-tabs .bar { position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: 999px; background: var(--zm-paper); box-shadow: 0 1px 3px rgba(29, 27, 24, 0.16); transform: translateX(calc(var(--k) * 100%)); transition: transform 0.28s cubic-bezier(.3, .7, .4, 1); }
+.zm-rk-pages { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+.zm-rk-pages::-webkit-scrollbar { display: none; }
+.zm-rk-page { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; }
+.zm-rk-page.is-room .zm-record { margin-top: 2px; }
+.zm-rk-page.is-room .zm-record table { font-size: 14px; }
+.zm-record td.pos .zm-medal { width: 20px; height: 22px; }
+@media (prefers-reduced-motion: reduce) { .zm-rk-tabs .bar { transition: none; } }
