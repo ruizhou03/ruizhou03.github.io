@@ -862,11 +862,12 @@ body.gd-game-fullscreen .guandan-wrap #gdPlay3 { padding-left: 16px; }
 .guandan-wrap .gd-av-cnt .gd-count:not([hidden]) {
   display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
   min-width: 19px; height: 25px; padding: 0 2px; border-radius: 4px; margin: 0;
-  background: var(--gd-paper, #fbf6ec); color: var(--gd-ink); border: 1.5px solid var(--gd-ink);
+  /* 2026-11-27 用户：红底那种（实心）好看，白底描边那种不好看 → 平时也用实心：墨色底、纸色字，≤10 张换朱砂 */
+  background: var(--gd-ink); color: var(--gd-paper, #fbf6ec); border: 0;
   font: 700 12px/1 var(--gd-num); letter-spacing: -0.02em;
-  box-shadow: 2px 2px 0 -0.5px var(--gd-paper, #fbf6ec), 2px 2px 0 1px rgba(29, 27, 24, 0.55);   /* 后面再垫一张，像一小叠牌 */
+  box-shadow: 0 0 0 1.5px var(--gd-paper, #fbf6ec), 2px 2px 0 1.5px rgba(29, 27, 24, 0.28);
 }
-.guandan-wrap .gd-av-cnt .gd-count.warn:not([hidden]) { background: var(--gd-seal); border-color: var(--gd-seal); color: var(--gd-seal-ink, #fff); }
+.guandan-wrap .gd-av-cnt .gd-count.warn:not([hidden]) { background: var(--gd-seal); color: var(--gd-seal-ink, #fff); }
 .guandan-wrap .gd-av-cnt .gd-rank-badge:not([hidden]) {
   display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 10px; margin: 0; white-space: nowrap;
   background: var(--gd-ink); color: var(--gd-paper); font: 700 11px/1 var(--gd-serif); letter-spacing: 0.04em; box-shadow: 0 0 0 1.5px var(--gd-paper);
