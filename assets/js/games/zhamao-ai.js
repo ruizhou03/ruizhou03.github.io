@@ -1197,6 +1197,45 @@
    * 一圈里落在同一人身上的比例 61→54%；强度 5 人一座位对线上高手 3000 局名次分 0.517 vs 0.520（噪声 ±0.0065）。
    * 0.02 时散得更多但掉约 0.6 个点 */
   const TGT_TEMP = FXO && FXO.tgtTemp != null ? FXO.tgtTemp : 0.01;
+  /* 记仇（2026-11-27 用户：人会报复，这个游戏互惠少、主要是相互针对）。只在几乎一样好的选择之间起作用，不硬报复：
+   * · 打回去：谁对我出过索要 / 偷牌 / 点名 / 甩锅（规则公开记的 v.grudge，慢慢淡掉），对他出针对牌加 REV_W × 笔数（最多 2 笔）
+   * · 还回去：上家刚改命 / 刚拆完炸弹猫塞回、之后没人从顶上摸过，我打转向让他自己摸（加 REV_BACK）——他自己放的牌他自己处理
+   * 网络分差中位数约 0.008，所以这两项只翻转接近平手的决定。
+   * 经典 9 人全高手 400 局：针对牌打向「最近打过我的人」9% → 21%；有转向时把上家刚排好 / 塞好的牌还给他 25% → 56%。
+   * 强度（5 人一座位对线上高手，各 3000 局，噪声 ±0.0065）：经典 0.511 vs 0.509，百变 0.489 vs 0.492。轻一档（0.006 / 0.01）报复 11% / 40%，同样不掉分 */
+  const REV_W = FXO && FXO.revW != null ? FXO.revW : 0.025;
+  const REV_BACK = FXO && FXO.revBack != null ? FXO.revBack : 0.03;
+  const prevAliveV = (v, seat) => { const d = v.dir === -1 ? 1 : -1; for (let i = 1; i < v.n; i++) { const t = (((seat + d * i) % v.n) + v.n) % v.n; if (v.alive[t]) return t; } return seat; };
+  function upstreamSetup(v) {   // 上家刚改命 / 塞回炸弹猫、顶上还没人摸过：返回上家座位，否则 -1
+    const up = prevAliveV(v, v.me);
+    if (up === v.me || isMateV(v, up) || !v.deckSize) return -1;
+    const alt = v.peek && v.peek.kind === 'alter' && v.peek.by === up && v.peek.top === 0;
+    const ins = v.ins && v.ins.by === up && v.ins.top === 0;
+    if (!alt && !ins) return -1;
+    const k0 = v.known.find((x) => x.pos === 0);
+    if (k0 && K[k0.id] !== R.BOOM) return -1;   // 我知道顶上安全：没必要还
+    return up;
+  }
+  function revengeBonus(v, m) {
+    if (!m || m.type !== 'play') return 0;
+    const k = m.cards.length === 1 ? K[m.cards[0]] : 'combo';
+    if (REV_W > 0 && m.target != null && v.grudge && (k === 'combo' || k === R.FAVOR || k === R.TATTACK)) return REV_W * Math.min(2, v.grudge[v.me][m.target] || 0);
+    if (REV_BACK > 0 && k === R.REVERSE && v.flux !== 'bottom' && upstreamSetup(v) >= 0) return REV_BACK;
+    return 0;
+  }
+  function revengeNudge(state, seat, v, d) {
+    if (!(REV_W > 0 || REV_BACK > 0) || !d || !useBrain(v)) return d;
+    if (d.type === 'play' && d.cards.length === 1 && (K[d.cards[0]] === R.FUTURE || K[d.cards[0]] === R.ALTER)) return d;
+    const legal = (m) => m.type !== 'play' || !!R.checkPlay(state, seat, m.cards, m);
+    const cands = actCandidates(v).filter((m) => revengeBonus(v, m) > 0 && legal(m));
+    if (!cands.length) return d;
+    const sf = brainState(v), base = brainScore(v, sf, d) + revengeBonus(v, d);
+    let best = d, bs = base;
+    for (const m of cands) { const q = brainScore(v, sf, m) + revengeBonus(v, m); if (q > bs) { bs = q; best = m; } }
+    if (best !== d && REV_LOG) REV_LOG.push(revengeBonus(v, best) === REV_BACK && K[best.cards[0]] === R.REVERSE ? 'back' : 'hit');
+    return best;
+  }
+  const REV_LOG = FXO && FXO.revLog;
   function spreadTarget(state, seat, v, d, rng) {
     if (!(TGT_TEMP > 0) || !rng || !d || d.type !== 'play' || d.target == null || !useBrain(v)) return d;
     const k = d.cards.length === 1 ? K[d.cards[0]] : 'combo';
@@ -1208,7 +1247,7 @@
       if (R.checkPlay(state, seat, m.cards, m)) cands.push(m);
     }
     if (cands.length < 2) return d;
-    const sf = brainState(v), qs = cands.map((m) => brainScore(v, sf, m)), top = Math.max(...qs);
+    const sf = brainState(v), qs = cands.map((m) => brainScore(v, sf, m) + revengeBonus(v, m)), top = Math.max(...qs);
     const w = qs.map((q) => Math.exp((q - top) / TGT_TEMP)), tot = w.reduce((a, b) => a + b, 0);
     let r = rng() * tot; for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return cands[i]; }
     return cands[cands.length - 1];
@@ -1218,7 +1257,7 @@
     rng = rng || Math.random;
     const v = withSeen(R.view(state, seat));
     switch (state.phase) {
-      case 'act': return guardMulti(state, seat, v, guardDoom(state, seat, v, guardSwap(state, seat, v, spreadTarget(state, seat, v, actFor(v, tier, rng), rng))));
+      case 'act': return guardMulti(state, seat, v, guardDoom(state, seat, v, guardSwap(state, seat, v, spreadTarget(state, seat, v, revengeNudge(state, seat, v, actFor(v, tier, rng)), rng))));
       case 'react': return { type: reactFor(v, tier, rng) ? 'nope' : 'pass' };
       case 'give': return { type: 'give', card: chooseGive(v, tier, rng) };
       case 'pick': return { type: 'pick', card: choosePick(v, tier, rng) };

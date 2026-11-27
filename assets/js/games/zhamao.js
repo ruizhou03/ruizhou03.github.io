@@ -5677,6 +5677,7 @@
       ins: by(s.ins, ['by']), peek: by(s.peek, ['by']), rescue: by(s.rescue, ['by', 'for']),
       nineUsed: rotSeats(s.nineUsed, d), saveUsed: rotSeats(s.saveUsed, d), teams: rotSeats(s.teams, d), noHelp: rotSeats(s.noHelp, d), roles: rotSeats(s.roles, d), roleUsed: rotSeats(s.roleUsed, d),
       memo: rotSeats(s.memo, d).map((m) => Object.assign({}, m, { hands: rotSeats(m.hands, d) })),
+      grudge: s.grudge ? rotSeats(s.grudge, d).map((r) => rotSeats(r, d)) : s.grudge,   // 记仇表两维都按座位转
     });
   }
   // 转到 k 号（原来的座位号）的视角：和联机换视角一样——正在播的收掉，按现在的局面重摆，每家头像从旧位置滑到新位置，再接着打

@@ -249,6 +249,7 @@
       deck: [], discard: [], removed: [], hands: [], alive: [], outOrder: [],
       turn: 0, turnsLeft: 1, phase: 'act', pending: null, give: null, pick: null, defuse: null, alter: null, steal: null,
       winner: -1, seq: 0, memo: newMemo(n), ins: null, peek: null,
+      grudge: Array.from({ length: n }, () => new Array(n).fill(0)),   // 公开的「谁打过谁」：grudge[被打的][打人的]，机器猫记仇用（见 noteGrudge）
       flux: null, fluxDeck: [], rescue: null, winnerTeam: -1, roles: null, roleUsed: null, cowCut: -1, hotGiven: -1,   // 百变模式：现在生效的那条百变规则（null = 还没有）、还没抽到的规则（洗好的，从末尾抽）
       dir: 1,   // 出牌方向：1 = 座位号往上走（桌上画成逆时针），-1 = 打过单数张转向后反过来
     };
@@ -329,7 +330,7 @@
       give: s.give && Object.assign({}, s.give), pick: s.pick && Object.assign({}, s.pick), defuse: s.defuse && Object.assign({}, s.defuse), save: s.save ? Object.assign({}, s.save) : null,
       alter: s.alter && { by: s.alter.by, cards: s.alter.cards.slice() },
       steal: s.steal && { by: s.steal.by, from: s.steal.from, perm: s.steal.perm.slice() },
-      winner: s.winner, seq: s.seq, ins: s.ins ? Object.assign({}, s.ins) : null, peek: s.peek ? Object.assign({}, s.peek) : null, dir: s.dir || 1,
+      winner: s.winner, seq: s.seq, grudge: s.grudge ? s.grudge.map((r) => r.slice()) : null, ins: s.ins ? Object.assign({}, s.ins) : null, peek: s.peek ? Object.assign({}, s.peek) : null, dir: s.dir || 1,
       flux: s.flux || null, fluxDeck: (s.fluxDeck || []).slice(), nineUsed: s.nineUsed ? s.nineUsed.slice() : null, saveUsed: s.saveUsed ? s.saveUsed.slice() : null,
       rescue: s.rescue ? (rescueOf(s), Object.assign({}, s.rescue, { mates: s.rescue.mates.slice(), wait: s.rescue.wait.slice() })) : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1, teams: s.teams ? s.teams.slice() : null, noHelp: s.noHelp ? s.noHelp.slice() : null,
       roles: s.roles ? s.roles.slice() : null, roleUsed: s.roleUsed ? s.roleUsed.slice() : null, cowCut: s.cowCut != null ? s.cowCut : -1, hotGiven: s.hotGiven != null ? s.hotGiven : -1,
@@ -533,6 +534,20 @@
   const isCancelled = (s) => s.phase === 'react' && s.pending.nopes.length % 2 === 1;
 
   /* 反应窗关闭：结算（被作废就什么都不发生，牌照样进弃牌堆） */
+  /* 记仇（2026-11-27 用户：人会报复——你偷过我 / 找我索要 / 甩锅给我，我回头也打你）：桌上公开看得到谁对谁出了索要 / 偷牌 / 点名 / 甩锅，
+   * 记进 grudge[被打的][打人的]；每张牌结算完全桌 ×GRUDGE_FADE 慢慢淡掉；打回去了就消掉一笔 */
+  const GRUDGE_FADE = 0.9;
+  function noteGrudge(s, p) {
+    if (!s.grudge) return;
+    for (const r of s.grudge) for (let j = 0; j < r.length; j++) r[j] *= GRUDGE_FADE;
+    const by = p.by;
+    let victim = -1;
+    if (p.type === FAVOR || p.type === 'pair' || p.type === 'triple' || p.type === TATTACK) victim = p.target;
+    else if (p.type === ATTACK) victim = nextAlive(s, by);
+    if (victim == null || victim < 0 || victim === by) return;
+    s.grudge[victim][by] += 1;
+    if (s.grudge[by][victim] > 0) s.grudge[by][victim] = Math.max(0, s.grudge[by][victim] - 1);   // 报了仇：这一笔清掉
+  }
   function closeReaction(s) {
     if (s.phase !== 'react') throw new Error('no reaction');
     const p = s.pending, ev = [];
@@ -550,6 +565,7 @@
       if (won && victim !== nx.seat) tabby.push({ seat: nx.seat, victim });
     });
     if (cancelled) { runTabby(s, tabby, ev); return ev; }
+    noteGrudge(s, p);
     const me = p.by;
     // 角色猫「黑猫」：第一次被索要 / 偷 / 点名——溜走了，什么都不发生
     if (p.type === 'pair' && p.target >= 0 && roleOf(s, p.target) === 'shadow') {   // 黑猫：两张偷牌整局都扑空
@@ -1022,6 +1038,7 @@
       steal: s.steal && { by: s.steal.by, from: s.steal.from, count: s.steal.perm.length },
       peek: s.peek ? Object.assign({}, s.peek) : null, // 公开：最近谁窥探 / 改命过顶上三张、之后从顶上摸走了几张、他自己接着是躲了（dodge）还是摸了（draw）
       ins: s.ins ? Object.assign({}, s.ins) : null, // 公开：最近一次塞回炸弹猫的人、塞完后牌堆张数、之后从顶 / 底各摸走几张
+      grudge: s.grudge ? s.grudge.map((r) => r.slice()) : null,   // 公开：谁打过谁（记仇）
       removed: s.removed.slice(), // 收进盒子的牌种是公开的（多余的炸弹猫 / 逗猫棒）
     };
   }
