@@ -1431,7 +1431,8 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-owe > i:nth-child(1) { left: 0; }
 .zm-owe > i:nth-child(2) { left: calc(var(--av) * 0.24); }
 /* 给牌键上的 ×N（贪吃猫要两张）：和被甩锅的 ×N 一种小角标 */
-.zm-btn .zm-xn { display: inline-flex; align-items: center; justify-content: center; margin-left: 6px; height: 18px; padding: 0 6px; border-radius: 999px; background: #fffaf0; color: var(--zm-seal); font: 700 12px/1 'ZM Num', 'ZM Serif', Georgia, serif; }
+/* ×2 小标（贪吃猫给两张）：挂在按钮右上角当角标，不占按钮宽度——给牌 ×2 和平时的给牌 / 出牌一样大（2026-11-27 用户：按钮大小要一致） */
+.zm-btn .zm-xn { position: absolute; top: -8px; right: -6px; display: inline-flex; align-items: center; justify-content: center; height: 18px; padding: 0 5px; border-radius: 999px; background: #fffaf0; color: var(--zm-seal); border: 1px solid var(--zm-seal); box-shadow: 0 1px 2px rgba(29, 27, 24, 0.2); font: 700 11px/1 'ZM Num', 'ZM Serif', Georgia, serif; letter-spacing: 0; pointer-events: none; }
 /* 开局抽角色 */
 .zm-rd { position: fixed; left: 0; top: 0; z-index: 5; pointer-events: auto; cursor: pointer; will-change: transform; }
 .zm-rd .zm-rc-back { transition: translate 0.22s cubic-bezier(.3,.8,.4,1.3); }

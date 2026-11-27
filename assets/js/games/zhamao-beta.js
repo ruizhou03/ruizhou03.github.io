@@ -407,6 +407,9 @@
 .zb-it2[aria-pressed=true] .pr{color:#b4392c;border-top-color:rgba(180,57,44,.35)}
 .zb-it2.is-short .zr-mc,.zb-it2.is-short small{opacity:.42;filter:grayscale(.6)}
 .zb-it2.is-short .pr{color:#b4392c;opacity:.75}
+.zb-it2.is-over .zr-mc{box-shadow:0 0 0 2px #b4392c,0 2px 5px rgba(29,27,24,.25)}
+.zb-it2.is-over .pr{color:#b4392c;font-weight:700}
+.zb-ih em.is-over{color:#b4392c}
 ` + Object.keys(BACK_FILL).filter((k) => k !== 'navy').map((k) => `.zb-back-${k} .zm-card.is-back svg>rect:first-child{fill:${BACK_FILL[k]}}`).join('\n') + '\n' +
       `.zb-back-gilt .zm-card.is-back svg>rect:nth-child(2){stroke:#f3d58a}\n` +
       Object.keys(FELT).filter((k) => FELT[k]).map((k) => `.zb-felt-${k}.zm-app{${feltStyle(k)}}`).join('\n');
@@ -716,28 +719,45 @@
       if (!st || !st.ctrBy || st.ctrBy === st.me || !oPhaseOk(st)) return null;
       return (st.players || []).find((p) => p.id === st.ctrBy) || { nick: '?' };
     }
+    // 挑着的道具里钱不够买的那几样（按开局扣钱的顺序）；钱包没同步时不拦
+    function overOf(pk, kinds, ctx) {
+      if (!known()) return [];
+      let room = bal() - ticketOf(ctx);
+      const out = [];
+      ['counter', 'x2', 'role', 'nope', 'swap'].forEach((k) => {
+        const on = k === 'role' ? !!pk.role : !!pk[k];
+        if (!on || !kinds.includes(k) || (k === 'counter' && counterDayOn())) return;
+        if (priceAt(k) <= room) room -= priceAt(k); else out.push(k);
+      });
+      return out;
+    }
+    /* 点「开始」/「再来一局」前（zhamao.js 调）：门票够、但门票 + 挑着的道具不够 → 不开局，道具格抖一下、买不起的那几样闪红，等玩家自己取消。
+     * 门票本身都不够：返回 false，照旧走钱包的「小鱼干不够了」 */
+    function blockStart(ctx) {
+      if (!known() || bal() < ticketOf(ctx)) return false;
+      const rules = ctx.rules || {}, kinds = chipsFor({ mode: ctx.mode, rules }).map(([k]) => k), over = overOf(d.pick, kinds, ctx);
+      if (!over.length) return false;
+      repaintPicks();
+      document.querySelectorAll('.zb-items').forEach((box) => {
+        if (!box.isConnected || box.closest('[hidden]') || box.querySelector('[data-zbo]')) return;
+        box.animate([{ transform: 'none' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(-3px)' }, { transform: 'none' }], { duration: 360 });
+        box.querySelectorAll('.zb-it2.is-over .zr-mc').forEach((m) => m.animate([{ boxShadow: '0 0 0 2px #b4392c' }, { boxShadow: '0 0 0 6px rgba(180,57,44,.45)' }, { boxShadow: '0 0 0 2px #b4392c' }], { duration: 520, iterations: 2 }));
+      });
+      return true;
+    }
     function boxHtml(chips, pk, attr, ctx) {
       let cost = 0;
       const tk = ctrTaker(attr);
-      // 已经挑着、但钱不够的（上次挑完余额又少了）：按开局扣钱的顺序算，放不下的直接取消——不能亮着进局、开局却悄悄没买
-      // （2026-11-27 用户：挑了截胡猫进局还是要抽、抽到胆小猫）
-      if (attr === 'data-zbp' && known()) {
-        let room = bal() - ticketOf(ctx), drop = false;
-        ['counter', 'x2', 'role', 'nope', 'swap'].forEach((k) => {
-          const on = k === 'role' ? !!pk.role : !!pk[k];
-          if (!on || !chips.some(([c]) => c === k) || (k === 'counter' && counterDayOn())) return;
-          if (priceAt(k) <= room) room -= priceAt(k); else { if (k === 'role') pk.role = null; else pk[k] = false; drop = true; }
-        });
-        if (drop) save();
-      }
+      // 挑着但钱不够的（按开局扣钱的顺序：记牌器→加倍→角色→作废→交换，放不下的那几样）：标红；点「开始」会被拦住，要自己取消（2026-11-27 用户：余额不够就不能开局，必须放弃一些道具，不能悄悄不买）
+      const over = attr === 'data-zbp' ? overOf(pk, chips.map(([c]) => c), ctx) : [];
       chips.forEach(([k]) => { if (!(k === 'counter' && (counterDayOn() || tk)) && (k === 'role' ? !!pk.role : !!pk[k])) cost += priceAt(k); });
       // 买不起的（余额 − 这局门票 − 已挑的 < 它的价）：灰着、价钱标红，点了只抖一下（2026-11-27 用户：挑了「必有作废」进局没有——钱不够时开局悄悄没买）
       const left = known() ? bal() - ticketOf(ctx) - cost : Infinity;
-      return '<span class="zb-ih"><b>开局道具</b>' + (cost ? '<em class="on">合计 ' + FISH() + fmt(cost) + '</em>' : '<em>点选使用</em>') + '</span>' +
+      return '<span class="zb-ih"><b>开局道具</b>' + (over.length ? '<em class="on is-over">余额不足</em>' : cost ? '<em class="on">合计 ' + FISH() + fmt(cost) + '</em>' : '<em>点选使用</em>') + '</span>' +
         '<span class="zr-chips">' + chips.map(([k, ic]) => {
         const by = k === 'counter' && tk;   // 别人带了：亮着、不写价、角上挂他的小头像
         const free = k === 'counter' && (counterDayOn() || !!by), on = free || (k === 'role' ? !!pk.role : !!pk[k]), p = priceAt(k), short = !on && p > left;
-        return '<button type="button" class="zb-it2' + (by ? ' is-by' : '') + (short ? ' is-short' : '') + '" ' + attr + '="' + k + '" aria-pressed="' + on + '"' + (free ? ' data-free="1"' : '') + (by ? ' aria-label="' + ITEM_NAME[k] + '，' + String(tk.nick || '').replace(/[<>&"]/g, '') + ' 已带"' : '') + '><i class="zr-mc" style="--bg:' + ITEM_BG[k] + '" aria-hidden="true">' + ic + '</i>' + (by ? '<span class="zb-by" aria-hidden="true">' + faceOfP(tk) + '</span>' : '') + '<small>' + ITEM_NAME[k] + '</small>' +
+        return '<button type="button" class="zb-it2' + (by ? ' is-by' : '') + (short ? ' is-short' : '') + (over.includes(k) ? ' is-over' : '') + '" ' + attr + '="' + k + '" aria-pressed="' + on + '"' + (free ? ' data-free="1"' : '') + (by ? ' aria-label="' + ITEM_NAME[k] + '，' + String(tk.nick || '').replace(/[<>&"]/g, '') + ' 已带"' : '') + '><i class="zr-mc" style="--bg:' + ITEM_BG[k] + '" aria-hidden="true">' + ic + '</i>' + (by ? '<span class="zb-by" aria-hidden="true">' + faceOfP(tk) + '</span>' : '') + '<small>' + ITEM_NAME[k] + '</small>' +
           '<span class="pr">' + (by ? '' : counterDayOn() && k === 'counter' ? '今日畅用' : FISH() + fmt(p)) + '</span></button>';
       }).join('') + '</span>';
     }
@@ -1254,6 +1274,6 @@
       }
     }).observe(document.body, { childList: true, subtree: true });
 
-    root.ZhamaoBeta = { on: true, solo, onDeal, openShop, rewarded, bal, data: () => d };
+    root.ZhamaoBeta = { on: true, solo, onDeal, blockStart, openShop, rewarded, bal, data: () => d };
   }
 })(window);

@@ -7019,6 +7019,7 @@
     if (WAL && WAL.costTag) WAL.costTag(d.querySelector('[data-again]'), WAL.price(settings.tier, curMode(), soloN()));
     d.querySelector('[data-again]').addEventListener('click', (e) => {
       const b = e.currentTarget;
+      if (betaBlock()) return;   // 内测：门票 + 挑着的开局道具超过余额，先让玩家取消几样
       if (!WAL || !WAL.pay) { closeDialog(); newGame(); return; }
       if (b.dataset.paying) return;
       b.dataset.paying = '1';   // 不用 disabled：按钮一变灰，鱼像游进一个点不动的键（2026-11-23 录屏）
@@ -8015,8 +8016,10 @@
   function quitTutorial() { tut = null; els.skipTut.hidden = true; showCover(); }
 
   /* ───── 开局 / 封面 ───── */
+  const betaBlock = () => !!(window.ZhamaoBeta && window.ZhamaoBeta.blockStart && window.ZhamaoBeta.blockStart({ tier: settings.tier, mode: curMode(), n: soloN(), rules: R.normalizeRules(settings.rules) }));
   // 玩家自己点的「重开」：先看小鱼干够不够这局门票（不够弹窗，救济在里面领）——2026-11-23 用户
   function newGamePaid() {
+    if (betaBlock()) return;
     if (!WAL || !WAL.pay) { newGame(); return; }
     WAL.pay({ tier: settings.tier, mode: curMode(), n: soloN() }).then((ok) => { if (ok) newGame(); });
   }
@@ -10649,6 +10652,7 @@
     if (k === 'start') {
       settings.players = Math.min(SOLO_MAX, settings.players);
       // 小鱼干（2026-11-22 用户）：先在主页面放完扣门票（门票飘到「开始」键上），放完才进牌桌——别让半截动画留在新页面里
+      if (betaBlock()) return;   // 内测：门票 + 挑着的开局道具超过余额，不开局，道具格抖一下、买不起的闪红（2026-11-27 用户）
       if (WAL && WAL.playTicket) {
         if (b.disabled) return;
         b.disabled = true;
