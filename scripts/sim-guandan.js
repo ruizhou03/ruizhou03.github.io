@@ -95,6 +95,14 @@ function classifyRaw(cards, level, context) {
       }
       return null;
     }
+    // 2026-11-27 用户「剩三个 6 + 一对大王打不出三带二」：标准掼蛋里三带二带的那一对可以是一对王（两张大王或两张小王，大小王混不算对）。
+    // 三张那部分照常：同点普通牌（可用逢人配补）。王仍不进顺子 / 连对 / 钢板。
+    if (n === 5 && ((tg.bigJ.length === 2 && tg.smallJ.length === 0) || (tg.smallJ.length === 2 && tg.bigJ.length === 0))) {
+      const tr = [...counts.keys()];
+      if (tr.length === 1 && counts.get(tr[0]) + wild === 3) {
+        return { type: T.TRIPLE_PAIR, len: 5, key: rankIdxWeight(tr[0], level), bombStrength: 0, cards };
+      }
+    }
     return null;
   }
   if (n >= 4 && distinct.length <= 1) {
@@ -490,6 +498,12 @@ function genMoves(hand, prev, level) {
         const b = byRank.get(r2);
         if (b.length >= 2) consider([...triple, b[0], b[1]]);
         else if (b.length === 1 && remW.length >= 1) consider([...triple, b[0], remW[0]]);
+      }
+      // 三带一对王（同种王两张）
+      {
+        const bj = jokers.filter(c => jokerKind(c) === 'big'), sj = jokers.filter(c => jokerKind(c) === 'small');
+        if (bj.length >= 2) consider([...triple, bj[0], bj[1]]);
+        if (sj.length >= 2) consider([...triple, sj[0], sj[1]]);
       }
     }
   }

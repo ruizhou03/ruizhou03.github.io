@@ -107,7 +107,7 @@ body_class: gd-game-fullscreen
     <div class="gd-menu" id="gdMenu" role="menu" aria-label="菜单" hidden>
       <button type="button" role="menuitem" id="gdMenuNew"><svg class="gd-menu-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4.5v4h-4"/></svg><b>新的一局</b></button>
       <button type="button" role="menuitem" id="gdMenuRecord" hidden><svg class="gd-menu-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10M10 20V5M15 20v-7M20 20V8"/></svg><b>战绩</b></button>
-      <button type="button" role="menuitem" id="gdMenuAuto"><svg class="gd-menu-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 8V5M9.5 13h0M14.5 13h0"/><circle cx="12" cy="4" r="1"/></svg><b>托管</b></button>
+      <!-- 2026-11-27 用户：托管只靠点自己头像，菜单里不再放「托管」 -->
       <hr>
       <button type="button" role="menuitem" id="gdSettingsBtn"><svg class="gd-menu-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><b>设置</b></button>
       <hr>
@@ -316,7 +316,8 @@ body_class: gd-game-fullscreen
         <div class="gd-rule-row">
           <span class="gd-rule-tx"><b>出牌时间</b><small>每手的思考时间</small></span>
           <div class="gd-seg" id="gdPgoTurnSec" role="group" aria-label="出牌时间">
-            <button class="gs-pgo-mode-tab selected" data-value="25" type="button" aria-pressed="true">25 秒</button>
+            <button class="gs-pgo-mode-tab" data-value="10" type="button" aria-pressed="false">10 秒</button>
+            <button class="gs-pgo-mode-tab selected" data-value="20" type="button" aria-pressed="true">20 秒</button>
             <button class="gs-pgo-mode-tab" data-value="0" type="button" aria-pressed="false">不限</button>
           </div>
         </div>
@@ -483,19 +484,9 @@ body_class: gd-game-fullscreen
         <!-- 2026-11-27 照炸弹猫：按真打时的实际大小预览（小 / 中 / 大三格虚线框 + 一小把手牌） -->
         <div class="gd-size-pv" id="gdCardSizePv" aria-hidden="true"></div>
       </div>
-      <!-- 2026-11-27 用户：机器人出牌挂在右下角怪——挪到左栏「声音」下面，右栏只放手牌大小和预览 -->
-      <div class="gd-set-group">
-        <div class="gd-set-h">机器人</div>
-        <div class="gd-set-row"><span>出牌速度</span>
-          <div class="gd-seg" id="gdPgoAiSpeed" role="group" aria-label="机器人出牌速度">
-            <button class="gs-pgo-mode-tab" data-value="1.4" type="button" aria-pressed="false">慢</button>
-            <button class="gs-pgo-mode-tab selected" data-value="1" type="button" aria-pressed="true">标准</button>
-            <button class="gs-pgo-mode-tab" data-value="0.5" type="button" aria-pressed="false">快</button>
-          </div>
-        </div>
-      </div>
+      <!-- 2026-11-27 用户：机器人出牌速度不下放给用户，固定用标准速度（设置里不再有「机器人」一栏） -->
       </div><!-- /.gd-set-cols（少了这个收尾，后面的二维码弹窗和提示条都被关进了设置卡里，显示不出来） -->
-      <div class="gd-set-foot" id="gdSettingsVersion"></div>
+      <!-- 2026-11-27 用户：设置底部的版本号小字拿掉 -->
     </div>
   </div>
 

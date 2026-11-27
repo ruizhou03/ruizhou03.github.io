@@ -421,7 +421,8 @@
     opacity: var(--gd-op, 0.9);
   }
   /* 横排出牌(.gd-played-row)大花色：用横排专属 --gd-*H(与竖排分开设计);未设则回退竖排 --gd-* */
-  .gd-played-row .gd-card .bigsuit {
+  /* 2026-11-27 用户：单张（含进/还贡那一张）是整张露出来的，版式和手牌完全一样（皇冠 / 级飘带不再变位置）；只有横排叠着的多张才用横排版式 */
+  .gd-played-row:not(.gd-tribute-row):not(.is-single) .gd-card .bigsuit {
     right: calc(var(--gd-card-w, 50px) * var(--gd-brH, var(--gd-br, -0.3)));
     bottom: calc(var(--gd-card-w, 50px) * var(--gd-bbH, var(--gd-bb, -0.1)));
     font-size: calc(var(--gd-card-w, 50px) * var(--gd-bigH, var(--gd-big, 1.1)));
@@ -435,8 +436,8 @@
   .gd-card .q-bl { display: none; }
   /* 横排出牌区(非进贡)：恢复左下花色、隐藏右上花色(最右完整一张只露左上+左下+右下)。
      进贡是单张完整展示，沿用默认(露左上+右上+右下)，所以大小王显示正常样式而非竖排 JOKER */
-  .gd-played-row:not(.gd-tribute-row) .gd-card .q-bl { display: flex; }
-  .gd-played-row:not(.gd-tribute-row) .gd-card .q-tr { display: none; }
+  .gd-played-row:not(.gd-tribute-row):not(.is-single) .gd-card .q-bl { display: flex; }
+  .gd-played-row:not(.gd-tribute-row):not(.is-single) .gd-card .q-tr { display: none; }
 
   /* ===== 大小王：四象限版型（★ / JOKER / 皇冠），与常规牌同一套分割线 ===== */
   .gd-card.joker-big { color: var(--gd-joker-red); }
@@ -454,7 +455,7 @@
     font-family: "Apple Symbols", "Segoe UI Symbol", monospace; font-size: calc(var(--gd-card-w, 50px) * 0.91);
   }
   /* 横排出牌版面：皇冠居中于右下象限矩形（不挤角落），略小于单卡版，避开左条竖排 JOKER */
-  .gd-played-row .gd-card.is-joker .bigsuit {
+  .gd-played-row:not(.gd-tribute-row):not(.is-single) .gd-card.is-joker .bigsuit {
     left: calc(var(--gd-card-w, 50px) * 0.38); top: calc(var(--gd-card-w, 50px) * 0.38);
     right: 0; bottom: 0; width: auto; height: auto;
     font-size: calc(var(--gd-card-w, 50px) * 0.79);

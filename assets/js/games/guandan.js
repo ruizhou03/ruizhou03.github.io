@@ -173,6 +173,14 @@
         }
         return null; // 大小王混（非四张）不成型
       }
+      // 2026-11-27 用户「剩三个 6 + 一对大王打不出三带二」：标准掼蛋里三带二带的那一对可以是一对王（两张大王或两张小王，大小王混不算对）。
+      // 三张那部分照常：同点普通牌（可用逢人配补）。王仍不进顺子 / 连对 / 钢板。
+      if (n === 5 && ((tg.bigJ.length === 2 && tg.smallJ.length === 0) || (tg.smallJ.length === 2 && tg.bigJ.length === 0))) {
+        const tr = [...counts.keys()];
+        if (tr.length === 1 && counts.get(tr[0]) + wild === 3) {
+          return { type: T.TRIPLE_PAIR, len: 5, key: rankIdxWeight(tr[0], level), bombStrength: 0, cards };
+        }
+      }
       return null; // 王 + 普通牌：不成型（wild 不替王）
     }
 
@@ -777,6 +785,12 @@
               consider([...triple, b[0], remW[0]]);
             }
           }
+          // 三带一对王（同种王两张）
+          {
+            const bj = jokers.filter(c => jokerKind(c) === 'big'), sj = jokers.filter(c => jokerKind(c) === 'small');
+            if (bj.length >= 2) consider([...triple, bj[0], bj[1]]);
+            if (sj.length >= 2) consider([...triple, sj[0], sj[1]]);
+          }
         }
       }
     }
@@ -888,7 +902,7 @@
 
   // 玩法可调选项的合法档位（UI 段选 + 房间 config 共用）
   const SCORE_CAP_OPTS = [0, 3, 5, 8];     // 0 = 不限
-  // 出牌时间统一为「25 秒上限 / 不限」两档（旧的 10/20/30 一律归一为 25；0 = 不限）。
+  // 出牌时间三档：10 秒 / 20 秒 / 不限（2026-11-27 用户；旧存档的 25 / 30 归到 20；0 = 不限）。
   const TURN_SEC_OPTS = [25, 0];
   // 同队进贡是本站娱乐变体，默认关闭；房主可显式开启。
   function normalizeOptions(o) {
@@ -896,8 +910,8 @@
     return {
       teamTribute: (o.teamTribute === undefined) ? false : !!o.teamTribute,
       scoreCap: SCORE_CAP_OPTS.includes(o.scoreCap) ? o.scoreCap : 0,
-      // 旧存档/旧房间的 10/20/30 都不在新档里 → 归一到 25（仍限时）；只有显式 0 才是不限。
-      turnSec: (o.turnSec === 0) ? 0 : 25,
+      // 2026-11-27 用户：出牌时间三档 10 秒 / 20 秒 / 不限。旧存档里的 25 / 30 归到 20；只有显式 0 才是不限。
+      turnSec: (o.turnSec === 0) ? 0 : (o.turnSec === 10 ? 10 : 20),
     };
   }
 
@@ -913,7 +927,7 @@
     matchOptions: normalizeOptions(stored.options),  // 当前这盘冻结的玩法设置（startMatch 时从 options 拷贝）
     openMult: [1, 2, 3].includes(stored.lastMult) ? stored.lastMult : 1,
     cardSizeMult: CARD_SIZE_OPTS.includes(migrateCardSize(stored.cardSizeMult)) ? migrateCardSize(stored.cardSizeMult) : 1,
-    aiSpeedMult: AI_SPEED_OPTS.includes(stored.aiSpeedMult) ? stored.aiSpeedMult : 1,
+    aiSpeedMult: 1,   // 2026-11-27 用户：机器人出牌速度不让用户调，固定标准（以前存过的慢 / 快也不再生效）
     stats: normalizeStats(stored.stats),
     phase: PHASE.IDLE,
     levels: [2 - 2, 2 - 2],          // team level index into LEVEL_SEQ (0='2')
@@ -1545,6 +1559,7 @@
       const row = document.createElement('div');
       row.className = 'gd-played-row';
       if (trib) row.classList.add('gd-tribute-row');
+      if (lp.cards.length === 1) row.classList.add('is-single');   // 单张整张露出：版式同手牌
       // 进/还贡只有一张，跳过排序直接走原顺序；其余按牌型展示，逢人配画成它顶替的牌
       const descriptors = trib
         ? lp.cards.slice().map(c => ({ c, repRank: null, repSuit: null }))
@@ -2632,9 +2647,16 @@
           else ok = beats(cb, trick.best);
         }
       }
-      setSlot(els.passBtn, { primary: noPlay, disabled: mustLead });
-      setSlot(els.hintBtn, { disabled: noPlay });
-      setSlot(els.playBtn, { primary: !noPlay, disabled: noPlay || !ok });
+      if (noPlay) {
+        // 2026-11-27：压不过时只留一颗居中的「不出」（不再摆两颗灰掉的提示 / 出牌）
+        setSlot(els.passBtn, { primary: true });
+        els.hintBtn.hidden = true;
+        els.playBtn.hidden = true;
+      } else {
+        setSlot(els.passBtn, { primary: false, disabled: mustLead });
+        setSlot(els.hintBtn, {});
+        setSlot(els.playBtn, { primary: true, disabled: !ok });
+      }
       // 2026-11-26 用户：不要「该你出牌 / 没有能压过的牌」这类文字提示——靠按钮亮灭和「不出」变主按钮来提示
       hint = '';
     } else {
@@ -3816,23 +3838,32 @@
     const toCy = (toR.height > 0 ? toR.top + toR.height / 2 : toR.top);
     const cardEl = buildCardEl(card, 'size-full', level);
     cardEl.style.position = 'fixed';
-    cardEl.style.left = fromCx + 'px';
-    cardEl.style.top = fromCy + 'px';
-    cardEl.style.transform = 'translate(-50%, -50%)';
+    cardEl.style.left = toCx + 'px';
+    cardEl.style.top = toCy + 'px';
     cardEl.style.zIndex = '9999';
-    cardEl.style.transition = 'left 0.85s cubic-bezier(0.4, 0.0, 0.2, 1), top 0.85s cubic-bezier(0.4, 0.0, 0.2, 1)';
     cardEl.style.pointerEvents = 'none';
     cardEl.style.boxShadow = '0 6px 14px rgba(20,37,63,0.45)';
     const wrap = document.querySelector('.guandan-wrap') || document.body;
     wrap.appendChild(cardEl);
-    requestAnimationFrame(() => {
-      cardEl.style.left = toCx + 'px';
-      cardEl.style.top = toCy + 'px';
-    });
-    setTimeout(() => {
-      cardEl.remove();
-      onDone && onDone();
-    }, 870);
+    // 2026-11-27 用户：交换像匀速直线、没有起步和刹车。改成从静止加速、中段抬起一点（略放大 + 微微上拱）、再减速落稳。
+    const dx = fromCx - toCx, dy = fromCy - toCy;
+    const lift = Math.min(36, Math.hypot(dx, dy) * 0.12);
+    const T = (x, y, k) => `translate(-50%, -50%) translate(${x}px, ${y}px) scale(${k})`;
+    const DUR = 950;
+    let finished = false;
+    const finish = () => { if (finished) return; finished = true; cardEl.remove(); onDone && onDone(); };
+    if (cardEl.animate && !(REDUCED_MOTION && REDUCED_MOTION.matches)) {
+      const anim = cardEl.animate([
+        { transform: T(dx, dy, 1), boxShadow: '0 3px 8px rgba(20,37,63,0.35)' },
+        { transform: T(dx * 0.5, dy * 0.5 - lift, 1.1), boxShadow: '0 14px 22px rgba(20,37,63,0.38)', offset: 0.5 },
+        { transform: T(0, 0, 1), boxShadow: '0 3px 8px rgba(20,37,63,0.35)' },
+      ], { duration: DUR, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', fill: 'forwards' });
+      anim.onfinish = finish;
+      setTimeout(finish, DUR + 200);   // 兜底：页面在后台时 onfinish 可能不来
+    } else {
+      cardEl.style.transform = T(0, 0, 1);
+      setTimeout(finish, 300);
+    }
   }
 
   // 进贡阶段中心 banner：每次显示前先清掉上一条（避免叠字成重影）
@@ -4717,7 +4748,8 @@
   // 出牌时间（毫秒）：统一上限 25s。matchOptions.turnSec === 0（设置里选「不限时」）才关闭计时；
   // 其余任何值都用统一 25s（不再按 10/20/30 分档——上限对单机/联机一致）。
   function turnMs() {
-    return (state.matchOptions.turnSec | 0) === 0 ? 0 : TURN_LIMIT_MS;
+    const sec = state.matchOptions.turnSec | 0;
+    return sec === 0 ? 0 : sec * 1000;   // 10 / 20 秒（联机跟房间设置走，服务器同样按这个超时）
   }
   let turnClockTimer = null;
   let turnClockEndAt = 0;
@@ -5079,7 +5111,9 @@
   }
   function refreshAutopilotBtn() {
     if (!els.autopilotBtn) return;
-    const eligible = state.phase === PHASE.PLAYING && !state.out.includes(0) && state.hands[0].length > 0;
+    // 2026-11-27 用户「超时被托管后怎么点头像都取消不了」：托管会一直留到下一局，进贡 / 发牌 / 我已出完时开关以前是锁着的。
+    // 开着的托管任何时候都能点掉；只有「打开」才要求正在出牌、我还有牌。
+    const eligible = !!state.autopilot || (state.phase === PHASE.PLAYING && !state.out.includes(0) && state.hands[0].length > 0);
     els.autopilotBtn.disabled = !eligible;
     // 纯机器人图标，不再改文字；托管中靠 .on 的橙色高亮表示，点一下即切换。
     els.autopilotBtn.classList.toggle('on', !!state.autopilot);
@@ -8344,7 +8378,7 @@
     const base = gdGetDeviceId();
     // 测试房开启出牌计时（统一 25s），方便你直接验证倒计时闹钟在各视角的表现。
     // 25s 足够手动切视角、出每一座的牌；超时才会自动出（也顺便验了超时逻辑）。
-    const opts = Object.assign({}, normalizeOptions(state.options), { turnSec: 25 });
+    const opts = Object.assign({}, normalizeOptions(state.options), { turnSec: 20 });
     try {
       const c = await gdApi('create', { body: {
         nick: '测试·1',

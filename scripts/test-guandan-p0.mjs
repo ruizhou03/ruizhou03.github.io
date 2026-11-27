@@ -24,7 +24,7 @@ assert.match(html, /id="gdAutopilotBtn"[^>]*aria-label="托管未开启"[^>]*ari
   '托管按钮必须公开初始开关状态');
 for (const [id, label] of [
   ['gdPgoDiff', '对手难度'], ['gdPgoCardSize', '手牌大小'],
-  ['gdPgoTeamTrib', '同队进贡'], ['gdPgoTurnSec', '出牌时间'], ['gdPgoAiSpeed', '机器人出牌速度'],
+  ['gdPgoTeamTrib', '同队进贡'], ['gdPgoTurnSec', '出牌时间'],
 ]) {
   assert.match(html, new RegExp(`id="${id}"[^>]*aria-label="${label}"`),
     `${label}分段按钮组必须有可访问名称`);

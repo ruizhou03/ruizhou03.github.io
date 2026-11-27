@@ -750,7 +750,7 @@ body.gd-game-fullscreen .guandan-wrap .gd-band-hint { display: none !important; 
 
 /* R3-5. 打出来的牌横向叠放时只露左边一条——「级」飘带挪到左下角，被压着也看得见；最后一张也放左下角，统一。
          手牌是竖着叠的（露上边），所以手牌里仍在右上角。 */
-.guandan-wrap .gd-played .gd-card.is-level::after {
+.guandan-wrap .gd-played .gd-played-row:not(.gd-tribute-row):not(.is-single) .gd-card.is-level::after {
   top: auto; right: auto;
   bottom: calc(var(--gd-card-w, 50px) * 0.024); left: calc(var(--gd-card-w, 50px) * -0.201);
 }
@@ -1009,3 +1009,11 @@ body .guandan-wrap .gd-seat .gd-av-cnt .gd-rank-badge.gd-rk-land.r1:not([hidden]
   body .guandan-wrap .gd-seat .gd-av-cnt .gd-rank-badge.gd-rk-land:not([hidden]),
   body .guandan-wrap .gd-seat .gd-avatar.gd-finish-glow { animation: none; }
 }
+
+/* 2026-11-27 用户：对家的「不出」太贴出牌区顶上——挪到他若出牌时牌面的底端（出牌区那一格的终点），和牌底对齐 */
+body.gd-game-fullscreen .guandan-wrap #gdSeat2 .gd-pass-tag { top: calc(100% + 6px + var(--u, 46px) * 1.44 - 22px); }
+
+/* 2026-11-27 用户「不出 / 要不起偶尔要点两三下」：按钮紧挨着手牌，手指常点在按钮下沿外一点点，
+   落到了手牌区（那里没牌，点了什么也不发生）。给决策按钮一圈看不见的扩大触控区。 */
+body.gd-game-fullscreen .guandan-wrap .gd-play-band .gd-btn { position: relative; }
+body.gd-game-fullscreen .guandan-wrap .gd-play-band .gd-btn::after { content: ''; position: absolute; inset: -6px -5px -14px; border-radius: inherit; }
