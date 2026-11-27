@@ -5201,12 +5201,17 @@
   }
 
   /* 「作废只在和我有关时问」（设置里，默认关）：和我有关 = 这张牌是我出的（被人作废了，我可能想作废回去）、
-   * 指着我（索要 / 偷牌 / 点名 / 交换 / 自由甩锅）、或者是甩锅而下一家就是我。别的（洗牌、窥探、改命、跳过、抽底、互相甩锅 / 偷牌……）不问，例外见 alwaysAsk */
+   * 指着我（索要 / 偷牌 / 点名 / 交换 / 自由甩锅）、或者是甩锅而下一家就是我、或者是改命而我是他下家 / 下下家、或者是跳过 / 转向而它生效后下一个摸牌的是我。别的（洗牌、窥探、抽底、互相甩锅 / 偷牌……）不问，例外见 alwaysAsk */
   function aboutSeat(p, me, alive, dir) {
     if (!p) return true;
     if (p.by === me || p.target === me) return true;
     // 甩锅给「下家」：要按当前出牌方向找（2026-11-15 用户：别人甩锅到我头上却不问我作废——转向 / 逆行以后下家在另一边，以前一律往座位号大的那边数）
     if (p.type === R.ATTACK) { const n = alive.length, d = dir === -1 ? -1 : 1; for (let k = 1; k < n; k++) { const x = (((p.by + d * k) % n) + n) % n; if (alive[x]) return x === me; } }
+    /* 改命（2026-11-27 用户）：排的是牌顶 3 张——打的人通常自己摸第 1 张，第 2、3 张落到他下家、下下家手里（可能就是塞给你的炸弹猫），
+     * 所以下家和下下家也问；再往后的不问。按当前出牌方向数还在场的 */
+    /* 跳过 / 转向（2026-11-27 用户）：问这张牌生效后下一个要摸牌的人——上家跳过，他那张牌顶就轮到下家摸；转向，方向一反，原来的上家变成下一个摸牌的 */
+    if (p.type === R.SKIP || p.type === R.REVERSE) { const n = alive.length, d = (dir === -1 ? -1 : 1) * (p.type === R.REVERSE ? -1 : 1); for (let k = 1; k < n; k++) { const x = (((p.by + d * k) % n) + n) % n; if (alive[x]) { if (x === me) return true; break; } } }
+    if (p.type === R.ALTER) { const n = alive.length, d = dir === -1 ? -1 : 1; let c = 0; for (let k = 1; k < n && c < 2; k++) { const x = (((p.by + d * k) % n) + n) % n; if (x === p.by) break; if (alive[x]) { if (x === me) return true; c++; } } }
     return false;
   }
   /* 什么时候问我要不要出「作废」——设置里只剩一个开关（2026-11-26 用户定）：「只在直接和我相关时询问「作废」」，默认打开。

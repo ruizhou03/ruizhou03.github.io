@@ -987,10 +987,19 @@
    * 作废的平均名次分高出 ESC_ANCHOR 才作废——不写死什么时候废，由推演算。
    * 研究版实测（经典 4 人，一座位对 3 个线上高手，各 6400 局）：名次分 0.499 vs 对照 0.499，约每 11 局作废一次；门槛 0.05 时废得多但掉 0.7 个点 */
   const ESC_S = (FXO && FXO.escS != null) ? FXO.escS : 40, ESC_ANCHOR = 0.1;
+  const ESC_ALTER = !(FXO && FXO.escAlter === false);
   const ESC_T = new Set([R.SKIP, R.REVERSE, R.BOTTOM, R.SHUFFLE, R.ATTACK, R.TATTACK].filter(Boolean));
+  /* 2026-11-27 用户：别人改命，他下家 / 下下家会摸到他排过的牌（可能就是塞给我的炸弹猫）——这两家也推演一下要不要作废他的改命 */
+  function alterNear(v, by) {
+    const d = v.dir === -1 ? -1 : 1;
+    let c = 0;
+    for (let i = 1; i < v.n && c < 2; i++) { const t = (((by + d * i) % v.n) + v.n) % v.n; if (!v.alive[t]) continue; if (t === v.me) return true; c++; }
+    return false;
+  }
   function escWindow(v) {
     const p = v.pending;
-    if (!p || !has(v, R.NOPE) || p.nopes % 2 !== 0 || p.by === v.me || !ESC_T.has(p.type)) return false;
+    if (!p || !has(v, R.NOPE) || p.nopes % 2 !== 0 || p.by === v.me) return false;
+    if (!ESC_T.has(p.type) && !(ESC_ALTER && p.type === R.ALTER && alterNear(v, p.by))) return false;
     if (teamV(v) && isMateV(v, p.by)) return false;
     if (p.type === R.ATTACK && nextAliveV(v, p.by) === v.me) return false;   // 冲我来的照旧按规则挡
     if (p.type === R.TATTACK && p.target === v.me) return false;
