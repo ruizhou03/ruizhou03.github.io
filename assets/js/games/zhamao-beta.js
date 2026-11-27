@@ -804,13 +804,17 @@
       ctrEl.dataset.k = key;
       ctrEl.innerHTML = CTR_KINDS.filter((k) => ctrInit[k]).map((k) => '<span class="' + (c[k] ? '' : 'z') + '">' + (ART().icon(k === 'cat' ? 'wild' : k) || '') + '<b>' + (c[k] || 0) + '</b></span>').join('');
     }
+    /* 加倍的 ×2 小印（2026-11-27 用户：一直贴着头像丑）：只在开局盖一下章、两秒多后淡掉；整局不再挂着，结算那行照旧标 ×2 */
+    const x2Shown = new WeakSet();
     function paintX2(g) {
-      const av = document.querySelector('#zmMe .zm-av');
-      if (!av) return;
-      let m = av.querySelector('.zb-x2m');
       const on = !!(g && g.state.zb && g.state.zb.x2 && !g.online);
-      if (!on) { if (m) m.remove(); return; }
-      if (!m) { m = document.createElement('span'); m.className = 'zb-x2m'; m.textContent = '×2'; m.setAttribute('aria-hidden', 'true'); av.appendChild(m); }
+      if (!on || x2Shown.has(g)) return;
+      const av = document.querySelector('#zmMe .zm-av');
+      if (!av || !document.querySelector('#zmHand .zm-card') || document.querySelector('.zm-role-it, .zm-rd')) return;   // 等发完牌、抽完角色再盖章
+      x2Shown.add(g);
+      const m = document.createElement('span'); m.className = 'zb-x2m'; m.textContent = '×2'; m.setAttribute('aria-hidden', 'true'); av.appendChild(m);
+      m.animate([{ transform: 'rotate(-10deg) scale(2.4)', opacity: 0 }, { transform: 'rotate(-10deg) scale(.9)', opacity: 1, offset: 0.12 }, { transform: 'rotate(-10deg) scale(1)', opacity: 1, offset: 0.2 }, { transform: 'rotate(-10deg) scale(1)', opacity: 1, offset: 0.8 }, { transform: 'rotate(-10deg) scale(1)', opacity: 0 }],
+        { duration: 2800, easing: 'ease-out', fill: 'forwards' }).finished.then(() => m.remove(), () => m.remove());
     }
     // 结算：加倍 = 再记一份名次结算（扣的也翻倍），封顶同真实规则（赢不超过余额、扣到 0 为止）
     function settleX2(g) {
