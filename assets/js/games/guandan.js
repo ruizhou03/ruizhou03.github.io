@@ -7506,6 +7506,7 @@
   function openSheet(name, returnTarget) {
     if (!sheetMask) return;
     playMode = name === 'online' ? 'online' : 'single';
+    if (name === 'online' && NET.ping) NET.ping();   // 叫醒服务器（fly 没人用会休眠，第一下要两三秒），顺便量一下来回
     onlineTab = 'create';
     placeGameOpts(name);
     sheetMask.hidden = false;
@@ -7794,6 +7795,8 @@
   // 每个会话只允许一条 mutation 在途：请求携带 expectedVersion，网络不确定时
   // 以同一个 requestId 重试。这样既不会双执行，也不会让两个乐观点击绕过 CAS。
   const VERSION_RETRY_ACTIONS = new Set(['auto', 'host_auto', 'next_round', 'mute', 'back_to_lobby', 'start']);
+  const SLOW_HINT_ACTIONS = new Set(['move', 'tribute', 'next_round']);
+  const MUTATION_TIMEOUT_MS = 8000;
   function gdMutation(action, payload, sess) {
     sess = sess || onlineState;
     if (!sess) return Promise.resolve({ ok: false, status: 403, error: 'not_in_room' });
@@ -7808,17 +7811,22 @@
         requestId,
         expectedVersion: Math.max(0, sess.lastVersion | 0),
       }, payload || {});
-      let r = await gdApi(action, { token: sess.accessToken, body });
+      // 牌桌上的动作等久了给一句（照炸弹猫）：不是卡死，是在等网络
+      const slowT = SLOW_HINT_ACTIONS.has(action) ? setTimeout(() => { if (onlineState === sess) toast('网络有点慢，稍等…'); }, 1800) : 0;
+      const send = () => gdApi(action, { token: sess.accessToken, body, timeoutMs: MUTATION_TIMEOUT_MS });
+      let r = await send();
       if (shouldResumeOnlineFailure(r) && sess.resumeSecret) {
         const resumed = await resumeOnlineCredentials(sess);
         // 凭证轮换不改变公开 room.version；保留原 requestId + expectedVersion。
         // 若首次请求已执行但响应丢失，服务端返回原结果；未执行则安全执行一次。
-        if (resumed.ok) r = await gdApi(action, { token: sess.accessToken, body });
+        if (resumed.ok) r = await send();
       }
-      if (!r.ok && (r.status === 0 || r.status >= 500)) {
-        await new Promise(resolve => setTimeout(resolve, 250));
-        r = await gdApi(action, { token: sess.accessToken, body });
+      // 没回音 / 断网 / 5xx：同一个 requestId 再发两次（服务器认得这个号，已经做过的只回原结果，不会出两手）
+      for (let i = 0; i < 2 && !r.ok && (r.status === 0 || r.status >= 500) && onlineState === sess; i++) {
+        await new Promise(resolve => setTimeout(resolve, 300 + 500 * i));
+        r = await send();
       }
+      if (slowT) clearTimeout(slowT);
       // 房间里别人 / 机器人刚动过（版本号变了）：托管、准备、禁言、回房间这类「按当前状态做」的动作直接按新版本再发，
       // 不让用户看到「请重试」
       for (let i = 0; i < 3 && !r.ok && r.error === 'version_conflict' && VERSION_RETRY_ACTIONS.has(action); i++) {
@@ -7922,6 +7930,8 @@
         token: myState.accessToken,
         body: { code: myState.code, since: myState.lastVersion, fxSeq: myState.fxSeq == null ? -1 : myState.fxSeq },
         signal: ctrl.signal,
+        timeoutMs: 12000,   // 服务器最多挂 4 秒；12 秒还没回 = 这条连接卡了，丢掉马上重发
+        long: true,
       }).catch(() => ({ ok: false, error: 'aborted' }));
       if (myState !== onlineState || !myState.polling) break;
       if (r.ok && r.data) {
@@ -7937,7 +7947,7 @@
         toast(r.error === 'room_not_found' ? '房间已过期' : '会话失效');
         clearOnlineSessionLocal('');
         break;
-      } else if (r.error === 'aborted') {
+      } else if (r.error === 'aborted' || r.error === 'timeout' || (r.error === 'network' && ctrl.signal.aborted)) {
         // 主动 abort：刚发了一次操作，立刻发新长轮询拉最新状态，不睡 1.5s
         continue;
       } else {
@@ -7959,6 +7969,41 @@
       try { onlineState.pollAbort.abort(); } catch {}
     }
   }
+
+  // ── 连接看门狗（2026-11-27，照炸弹猫 2026-11-17「国内的朋友一卡十来秒，然后一下子跳到最新」）──
+  // 在房间里每 3 秒发一个最便宜的 ping：
+  //  · 服务器的房间版本已经比我新、2.5 秒后推送 / 长轮询还没送到 = 那条连接卡住了 → 丢掉重连（推送卡了先退长轮询）；
+  //  · 推送 20 秒一点动静都没有（服务器 10 秒一次心跳）= 断了 → 退长轮询；
+  //  · ping 连着两次没回音 → 提示一次「连接断了，正在重连…」，通了再说一声。
+  const WATCH_EVERY_MS = 3000, STALL_AFTER_MS = 2500, SSE_SILENT_MS = 20000;
+  let watchBusy = false;
+  function kickStalledSync(sess, why) {
+    if (!sess || onlineState !== sess) return;
+    sess._stalls = (sess._stalls || 0) + 1;
+    if (IS_LOCAL_RUNTIME) console.info('[guandan] sync stalled, reconnect:', why);
+    if (sess._sse && sess._sseFail) sess._sseFail();
+    else if (sess.polling) pokePoll();
+    else startOnlineSync();
+  }
+  setInterval(async () => {
+    const sess = onlineState;
+    if (!sess || !sess.accessToken || document.hidden || watchBusy) return;
+    if (sess._sse && sess._sseOk && Date.now() - (sess._sseLastAt || 0) > SSE_SILENT_MS) { kickStalledSync(sess, 'sse_silent'); return; }
+    watchBusy = true;
+    let r = null;
+    try { r = await NET.ping(sess.code); } finally { watchBusy = false; }
+    if (onlineState !== sess) return;
+    if (!r) {
+      sess._pingFails = (sess._pingFails || 0) + 1;
+      if (sess._pingFails === 2) toast('连接断了，正在重连…');
+      return;
+    }
+    if ((sess._pingFails || 0) >= 2) toast('连上了');
+    sess._pingFails = 0;
+    if (typeof r.v !== 'number' || r.v <= (sess.lastVersion || 0)) { sess._behindSince = 0; return; }
+    if (!sess._behindSince) { sess._behindSince = performance.now(); return; }
+    if (performance.now() - sess._behindSince >= STALL_AFTER_MS) { sess._behindSince = 0; kickStalledSync(sess, 'behind v' + r.v + ' > ' + sess.lastVersion); }
+  }, WATCH_EVERY_MS);
 
   // ── 实时传输切换：SSE（高级路径，默认关）↔ 长轮询（默认 + 兜底）──────────────
   // 现状不推翻：联机底层默认仍走 startOnlinePolling。SSE 全部建好、随时可切：
@@ -8022,6 +8067,7 @@
     }
     sess._sse = es;
     sess._sseOk = false;
+    sess._sseLastAt = Date.now();
     const failToPolling = () => {
       if (onlineState !== sess || sess._sse !== es) return;
       try { es.close(); } catch {}
@@ -8030,8 +8076,11 @@
       startOnlinePolling();
       scheduleSseRetry(sess);
     };
+    sess._sseFail = failToPolling;
+    es.addEventListener('hb', () => { if (sess._sse === es) sess._sseLastAt = Date.now(); });
     es.onmessage = (ev) => {
       if (onlineState !== sess || sess._sse !== es) return;
+      sess._sseLastAt = Date.now();
       if (!sess._sseOk) {
         sess._sseOk = true;
         sess._sseAttempt = 0;
@@ -8042,6 +8091,7 @@
     };
     es.addEventListener('fx', (ev) => {
       if (onlineState !== sess || sess._sse !== es) return;
+      sess._sseLastAt = Date.now();
       try { const d = JSON.parse(ev.data); onRoomFx(d.fx || [], d.fxSeq); } catch {}
     });
     es.addEventListener('gone', () => {

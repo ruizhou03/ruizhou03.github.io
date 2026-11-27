@@ -2,7 +2,7 @@
   'use strict';
 
   const contract = {
-    releaseMarker: '20261127ui24',
+    releaseMarker: '20261127ui25',
     build: '2026.08.01.phase7-j',
     // 本机调试（localhost / 127.0.0.1 打开页面）连本机内存服务器（zircon-urge: node scripts/guandan-local-server.mjs），照百变小咪
     apiUrl: (typeof location !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && !/[?&]gdprod=1\b/.test(location.search))
