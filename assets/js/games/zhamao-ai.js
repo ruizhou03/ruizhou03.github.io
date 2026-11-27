@@ -1189,12 +1189,36 @@
     }
     return ok[0];
   }
+  /* 别一窝蜂盯着牌最少的人（2026-11-27 用户：1 真人对 8 机器猫时，谁牌最少谁就被所有机器猫索要 / 偷牌 / 指定甩锅，
+   * 正反馈下很快出局、被针对感太强；但连着打一个人有时确实是好选择，只拉平一点，不取消）。
+   * 只动「打给谁」不动「打什么」：出牌已定是索要 / 两张三张偷牌 / 指定甩锅时，同一手牌换成每个能指的对手各让网络打一次分，
+   * 在接近最高分的人里按 exp(分差 / TGT_TEMP) 抽（同塞猫随机）。目标间分差中位数约 0.008，所以只在几乎一样好的人之间分散。
+   * 经典 9 人全高手：牌唯一最少的人挨的针对比例 索要 28→23%、偷牌 28→25%、指定甩锅 37→30%（平均分 19%），
+   * 一圈里落在同一人身上的比例 61→54%；强度 5 人一座位对线上高手 3000 局名次分 0.517 vs 0.520（噪声 ±0.0065）。
+   * 0.02 时散得更多但掉约 0.6 个点 */
+  const TGT_TEMP = FXO && FXO.tgtTemp != null ? FXO.tgtTemp : 0.01;
+  function spreadTarget(state, seat, v, d, rng) {
+    if (!(TGT_TEMP > 0) || !rng || !d || d.type !== 'play' || d.target == null || !useBrain(v)) return d;
+    const k = d.cards.length === 1 ? K[d.cards[0]] : 'combo';
+    if (k !== 'combo' && k !== R.FAVOR && k !== R.TATTACK) return d;
+    const cands = [];
+    for (let t = 0; t < v.n; t++) {
+      if (t === v.me || !v.alive[t] || isMateV(v, t)) continue;
+      const m = Object.assign({}, d, { target: t });
+      if (R.checkPlay(state, seat, m.cards, m)) cands.push(m);
+    }
+    if (cands.length < 2) return d;
+    const sf = brainState(v), qs = cands.map((m) => brainScore(v, sf, m)), top = Math.max(...qs);
+    const w = qs.map((q) => Math.exp((q - top) / TGT_TEMP)), tot = w.reduce((a, b) => a + b, 0);
+    let r = rng() * tot; for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return cands[i]; }
+    return cands[cands.length - 1];
+  }
   /* 一步到位：给定 state 和座位，按档位产出该座位此刻的决定（UI / 服务器用） */
   function decide(state, seat, tier, rng) {
     rng = rng || Math.random;
     const v = withSeen(R.view(state, seat));
     switch (state.phase) {
-      case 'act': return guardMulti(state, seat, v, guardDoom(state, seat, v, guardSwap(state, seat, v, actFor(v, tier, rng))));
+      case 'act': return guardMulti(state, seat, v, guardDoom(state, seat, v, guardSwap(state, seat, v, spreadTarget(state, seat, v, actFor(v, tier, rng), rng))));
       case 'react': return { type: reactFor(v, tier, rng) ? 'nope' : 'pass' };
       case 'give': return { type: 'give', card: chooseGive(v, tier, rng) };
       case 'pick': return { type: 'pick', card: choosePick(v, tier, rng) };
