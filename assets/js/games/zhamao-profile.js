@@ -598,5 +598,5 @@
   }
   function close() { hide(); }
 
-  root.ZhamaoProfile = { open, close, login, isOpen, fishTo: (fromEl, from, to, n) => (body ? fishTo(fromEl, from, to, n || 3) : Promise.resolve()), addFish, refreshBal: () => { const num = body && body.querySelector('[data-num]'); if (num && last) num.textContent = fmt(shown(last.bal)); syncMini(); }, badgeSvg: (id) => badgeSvg(id), badgeHow };   // 「解锁勋章」整页弹窗借用勋章图和说明（zhamao-wallet.js badgeShow）
+  root.ZhamaoProfile = { open, close, login, isOpen, bump: (x) => { if (last && last.bal != null) last.bal += x; }, fishTo: (fromEl, from, to, n) => (body ? fishTo(fromEl, from, to, n || 3) : Promise.resolve()), addFish, refreshBal: () => { const num = body && body.querySelector('[data-num]'); if (num && last) num.textContent = fmt(shown(last.bal)); syncMini(); }, badgeSvg: (id) => badgeSvg(id), badgeHow };   // 「解锁勋章」整页弹窗借用勋章图和说明（zhamao-wallet.js badgeShow）
 })(window);

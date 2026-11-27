@@ -426,6 +426,18 @@
     return anim;
   }
   function cancelFx() { fxGen++; if (FX()) FX().cancelAll(); }
+  /* 内测记账（2026-11-27 用户：内测花的 / 领的小鱼干直接记在服务器真余额上，只记一个余额）：后端 action=beta，只认站长账号，key 幂等。
+   * 本机先记上（左上角当场滚、档案第一格跟着变），服务器不认（余额不够 / 网断）就按服务器的数摆回去 */
+  function beta(amt, why, key) {
+    if (!amt || !state || state.bal == null) return Promise.reject(Object.assign(new Error('nobal'), { status: 0 }));
+    const prof = (x) => { try { if (root.ZhamaoProfile && root.ZhamaoProfile.bump) root.ZhamaoProfile.bump(x); const c = JSON.parse(ls.get(PROF)); if (c && c.p && c.who === who() && c.p.bal != null) { c.p.bal += x; ls.set(PROF, JSON.stringify(c)); } } catch (_) { /* */ } };
+    state = Object.assign({}, state, { bal: state.bal + amt });
+    ls.set(CACHE, JSON.stringify(state));
+    listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } });
+    prof(amt);
+    return post('beta', { amt: Math.round(amt), why: String(why || '').slice(0, 24), key: key || 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8) })
+      .catch((e) => { prof(-amt); if (state && state.bal != null) state = Object.assign({}, state, { bal: state.bal - amt }); quiet = true; try { listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); } finally { quiet = false; } refresh(); throw e; });
+  }
   function canPay(tier, mode, n) { return !(state && state.bal != null && vb() < price(tier, mode, n)); }
   function mountChip(cover) {
     style();
@@ -891,6 +903,7 @@
     me: refresh,
     checkin: () => post('checkin').then((j) => { state = Object.assign({}, state || {}, { ck: today() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); return j; }), profile, profileCached, profileWait, synced, who, today, fb: (steps) => post('fb', { steps }).catch(() => null), fbAward,
     ledger: (offset) => post('ledger', { offset }), costTag, tagHtml, onNoScore: null,
+    beta,
     nudge: (q) => { quiet = !!q; try { paintChip(); paintT(); } finally { quiet = false; } },   // 内测本机加减变了：左上角跟着滚（q = 直接摆）
     mountChip, mountTable, tableStart, holdFx, refresh, tableChip: () => tchip, badgeShow, claimFirstWin, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login, markBadgesSeen, seenBadges, fxOn, playTicket, pay, canPay, cancelFx, payout, topUp,
     __demo: { setShown: (x) => { shown = x; if (chip) chip.querySelector('b').textContent = fmt(x); }, repaint: () => paintChip() },

@@ -9,8 +9,8 @@
  *   档案里一张「内测」卡：签到看广告再领一份、救济看广告翻倍、救济用完看广告再领、每日任务
  *   广告是假的：ZhamaoAds.rewarded(slot) 弹 5 秒全屏占位，接口照微信激励视频（onClose 回 isEnded）
  *
- * 记账：内测里花的 / 看广告领的小鱼干只记在本机（zm.beta.data.v1 的 delta），真实余额（服务器）一分不动；
- * 商店和档案内测卡里显示「真实余额 + 内测变动」。定稿后再接后端真扣。
+ * 记账（2026-11-27 用户改：只记一个余额）：内测里花的 / 看广告领的 / 补的小鱼干都记到服务器真余额上（钱包 beta → 后端 action=beta，只认站长账号）；
+ * 服务器不认（不是站长）才退回本机账 zm.beta.data.v1 的 delta，左上角 / 档案显示「真实余额 + 本机账」。
  * 牌桌上不出说明文字（用户设计原则）：记牌器只有小图标 + 数字，加倍只有一枚 ×2 小印。
  */
 (function (root) {
@@ -30,7 +30,7 @@
     const top = q.get('zbtop');
     if (top != null && ls.get(FLAG) === '1') {   // 测试设备补鱼（2026-11-27 用户：测试账号鱼花完了让我补）：?zbtop=<数>-<号>，同一个号只认一次；只记本机内测账
       const [amt, id] = top.split('-'); const n = Math.round(Number(amt) || 0);
-      try { const dd = JSON.parse(ls.get(DATA) || '{}'); dd.tops = dd.tops || []; if (n > 0 && n <= 10000000 && id && !dd.tops.includes(id)) { dd.tops.push(id); dd.delta = (dd.delta || 0) + n; dd.log = [{ at: Date.now(), amt: n, why: '补鱼（内测）' }].concat(dd.log || []).slice(0, 60); ls.set(DATA, JSON.stringify(dd)); } } catch (_) { /* */ }
+      try { const dd = JSON.parse(ls.get(DATA) || '{}'); dd.tops = dd.tops || []; if (n > 0 && n <= 10000000 && id && !dd.tops.includes(id)) { dd.tops.push(id); dd.topq = (dd.topq || []).concat([[n, id]]); ls.set(DATA, JSON.stringify(dd)); } } catch (_) { /* */ }   // 2026-11-27 起记到服务器真余额：等钱包同步好了在 boot 里记（key = top-号，服务器那边也只认一次）
       q.delete('zbtop');
       try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); } catch (_) { /* */ }
     }
@@ -62,7 +62,24 @@
     const bal = () => Math.max(0, realBal() + d.delta);
     const known = () => { const s = W() && W().state ? W().state() : null; return !!(s && s.bal != null); };   // 还没拿到服务器余额：照旧让买（同门票：连不上不拦）
     const ticketOf = (ctx) => (ctx && ctx.tier && ctx.n && W() && W().price ? W().price(ctx.tier, ctx.mode, ctx.n) || 0 : 0);
-    function book(amt, why) { d.delta += amt; d.log.unshift({ at: Date.now(), amt, why }); d.log = d.log.slice(0, 60); save(); paintBal(); if (W() && W().nudge) W().nudge(); }   // 左上角的小鱼干也跟着滚（2026-11-27 用户：进局扣了道具钱，余额没变）
+    /* 记一笔（2026-11-27 用户：改成从服务器真账户扣 / 加，只记一个余额）：站长账号走钱包 beta 接口（后端 action=beta）；
+     * 服务器说不是站长（403）或连不上 → 退回本机账（delta），左上角照样算进去 */
+    let srvOk = true;
+    // 2026-11-27 用户：只记一个余额（服务器的）——以前记在本机的内测加减清零，从服务器余额重新开始（只做一次）
+    if (!d.srv) { d.srv = 1; if (d.delta) d.log.unshift({ at: Date.now(), amt: -d.delta, why: '本机内测账清零（改记服务器）' }); d.delta = 0; save(); }
+    // 补鱼链接（?zbtop=）排着的：钱包拿到余额后记到服务器
+    function flushTops() {
+      if (!d.topq || !d.topq.length || !known()) return;
+      const q = d.topq; d.topq = []; save();
+      q.forEach(([n, id]) => book(n, '补鱼', 'top-' + id));
+    }
+    function book(amt, why, key) {
+      d.log.unshift({ at: Date.now(), amt, why }); d.log = d.log.slice(0, 60);
+      if (srvOk && W() && W().beta && known()) {
+        W().beta(amt, why, key).catch((e) => { const st = e && e.status; if (st === 400 || st === 403 || st === 404) srvOk = false; d.delta += amt; save(); paintBal(); if (W().nudge) W().nudge(); });   // 服务器没记上：这笔先记本机（不是站长 / 后端还没这个接口以后就一直记本机）
+      } else d.delta += amt;
+      save(); paintBal(); if (W() && W().nudge) W().nudge();
+    }   // 左上角的小鱼干也跟着滚（2026-11-27 用户：进局扣了道具钱，余额没变）
     function dayRec() {
       const t = today();
       if (!d.day || d.day.d !== t) { d.day = { d: t, ck: false, rAd: 0, extra: 0, games: 0, win: 0, online: 0, got: {} }; save(); }
@@ -1213,7 +1230,8 @@
     /* 领到的鱼游进档案的总额（2026-11-27 用户：看完广告回来要有反应——按钮已经变「已领取」，鱼从那一行游进余额；余额滑出屏幕就进顶栏的小鱼干） */
     root.ZhamaoProfileBalAdj = () => d.delta;
     if (W() && W().nudge) W().nudge(true);   // 左上角余额算上内测的加减（直接摆，不游鱼）
-    if (W() && W().onChange) W().onChange(() => repaintPicks());   // 余额变了：开局道具里买不起的跟着灰 / 亮
+    if (W() && W().onChange) W().onChange(() => { repaintPicks(); flushTops(); });
+    flushTops();   // 余额变了：开局道具里买不起的跟着灰 / 亮
     const fishIn = (src, amt) => { if (root.ZhamaoProfile && root.ZhamaoProfile.addFish) root.ZhamaoProfile.addFish(src, amt); };
     const rowAt = (bodyEl, i) => { const rows = bodyEl.querySelectorAll('[data-zbcard] .zmp-task'); return rows[Math.min(i, rows.length - 1)] || bodyEl.querySelector('[data-zbcard]'); };
     function mountCard(bodyEl) {
