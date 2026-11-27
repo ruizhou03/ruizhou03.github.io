@@ -2368,3 +2368,153 @@
       border-radius: 999px;
     }
   }
+
+/* ============ 联机房间流程（2026-11-27）：托管 / 准备 / 掉线小标记、头像弹出、聊天、互动特效、本房间战绩 ============ */
+/* 头像右上角的小圆标（右下角留给手牌张数）：托管 = 小机器人，掉线 = 断线，点了「继续」= 勾。不压暗头像 */
+.guandan-wrap .gd-avatar > .gd-room-badge {
+  position: absolute; right: -5px; top: -5px; z-index: 3;
+  width: 19px; height: 19px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--gd-paper); border: 1.3px solid var(--gd-ink); color: var(--gd-ink);
+  pointer-events: none;
+}
+.guandan-wrap .gd-avatar > .gd-room-badge svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.guandan-wrap .gd-avatar > .gd-room-badge.is-check { background: var(--gd-seal); border-color: var(--gd-seal); color: var(--gd-seal-ink); animation: gd-badge-pop .32s cubic-bezier(.3,.7,.4,1.5); }
+.guandan-wrap .gd-avatar > .gd-room-badge.is-bot { animation: gd-badge-pop .32s cubic-bezier(.3,.7,.4,1.5); }
+@keyframes gd-badge-pop { from { transform: scale(0); } to { transform: scale(1); } }
+/* 联机时别家头像可以点（扔道具 / 房主管理） */
+body.gd-online-table .guandan-wrap :is(#gdAv1, #gdAv2, #gdAv3) { cursor: pointer; }
+
+/* 点别人头像弹出的小卡：名字 + 一排道具 + 房主的一排图标键 */
+.gd-room-pop {
+  position: absolute; z-index: 60; min-width: 0;
+  padding: 8px 10px 10px; border-radius: 14px;
+  background: var(--gd-paper); border: 1px solid var(--gd-ink);
+  box-shadow: 0 10px 26px rgba(20, 18, 15, 0.2);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  animation: gd-pop-in .16s ease-out;
+}
+@keyframes gd-pop-in { from { opacity: 0; transform: translateY(-4px) scale(.96); } to { opacity: 1; transform: none; } }
+.gd-room-pop-name { font-weight: 700; font-size: 14px; color: var(--gd-ink); max-width: 15em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gd-room-props, .gd-room-host { display: flex; gap: 4px; }
+.gd-room-props button {
+  width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(29,27,24,.25);
+  background: #fffdf8; font-size: 22px; line-height: 1; cursor: pointer; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: transform .12s;
+}
+.gd-room-props button:active { transform: scale(.88); }
+.gd-room-host { padding-top: 6px; border-top: 1px solid rgba(29,27,24,.15); }
+.gd-room-host button {
+  width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--gd-ink);
+  background: var(--gd-paper); color: var(--gd-ink); cursor: pointer; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.gd-room-host button svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.gd-room-host button.is-on { background: var(--gd-ink); color: var(--gd-paper); }
+.gd-room-host button.is-arm { background: var(--gd-seal); border-color: var(--gd-seal); color: var(--gd-seal-ink); animation: gd-arm .5s ease-in-out infinite alternate; }
+@keyframes gd-arm { from { transform: scale(1); } to { transform: scale(1.08); } }
+
+/* 聊天键 + 面板：上面一排表情，下面两列快捷语 */
+body.gd-game-fullscreen .gd-tools .gd-chat-btn[hidden] { display: none; }
+.gd-chat-panel {
+  position: fixed; z-index: 10001;
+  top: calc(0.45rem + 52px + env(safe-area-inset-top, 0px));
+  right: calc(0.5rem + env(safe-area-inset-right, 0px));
+  width: min(330px, calc(100vw - 16px)); max-height: calc(100vh - 70px); overflow-y: auto;
+  padding: 8px; border-radius: 14px;
+  background: var(--gd-paper); border: 1px solid var(--gd-ink);
+  box-shadow: 0 10px 26px rgba(20, 18, 15, 0.18);
+  animation: gd-pop-in .16s ease-out;
+}
+.gd-chat-emojis { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; padding-bottom: 6px; border-bottom: 1px solid rgba(29,27,24,.15); }
+.gd-chat-emojis button { height: 36px; border: 0; background: transparent; font-size: 22px; line-height: 1; cursor: pointer; border-radius: 8px; padding: 0; }
+.gd-chat-emojis button:active { background: var(--gd-wash); }
+.gd-chat-phrases { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding-top: 6px; }
+.gd-chat-phrases button {
+  min-height: 34px; padding: 4px 8px; border-radius: 999px;
+  border: 1px solid rgba(29,27,24,.3); background: #fffdf8; color: var(--gd-ink);
+  font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; text-align: center;
+}
+.gd-chat-phrases button:active { background: var(--gd-wash); }
+
+/* 互动特效层（盖在最上面、不挡点击） */
+.gd-fx-layer { position: fixed; inset: 0; z-index: 10002; pointer-events: none; overflow: hidden; }
+.gd-fx-bubble {
+  position: fixed; max-width: 12em; padding: 6px 12px; border-radius: 14px;
+  background: #fffdf8; border: 1.3px solid var(--gd-ink); color: var(--gd-ink);
+  font-size: 14px; font-weight: 700; white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(20,18,15,.18);
+  animation: gd-bubble-in .22s cubic-bezier(.3,.7,.4,1.4);
+  transition: opacity .35s, transform .35s;
+}
+.gd-fx-bubble.is-out { opacity: 0; transform: translateY(-6px); }
+@keyframes gd-bubble-in { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+.gd-fx-emoji {
+  position: fixed; font-size: 44px; line-height: 1;
+  filter: drop-shadow(0 4px 6px rgba(20,18,15,.25));
+  animation: gd-emoji-in .5s cubic-bezier(.3,.7,.4,1.6);
+  transition: opacity .35s, transform .35s;
+}
+.gd-fx-emoji.is-out { opacity: 0; transform: translateY(-14px) scale(.8); }
+@keyframes gd-emoji-in { 0% { opacity: 0; transform: scale(.2) rotate(-20deg); } 60% { opacity: 1; transform: scale(1.25) rotate(8deg); } 100% { transform: none; } }
+.gd-fx-prop { position: fixed; font-size: 34px; line-height: 1; transform: translate(-50%, -50%); filter: drop-shadow(0 4px 6px rgba(20,18,15,.25)); }
+.gd-fx-hit { position: fixed; font-size: 46px; line-height: 1; transform: translate(-50%, -50%); animation: gd-hit 1.1s ease-out forwards; }
+@keyframes gd-hit { 0% { opacity: 0; transform: translate(-50%,-50%) scale(.3); } 20% { opacity: 1; transform: translate(-50%,-50%) scale(1.35); } 70% { opacity: 1; transform: translate(-50%,-50%) scale(1); } 100% { opacity: 0; transform: translate(-50%,-80%) scale(.9); } }
+.gd-fx-shake { animation: gd-fx-shake .45s ease-in-out; }
+@keyframes gd-fx-shake { 0%,100% { transform: none; } 20% { transform: translateX(-4px) rotate(-6deg); } 40% { transform: translateX(4px) rotate(5deg); } 60% { transform: translateX(-3px) rotate(-3deg); } 80% { transform: translateX(2px); } }
+@media (prefers-reduced-motion: reduce) { .gd-fx-emoji, .gd-fx-bubble, .gd-fx-hit, .gd-fx-shake { animation: none !important; } }
+
+/* 本房间战绩：小表格（整盘结算里 / 战绩弹窗里） */
+.gd-room-record { width: 100%; }
+.gd-record { width: 100%; color: var(--gd-ink); }
+.gd-record-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 2px 2px 4px; }
+.gd-record-h b { font-size: 14px; }
+.gd-record-h small { font-size: 12px; color: var(--gd-ink-mute); }
+.gd-record table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.gd-record th { font-size: 11.5px; font-weight: 600; color: var(--gd-ink-mute); padding: 0 4px 3px; text-align: center; }
+.gd-record td { padding: 3px 4px; text-align: center; border-top: 1px solid rgba(29,27,24,.1); }
+.gd-record td.pos { width: 1.4em; color: var(--gd-ink-mute); font-weight: 700; }
+.gd-record td.nm { text-align: left; white-space: nowrap; }
+.gd-record td.nm .av { display: inline-block; width: 1.4em; text-align: center; }
+.gd-record td.nm .tx { display: inline-block; max-width: 7em; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; font-weight: 600; }
+.gd-record tr.is-me td { background: rgba(180,57,44,.08); }
+.gd-record tr.is-me td.nm .tx { color: var(--gd-seal); }
+.gd-record td.pl { text-align: right; white-space: nowrap; }
+.gd-record td.pl i { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; margin-left: 2px; border-radius: 50%; font-style: normal; font-size: 11px; font-weight: 700; border: 1px solid rgba(29,27,24,.3); color: var(--gd-ink-mute); }
+.gd-record td.pl i.p1 { background: var(--gd-seal); border-color: var(--gd-seal); color: var(--gd-seal-ink); }
+.gd-record td.pl i.p2 { border-color: var(--gd-ink); color: var(--gd-ink); }
+.gd-record-panel { width: min(460px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow-y: auto; }
+.gd-record-empty { display: none; }
+#gdMatchRecord { margin: 6px 0 2px; }
+@media (max-height: 460px) {
+  .gd-record td { padding: 2px 3px; }
+  .gd-record td.pl i { width: 15px; height: 15px; font-size: 10px; }
+}
+
+/* 房间页：别人的「等房主开始」不做成灰按钮（虚线框 + 慢慢呼吸） */
+body.gd-game-fullscreen .gd-lobby .gd-lobby-btn-row .gd-btn.primary.is-wait:disabled {
+  background: transparent; border: 1.5px dashed var(--gd-ink); color: var(--gd-ink); letter-spacing: 0.04em;
+  animation: gd-wait 2.2s ease-in-out infinite;
+}
+@keyframes gd-wait { 0%,100% { opacity: 1; } 50% { opacity: .62; } }
+/* 「踢」点一下变红「请离」，再点才请 */
+body.gd-game-fullscreen .gd-lobby .gd-lobby-seat .seat-actions .gd-btn.is-arm { background: var(--gd-seal); border-color: var(--gd-seal); color: var(--gd-seal-ink); }
+/* 结算里的两颗键并排 */
+#gdRoundOverlay .gd-result-actions { display: flex; gap: 10px; justify-content: center; }
+#gdRoundOverlay .gd-result-actions [hidden] { display: none; }
+#gdMatchLevelCards[hidden], #gdMatchRecord[hidden] { display: none; }
+/* 联机整盘结算有战绩表：面板收紧，横屏一屏放下 */
+#gdMatchOverlay .gd-result-panel { max-height: calc(100vh - 12px); overflow-y: auto; }
+/* 联机整盘结算：左边两队（胜负 + 级），右边本房间战绩，横屏一屏放下 */
+.guandan-wrap #gdMatchOverlay.has-record .gd-result-panel {
+  width: min(880px, 96vw); max-width: min(880px, 96vw);
+  display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); column-gap: 18px; align-items: start;
+}
+.guandan-wrap #gdMatchOverlay.has-record .gd-result-title,
+.guandan-wrap #gdMatchOverlay.has-record .gd-result-actions { grid-column: 1 / -1; }
+.guandan-wrap #gdMatchOverlay.has-record .gd-result-vs { grid-column: 1; grid-row: 2; margin-bottom: 0; }
+.guandan-wrap #gdMatchOverlay.has-record #gdMatchRecord { grid-column: 2; grid-row: 2; margin: 0; }
+.guandan-wrap #gdMatchOverlay.has-record .gd-result-score { grid-column: 1; }
+.guandan-wrap #gdMatchOverlay.has-record .gd-result-score:empty { display: none; }
+.guandan-wrap #gdMatchOverlay.has-record .gd-result-actions { margin-top: 12px; }

@@ -2093,6 +2093,9 @@
     renderRevealGallery();
     updateActions();
     applyAttentionFocus();
+    document.body.classList.toggle('gd-online-table', !!state.isNetworked);
+    if (state.isNetworked) renderRoomBadges();
+    else if (document.querySelector('.gd-room-badge')) document.querySelectorAll('.gd-room-badge').forEach(b => b.remove());
   }
 
   // 在 chip 上显示本难度累计分；变化时按正/负闪一下
@@ -2754,6 +2757,8 @@
     r._selfRotated = true;
     if (mySeat === 0) return r;   // 房主：恒等，省去无谓重排
     if (Array.isArray(gv.counts)) r.counts = rotArr4(gv.counts);
+    if (Array.isArray(gv.auto)) r.auto = rotArr4(gv.auto);     // 托管座（房间流程）
+    if (Array.isArray(gv.ready)) r.ready = rotArr4(gv.ready);  // 一局打完谁点了「继续」
     if (typeof gv.turn === 'number') r.turn = L(gv.turn);
     if (Array.isArray(gv.out)) r.out = gv.out.map(L);
     if (Array.isArray(gv.aiHistory)) r.aiHistory = gv.aiHistory.map(event => ({
@@ -2860,6 +2865,16 @@
   function applyServerGameState(gv) {
     if (!gv || !state.isNetworked) return;
     gv = rotateGvToSelf(gv);   // 统一旋转成自视角（我 = 本地座 0）后再渲染
+    // 房间流程：托管 / 准备 标记（头像上画），我自己的托管跟服务器走
+    state._netAuto = Array.isArray(gv.auto) ? gv.auto.slice() : null;
+    state._netReady = Array.isArray(gv.ready) ? gv.ready.slice() : null;
+    state.autopilot = !!(state._netAuto && state._netAuto[0]);
+    // 这一局的结算已经弹过了：之后的推送只是别人点了「继续」/ 托管变化，别把我的结算面板关掉重来
+    if ((gv.phase === 'round_end' || gv.phase === 'match_end') && state._endHandled) {
+      refreshAutopilotBtn();
+      renderRoomBadges();
+      return;
+    }
     // 新一局进行中(playing/tribute)→复位结算闩，确保该局结束时 endRound/endMatch 必触发一次。
     // 关键修复：靠轮询/推送(而非自己点「继续」)进入下一局的玩家，过去不复位此闩 → 第 2 局起结算
     // 永不弹、牌面卡住、像「出完牌又被要求出牌、反复结束不了」。round_end/match_end 不复位
@@ -3133,8 +3148,9 @@
   }
   // 关掉小局结算 / 整盘战报浮层（幂等）。联机靠服务端 game.phase 切回可操作态时调用。
   function closeEndOverlays() {
-    if (els.roundOverlay) els.roundOverlay.classList.remove('open');
-    if (els.matchOverlay) els.matchOverlay.classList.remove('open');
+    // 只摘 open 不交还对话框，会让下一次结算面板被留在 inert 里点不动（联机打几局后「继续」没反应）
+    if (els.roundOverlay) { deactivateDialog(els.roundOverlay); els.roundOverlay.classList.remove('open'); }
+    if (els.matchOverlay) { deactivateDialog(els.matchOverlay); els.matchOverlay.classList.remove('open'); }
   }
 
   // 炸弹特效去重键：同一手炸弹（座位+牌）只放一次（乐观放过一次，服务器回包就不重复放）。
@@ -4452,6 +4468,9 @@
     if (window.ZirconIcons) ZirconIcons.hydrate(els.roundOverlay);
     els.roundOverlay.classList.add('open');
     activateDialog(els.roundOverlay, null, '#gdRoundNext');
+    // 联机房主：一局打完可以「回房间」（换座、请人、加减机器人）
+    const roundBack = $('gdRoundBack');
+    if (roundBack) roundBack.hidden = !(isNetworked() && onlineState && onlineState.isHost && !matchWon);
     const rankSummary = ranking.map((seat, index) => seatName(seat) + POS_NAMES[index]).join('，');
     const scoreSummary = els.roundScore ? els.roundScore.textContent.replace(/\s+/g, ' ').trim() : '';
     announce(
@@ -4463,8 +4482,9 @@
       deactivateDialog(els.roundOverlay);
       els.roundOverlay.classList.remove('open');
       if (isNetworked()) {
-        // 服务器权威：发 next_round → 服务器开下一局 → 轮询拉回新状态
-        nextRoundNet();
+        // 联机：整盘打完先看整盘结算 + 本房间战绩；否则「继续」= 我准备好了（大家都点了才开下一局）
+        if (matchWon) endMatch(winTeam);
+        else sendNetReady('round_end');
       } else if (matchWon) {
         endMatch(winTeam);
       } else {
@@ -4535,7 +4555,14 @@
     // 整副结束 → 清掉 session
     clearSession();
     // 联机整盘已结束：后端不支持原房重开整盘，把「再来一局」改成「离开房间」，点击退回房外。
-    if (els.matchAgain) els.matchAgain.textContent = isNetworked() ? '离开房间' : '再来一局';
+    if (isNetworked() && els.roundOverlay.classList.contains('open')) { deactivateDialog(els.roundOverlay); els.roundOverlay.classList.remove('open'); }
+    if (els.matchAgain) els.matchAgain.textContent = isNetworked() ? '再来一盘' : '再来一局';
+    if (els.matchSetup) els.matchSetup.textContent = isNetworked() ? (onlineState && onlineState.isHost ? '回房间' : '离开房间') : '返回开始页';
+    renderRoomRecord('gdMatchRecord', isNetworked() && onlineState ? onlineState.record : null);
+    // 联机：横屏放不下级牌翻牌 + 战绩，战绩替掉翻牌（两队的级上面已经写着）
+    const withRecord = !!(isNetworked() && onlineState && onlineState.record);
+    if (els.matchLevelCards) els.matchLevelCards.hidden = withRecord;
+    els.matchOverlay.classList.toggle('has-record', withRecord);
     els.matchOverlay.classList.add('open');
     activateDialog(els.matchOverlay, null, '#gdMatchAgain');
     const matchScoreSummary = els.matchScore ? els.matchScore.textContent.replace(/\s+/g, ' ').trim() : '';
@@ -4777,6 +4804,7 @@
     if (seat === 0) {
       // 玩家新轮次开始 → 重置提示循环索引，第一次按"提示"永远是最优一手
       state._hintIdx = null;
+      if (state.autopilot && isNetworked()) { stopTurnClock(); return; }   // 联机托管：服务器替我出
       if (state.autopilot) {
         // 托管模式：不挂时钟，~450ms 后直接自动出牌
         stopTurnClock();
@@ -4903,6 +4931,11 @@
     if (state.phase !== PHASE.PLAYING || state.turn !== 0 || state.busy) return;
     // 累计 2 次超时 → 自动进入托管，直到用户关或整局结束
     state._consecutiveTimeouts = (state._consecutiveTimeouts || 0) + 1;
+    if (!state.autopilot && state._consecutiveTimeouts >= 2 && isNetworked()) {
+      doAutoPlayPick();
+      toggleNetAuto(true);   // 联机：托管交给服务器（掉线也照打）
+      return;
+    }
     if (!state.autopilot && state._consecutiveTimeouts >= 2) {
       state.autopilot = true;
       refreshAutopilotBtn();
@@ -5771,6 +5804,7 @@
   }
   if (els.autopilotBtn) {
     els.autopilotBtn.addEventListener('click', () => {
+      if (isNetworked()) { toggleNetAuto(!state.autopilot); return; }
       state.autopilot = !state.autopilot;
       state._consecutiveTimeouts = 0;
       refreshAutopilotBtn();
@@ -6137,9 +6171,8 @@
     deactivateDialog(els.matchOverlay);
     els.matchOverlay.classList.remove('open');
     if (isNetworked()) {
-      // 联机整盘已结束：后端 next_round 只在 round_end 生效、不支持原房重开整盘，
-      // 这里直接退回房外（避免反复弹同一个结算面板）。想再来一盘需重新建/加入房间。
-      leaveRoom();
+      // 联机整盘打完：「再来一盘」= 准备；真人都点了就从 2 重新开一盘（同样的人和座位）
+      sendNetReady('match_end');
     } else {
       startMatch();
     }
@@ -6147,6 +6180,11 @@
   els.matchSetup.addEventListener('click', () => {
     deactivateDialog(els.matchOverlay);
     els.matchOverlay.classList.remove('open');
+    if (isNetworked() && onlineState) {
+      if (onlineState.isHost) sendBackToLobby();
+      else leaveRoom();
+      return;
+    }
     state.phase = PHASE.IDLE;
     setNavView(NAV_VIEW.SETUP);
     renderAll();
@@ -6762,6 +6800,7 @@
     // 2026-11-26 用户嫌按钮太多：托管、恢复排序、调整顺序收进 ☰ 菜单
     const playingNow = view === NAV_VIEW.PLAYING && !isSpectating();
     const autoBtn = $('gdAutopilotBtn');
+    if ($('gdMenuRecord')) $('gdMenuRecord').hidden = !(state.isNetworked && onlineState && onlineState.record);
     if (menuAuto) {
       menuAuto.hidden = !playingNow;
       const on = !!(autoBtn && autoBtn.getAttribute('aria-pressed') === 'true');
@@ -7752,6 +7791,7 @@
 
   // 每个会话只允许一条 mutation 在途：请求携带 expectedVersion，网络不确定时
   // 以同一个 requestId 重试。这样既不会双执行，也不会让两个乐观点击绕过 CAS。
+  const VERSION_RETRY_ACTIONS = new Set(['auto', 'host_auto', 'next_round', 'mute', 'back_to_lobby', 'start']);
   function gdMutation(action, payload, sess) {
     sess = sess || onlineState;
     if (!sess) return Promise.resolve({ ok: false, status: 403, error: 'not_in_room' });
@@ -7775,6 +7815,15 @@
       }
       if (!r.ok && (r.status === 0 || r.status >= 500)) {
         await new Promise(resolve => setTimeout(resolve, 250));
+        r = await gdApi(action, { token: sess.accessToken, body });
+      }
+      // 房间里别人 / 机器人刚动过（版本号变了）：托管、准备、禁言、回房间这类「按当前状态做」的动作直接按新版本再发，
+      // 不让用户看到「请重试」
+      for (let i = 0; i < 3 && !r.ok && r.error === 'version_conflict' && VERSION_RETRY_ACTIONS.has(action); i++) {
+        const v = r.data && (typeof r.data.version === 'number' ? r.data.version : (r.data.state && r.data.state.version));
+        if (typeof v !== 'number') break;
+        sess.lastVersion = Math.max(sess.lastVersion || 0, v);
+        body.expectedVersion = v;
         r = await gdApi(action, { token: sess.accessToken, body });
       }
       const responseState = r && r.data && r.data.state;
@@ -7869,16 +7918,17 @@
       myState.pollAbort = ctrl;
       const r = await gdApi('state', {
         token: myState.accessToken,
-        body: { code: myState.code, since: myState.lastVersion },
+        body: { code: myState.code, since: myState.lastVersion, fxSeq: myState.fxSeq == null ? -1 : myState.fxSeq },
         signal: ctrl.signal,
       }).catch(() => ({ ok: false, error: 'aborted' }));
       if (myState !== onlineState || !myState.polling) break;
       if (r.ok && r.data) {
         applyServerOnlineState(r.data);
+        if (onlineState === myState && (Array.isArray(r.data.fx) || typeof r.data.fxSeq === 'number')) onRoomFx(r.data.fx || [], r.data.fxSeq);
       } else if (r.status === 403 && myState.resumeSecret) {
         const resumed = await resumeOnlineCredentials(myState);
         if (resumed.ok) continue;
-        toast('会话失效');
+        toast(resumed.error === 'kicked' ? '房主请你离开了' : '会话失效');
         clearOnlineSessionLocal('');
         break;
       } else if (r.status === 401 || r.status === 403 || r.status === 404) {
@@ -7988,6 +8038,10 @@
       }
       try { applyServerOnlineState(JSON.parse(ev.data)); } catch {}
     };
+    es.addEventListener('fx', (ev) => {
+      if (onlineState !== sess || sess._sse !== es) return;
+      try { const d = JSON.parse(ev.data); onRoomFx(d.fx || [], d.fxSeq); } catch {}
+    });
     es.addEventListener('gone', () => {
       if (onlineState === sess && sess._sse === es) {
         toast('房间已过期');
@@ -8242,6 +8296,7 @@
     onlineState.players = srv.players || [];
     onlineState.hostPlayerId = srv.hostPlayerId;
     onlineState.config = srv.config;
+    onlineState.record = srv.record || null;
     if (srvV >= expV) onlineState._expectedVersion = 0;
     const wasState = onlineState.srvState;
     onlineState.srvState = srv.state;
@@ -8272,7 +8327,11 @@
     // 会清掉 innerHTML 重建，动画就被掐了。所以动画期间跳过重绘，等动画完成后由
     // sendSwapSeats / rotateLobbyToSouth 的回调里收尾再绘一次。
     // _swapPhase 在 swap 动画 → hold（金边保留）阶段也设置，同样跳过重绘。
+    // 房主点了「回房间」：牌桌收起，回到四座位的房间
+    if (srv.state === 'lobby' && state.isNetworked) returnToLobbyView(srv);
     if (!onlineState._animating && !onlineState._swapPhase) renderLobby(srv);
+    renderRoomRecord('gdLobbyRecord', srv.state === 'lobby' ? srv.record : null);
+    refreshChatBtn();
     // 加入者进房后自动落座（让房主立刻看到人、加入者明确不是房主）
     maybeAutoSit(srv);
     // 联网模式中：每当服务器 game 状态变更，刷新本地牌局（AI 回合的进展 / 其他人出牌）。
@@ -8280,7 +8339,10 @@
     // 负责，初始化完成才打开持续同步。注意 gate 用的是 _netGameReady 而非 !_startedTransition：
     // 后者开局后永久为 true，曾导致开局后轮询再不更新对局（对手/AI 回合永远同步不过来 → 各玩各的/卡死）。
     if (srv.state === 'playing' && srv.game && state.isNetworked && onlineState._netGameReady) {
-      applyServerGameState(srv.game);
+      // 上一局结算还在 / 我点过「继续」，服务器已经开了新的一局：按新局重开（发牌、级牌、进贡都从头来）
+      const localEnded = state._endHandled || state.phase === PHASE.ROUND_END || state.phase === PHASE.MATCH_END;
+      if (localEnded && (srv.game.phase === 'playing' || srv.game.phase === 'tribute')) enterNewNetRound(srv.game, srv.version);
+      else applyServerGameState(srv.game);
     }
     // 状态从 lobby → playing 的第一次跃迁：开局初始化（只触发一次）
     if (wasState !== 'playing' && srv.state === 'playing' && !onlineState._startedTransition) {
@@ -8490,7 +8552,7 @@
         // 空座（照百变小咪的虚线空位）：房主点 = 加机器人（已选中某人时 = 把他移过来）；没坐下的人点 = 坐这
         cell.classList.add('empty');
         const hostSel = (typeof onlineState.swapSelected === 'number' && seatedMap[onlineState.swapSelected]) ? onlineState.swapSelected : null;
-        const canInteract = isHost || (mySeatRaw == null);
+        const canInteract = true;   // 房主：加机器人 / 移人；别人：坐这里 / 换到这
         const slot = document.createElement(canInteract ? 'button' : 'div');
         slot.className = 'gd-lobby-empty';
         if (canInteract) slot.type = 'button';
@@ -8503,7 +8565,7 @@
           label.textContent = hostSel != null ? '移到这' : '加机器人';
           if (hostSel != null) cell.classList.add('move-target');
         } else {
-          label.textContent = mySeatRaw == null ? '坐这里' : '等人加入';
+          label.textContent = mySeatRaw == null ? '坐这里' : '换到这';
         }
         slot.append(plus, label);
         if (canInteract) slot.addEventListener('click', () => {
@@ -8511,7 +8573,7 @@
             const sel = (typeof onlineState.swapSelected === 'number' && seatedMap[onlineState.swapSelected]) ? onlineState.swapSelected : null;
             if (sel != null) sendMoveSeat(sel, s);
             else sendAddAi(s);
-          } else if (mySeatRaw == null) {
+          } else {
             sendSit(s);
           }
         });
@@ -8562,7 +8624,12 @@
             const kickBtn = document.createElement('button');
             kickBtn.className = 'gd-btn mini';
             kickBtn.textContent = '踢';
-            kickBtn.addEventListener('click', (e) => { e.stopPropagation(); sendKick(p.id); });
+            // 点一下变红「请离」，再点才真请（不弹系统确认框）
+            kickBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (!kickBtn.classList.contains('is-arm')) { kickBtn.classList.add('is-arm'); kickBtn.textContent = '请离'; setTimeout(() => { kickBtn.classList.remove('is-arm'); kickBtn.textContent = '踢'; }, 2500); return; }
+              sendKick(p.id, true);
+            });
             acts.appendChild(kickBtn);
             const xferBtn = document.createElement('button');
             xferBtn.className = 'gd-btn mini';
@@ -8579,14 +8646,13 @@
     // 旁观者（standing） — Phase 1 暂时不渲染；他们可以点空座位坐下。
     // 底部两颗：离开房间 /「开始」。开始一直在原位：房主坐满 4 人才能点，没满写着几缺几；别人看到「等房主开始」
     if (onlineEls.seated) onlineEls.seated.textContent = seatedCount + '/4';
-    const ready = onlineState.isHost && seatedCount === 4;
+    // 2026-11-27：房主随时能点「开始」，空位自动补机器人；别人那颗是「等房主开始」（不做成灰按钮）
     if (onlineEls.startBtn) {
       onlineEls.startBtn.hidden = false;
-      onlineEls.startBtn.disabled = !ready;
-      onlineEls.startBtn.classList.toggle('is-ready', ready);
-      onlineEls.startBtn.textContent = onlineState.isHost
-        ? (seatedCount === 4 ? '开始' : '开始（' + seatedCount + '/4）')
-        : '等房主开始';
+      onlineEls.startBtn.disabled = !onlineState.isHost;
+      onlineEls.startBtn.classList.toggle('is-ready', onlineState.isHost && seatedCount === 4);
+      onlineEls.startBtn.classList.toggle('is-wait', !onlineState.isHost);
+      onlineEls.startBtn.textContent = onlineState.isHost ? '开始' : '等房主开始';
     }
     if (srv.state === 'playing' && typeof srv.firstLeader === 'number' && onlineEls.startBtn) {
       onlineEls.startBtn.disabled = true;
@@ -8597,6 +8663,7 @@
     }
     renderLobbyRules(srv.config || onlineState.config);
     if (onlineEls.lobby) onlineEls.lobby.classList.toggle('is-host', isHost);
+    if (window.ZirconIcons && onlineEls.lobby) window.ZirconIcons.hydrate(onlineEls.lobby);   // 机器人头像 [[zi:bot]] 当场换成图标
   }
   // 房间玩法一行字：「机器人 普通 · 25 秒 · 同队免贡」（建房时定，进房的人一眼看清）
   function renderLobbyRules(config) {
@@ -8757,10 +8824,11 @@
     const r = await gdMutation('remove_ai', { seat });
     handleAiActionResp(r, snap);
   }
-  async function sendKick(targetPid) {
+  async function sendKick(targetPid, confirmed) {
     if (!onlineState) return;
-    if (!confirm('确认踢出这位玩家？')) return;
-    const snap = applyOptimistic(players => {
+    if (!confirmed && !confirm('确认踢出这位玩家？')) return;
+    // 打到一半请离：那一座由 AI 打完这一盘，所以不乐观删人，等服务器回来
+    const snap = onlineState.srvState === 'playing' ? null : applyOptimistic(players => {
       const i = players.findIndex(p => p.id === targetPid);
       if (i >= 0) players.splice(i, 1);
     });
@@ -8902,7 +8970,7 @@
   if (onlineEls.startBtn) {
     onlineEls.startBtn.addEventListener('click', async () => {
       if (!onlineState || !onlineState.isHost) return;
-      const r = await gdMutation('start', {});
+      const r = await gdMutation('start', { fillAi: true });
       if (!r.ok) {
         if (r.data && r.data.state) applyServerOnlineState(r.data.state);
         if (isTerminalOnlineFailure(r)) clearOnlineSessionLocal('');
@@ -8963,6 +9031,396 @@
       .then(() => toast(successMessage || '已复制'))
       .catch(() => toast('复制失败，请手动'));
     else toast('请手动复制：' + t);
+  }
+
+  // ===========================================================
+  //  联机房间流程（2026-11-27 照百变小咪补齐）：托管 / 房主替人托管 / 禁言 / 请离、
+  //  一局打完各自点「继续」（头像上打勾，齐了才开下一局）、整盘打完再来一盘或回房间、
+  //  本房间战绩、牌桌互动（快捷语 / 表情 / 朝人扔道具）。
+  //  牌桌上不写任何说明文字：状态全靠头像上的小标记。
+  // ===========================================================
+  const ROOM_IC = {
+    bot: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="8" width="15" height="11" rx="3.5"/><path d="M12 4.5V8M9 13v1.2M15 13v1.2"/></svg>',
+    unbot: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="8" width="15" height="11" rx="3.5"/><path d="M12 4.5V8M9 13v1.2M15 13v1.2M3 3l18 18"/></svg>',
+    mute: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5h-7l-4.5 3.5V16.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5Z"/><path d="M3 3l18 18"/></svg>',
+    unmute: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5h-7l-4.5 3.5V16.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5Z"/><path d="M8.5 11h7"/></svg>',
+    kick: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4.5H6.5A1.5 1.5 0 0 0 5 6v12a1.5 1.5 0 0 0 1.5 1.5H14"/><path d="M11 12h10M17.5 8.5 21 12l-3.5 3.5"/></svg>',
+    check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    off: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 9a14 14 0 0 1 19 0M6 12.5a9 9 0 0 1 12 0M9.5 16a4 4 0 0 1 5 0"/><circle cx="12" cy="19.2" r="1"/><path d="M3 3l18 18"/></svg>',
+    chat: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5h-7l-4.5 3.5V16.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5Z"/><path d="M8 10.2h.01M12 10.2h.01M16 10.2h.01"/></svg>',
+  };
+  // 快捷语（服务器只认编号，文字在这里）；牌桌上冒泡两秒半
+  const ROOM_PHRASES = ['快点出呀', '好牌！', '稳住，我来', '这手漂亮', '让我想想', '又是你先走', '配合不错', '炸得好', '手气来了', '别急别急', '再来一盘', '承让承让'];
+  const ROOM_EMOJIS = [['laugh', '😂'], ['cry', '😭'], ['angry', '😤'], ['cool', '😎'], ['think', '🤔'], ['shock', '😱'], ['love', '😍'], ['sweat', '😅']];
+  const ROOM_PROPS = [['flower', '🌹'], ['egg', '🥚'], ['cheers', '🍺'], ['like', '👍'], ['bomb', '💣'], ['tomato', '🍅']];
+  const ROOM_PROP_HIT = { flower: '💐', egg: '🍳', cheers: '🍻', like: '✨', bomb: '💥', tomato: '💦' };
+
+  // 服务器座位 ↔ 本地座位（牌桌上我恒在 0）
+  function roomLocalSeat(srvSeat) {
+    const my = (onlineState && typeof onlineState.mySeat === 'number') ? onlineState.mySeat : 0;
+    return (srvSeat - my + 4) % 4;
+  }
+  function roomSrvSeat(localSeat) {
+    const my = (onlineState && typeof onlineState.mySeat === 'number') ? onlineState.mySeat : 0;
+    return (localSeat + my) % 4;
+  }
+  function roomPlayerAtSrv(srvSeat) {
+    return ((onlineState && onlineState.players) || []).find(p => p.seat === srvSeat) || null;
+  }
+  const roomInTable = () => !!(state.isNetworked && onlineState && onlineEls.lobby && onlineEls.lobby.hidden);
+
+  // 头像上的小标记：托管（小机器人）/ 掉线（断线）/ 一局打完已点「继续」（勾）
+  function renderRoomBadges() {
+    for (let s = 0; s < 4; s++) {
+      const se = seatEls[s];
+      if (!se || !se.av) continue;
+      let b = se.av.querySelector(':scope > .gd-room-badge');
+      let kind = '';
+      if (state.isNetworked && onlineState) {
+        const p = roomPlayerAtSrv(roomSrvSeat(s));
+        const ended = state._netReady && (state.phase === PHASE.ROUND_END || state.phase === PHASE.MATCH_END || state.phase === 'round_end' || state.phase === 'match_end');
+        if (ended && state._netReady[s] && !(p && p.isAi)) kind = 'check';
+        else if (s !== 0 && state._netAuto && state._netAuto[s]) kind = 'bot';
+        else if (s !== 0 && p && !p.isAi && !p.online) kind = 'off';
+      }
+      if (!kind) { if (b) b.remove(); continue; }
+      if (!b) { b = document.createElement('span'); se.av.appendChild(b); }
+      if (b.dataset.kind !== kind) {
+        b.dataset.kind = kind;
+        b.className = 'gd-room-badge gd-keep is-' + kind;
+        b.innerHTML = ROOM_IC[kind];
+      }
+    }
+  }
+
+  // 自己托管：联机时交给服务器（掉线 / 切后台也照打），本地不再自己算牌
+  function toggleNetAuto(on) {
+    if (!isNetworked() || !onlineState) return;
+    state.autopilot = !!on;
+    state._consecutiveTimeouts = 0;
+    refreshAutopilotBtn();
+    renderAll();
+    gdMutation('auto', { on: !!on }).then((r) => {
+      if (r && r.ok) applyActionResult(r);
+      else if (r && r.data && r.data.state) applyServerOnlineState(r.data.state);
+    });
+  }
+
+  // 房主点别人 / 谁都能点别人头像：一排道具（扔过去）；房主点真人再多一排：托管、禁言、请离
+  let roomPop = null;
+  function closeRoomPop() { if (roomPop) { roomPop.remove(); roomPop = null; } }
+  function openSeatPop(anchor, srvSeat) {
+    closeRoomPop();
+    if (!onlineState || typeof onlineState.mySeat !== 'number' || srvSeat === onlineState.mySeat) return;
+    const p = roomPlayerAtSrv(srvSeat);
+    if (!p) return;
+    const host = !!onlineState.isHost && !p.isAi;
+    const inGame = onlineState.srvState === 'playing';
+    const pop = document.createElement('div');
+    pop.className = 'gd-room-pop';
+    pop.setAttribute('role', 'dialog');
+    pop.setAttribute('aria-label', p.nick);
+    let html = '<div class="gd-room-pop-name">' + escGdHtml(p.nick) + '</div>';
+    const me = onlineState.players && onlineState.players.find(x => x.id === onlineState.playerId);
+    if (!(me && me.muted)) {
+      html += '<div class="gd-room-props">' + ROOM_PROPS.map(([id, em]) => '<button type="button" data-prop="' + id + '" aria-label="' + id + '">' + em + '</button>').join('') + '</div>';
+    }
+    if (host) {
+      const auto = inGame && p.auto;
+      html += '<div class="gd-room-host">' +
+        (inGame && !p.gone ? '<button type="button" data-host="auto" aria-label="' + (auto ? '取消托管' : '替他托管') + '" title="' + (auto ? '取消托管' : '替他托管') + '"' + (auto ? ' class="is-on"' : '') + '>' + (auto ? ROOM_IC.unbot : ROOM_IC.bot) + '</button>' : '') +
+        '<button type="button" data-host="mute" aria-label="' + (p.muted ? '解除禁言' : '禁言') + '" title="' + (p.muted ? '解除禁言' : '禁言') + '"' + (p.muted ? ' class="is-on"' : '') + '>' + (p.muted ? ROOM_IC.unmute : ROOM_IC.mute) + '</button>' +
+        '<button type="button" data-host="kick" aria-label="请他离开" title="请他离开">' + ROOM_IC.kick + '</button>' +
+        '</div>';
+    }
+    pop.innerHTML = html;
+    (els.table || document.body).appendChild(pop);
+    // 摆在头像旁边、不出屏
+    const ar = anchor.getBoundingClientRect(), tr = (els.table || document.body).getBoundingClientRect();
+    const pw = pop.offsetWidth, ph = pop.offsetHeight;
+    let x = ar.left + ar.width / 2 - pw / 2 - tr.left, y = ar.bottom + 6 - tr.top;
+    if (y + ph > tr.height - 4) y = ar.top - ph - 6 - tr.top;
+    x = Math.max(6, Math.min(tr.width - pw - 6, x)); y = Math.max(6, y);
+    pop.style.left = x + 'px'; pop.style.top = y + 'px';
+    roomPop = pop;
+    pop.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const b = e.target.closest('button');
+      if (!b) return;
+      if (b.dataset.prop) { closeRoomPop(); sendEmote({ kind: 'prop', id: b.dataset.prop, to: srvSeat }); return; }
+      const act = b.dataset.host;
+      if (act === 'auto') { closeRoomPop(); gdMutation('host_auto', { seat: srvSeat, on: !p.auto }).then(applyActionResult); return; }
+      if (act === 'mute') { closeRoomPop(); gdMutation('mute', { targetPid: p.id, on: !p.muted }).then(applyActionResult); return; }
+      if (act === 'kick') {
+        // 二次确认：同一颗键变红，再点一下才请离（不弹窗）
+        if (!b.classList.contains('is-arm')) { b.classList.add('is-arm'); return; }
+        closeRoomPop();
+        sendKick(p.id, true);
+      }
+    });
+  }
+  document.addEventListener('click', (e) => { if (roomPop && !roomPop.contains(e.target)) closeRoomPop(); }, true);
+  // 牌桌上点别家头像
+  for (let s = 1; s < 4; s++) {
+    const av = seatEls[s] && seatEls[s].av;
+    if (!av) continue;
+    av.addEventListener('click', (e) => {
+      if (!state.isNetworked || !onlineState) return;
+      e.stopPropagation();
+      openSeatPop(av, roomSrvSeat(s));
+    });
+  }
+
+  // ── 聊天键（☰ 旁边）：表情 + 快捷语 ──
+  const chatBtn = $('gdChatBtn');
+  let chatPanel = null;
+  function closeChat() { if (chatPanel) { chatPanel.remove(); chatPanel = null; } if (chatBtn) chatBtn.setAttribute('aria-expanded', 'false'); }
+  function refreshChatBtn() {
+    if (!chatBtn) return;
+    const me = onlineState && onlineState.players && onlineState.players.find(x => x.id === onlineState.playerId);
+    chatBtn.hidden = !(onlineState && typeof onlineState.mySeat === 'number' && !(me && me.muted));
+    if (chatBtn.hidden) closeChat();
+  }
+  if (chatBtn) {
+    chatBtn.innerHTML = ROOM_IC.chat;
+    chatBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (chatPanel) { closeChat(); return; }
+      chatPanel = document.createElement('div');
+      chatPanel.className = 'gd-chat-panel';
+      chatPanel.setAttribute('role', 'dialog');
+      chatPanel.setAttribute('aria-label', '聊天');
+      chatPanel.innerHTML = '<div class="gd-chat-emojis">' + ROOM_EMOJIS.map(([id, em]) => '<button type="button" data-emoji="' + id + '">' + em + '</button>').join('') + '</div>' +
+        '<div class="gd-chat-phrases">' + ROOM_PHRASES.map((t, i) => '<button type="button" data-phrase="' + i + '">' + t + '</button>').join('') + '</div>';
+      document.body.appendChild(chatPanel);
+      chatBtn.setAttribute('aria-expanded', 'true');
+      chatPanel.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const b = ev.target.closest('button');
+        if (!b) return;
+        if (b.dataset.emoji) sendEmote({ kind: 'emoji', id: b.dataset.emoji });
+        else if (b.dataset.phrase != null) sendEmote({ kind: 'phrase', id: +b.dataset.phrase });
+        closeChat();
+      });
+    });
+    document.addEventListener('click', (e) => { if (chatPanel && !chatPanel.contains(e.target) && e.target !== chatBtn) closeChat(); }, true);
+  }
+
+  let lastEmoteAt = 0;
+  async function sendEmote(item) {
+    if (!onlineState) return;
+    const now = Date.now();
+    if (now - lastEmoteAt < 2000) return;   // 和服务器同样 2 秒一次
+    lastEmoteAt = now;
+    // 自己发的先在本地演（不等来回），服务器回来的同一条按序号跳过
+    const mine = Object.assign({ from: onlineState.mySeat, seq: -1 }, item);
+    playRoomFx(mine);
+    const r = await gdApi('emote', { token: onlineState.accessToken, body: Object.assign({ code: onlineState.code }, item) });
+    if (r.ok && r.data && Array.isArray(r.data.fx)) {
+      for (const x of r.data.fx) onlineState._fxMine = Math.max(onlineState._fxMine || 0, x.seq);
+      onRoomFx(r.data.fx, r.data.fxSeq);
+    }
+  }
+  function onRoomFx(items, fxSeq) {
+    if (!onlineState) return;
+    const seen = onlineState.fxSeq == null ? -1 : onlineState.fxSeq;
+    for (const x of (items || [])) {
+      if (x.seq <= seen) continue;
+      if (x.from === onlineState.mySeat && x.seq <= (onlineState._fxMine || 0)) continue;   // 自己的已经演过
+      if (x.from === onlineState.mySeat && Date.now() - lastEmoteAt < 4000) continue;
+      playRoomFx(x);
+    }
+    const top = Math.max(seen, typeof fxSeq === 'number' ? fxSeq : -1, ...(items || []).map(x => x.seq));
+    if (top >= 0) onlineState.fxSeq = top;
+  }
+  // 头像元素：牌桌上找座位头像，在等人页找那一格的头像
+  function roomAvatarEl(srvSeat) {
+    if (roomInTable()) {
+      const se = seatEls[roomLocalSeat(srvSeat)];
+      return se && se.av;
+    }
+    const pos = LOBBY_POSITIONS[displayIdxForSeat(srvSeat)];
+    const cell = { bottom: onlineEls.seatBottom, right: onlineEls.seatRight, top: onlineEls.seatTop, left: onlineEls.seatLeft }[pos];
+    return cell && (cell.querySelector('.avatar') || cell);
+  }
+  function fxLayer() {
+    let l = document.querySelector('.gd-fx-layer');
+    if (!l) { l = document.createElement('div'); l.className = 'gd-fx-layer'; l.setAttribute('aria-hidden', 'true'); document.body.appendChild(l); }
+    return l;
+  }
+  function centerOf(el) { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, r }; }
+  const reduceMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function playRoomFx(x) {
+    const from = roomAvatarEl(x.from);
+    if (!from) return;
+    const layer = fxLayer();
+    const p = roomPlayerAtSrv(x.from);
+    if (x.kind === 'phrase' || x.kind === 'emoji') {
+      const c = centerOf(from);
+      const el = document.createElement('div');
+      el.className = x.kind === 'phrase' ? 'gd-fx-bubble' : 'gd-fx-emoji';
+      el.textContent = x.kind === 'phrase' ? (ROOM_PHRASES[x.id] || '') : ((ROOM_EMOJIS.find(e => e[0] === x.id) || [])[1] || '');
+      layer.appendChild(el);
+      // 气泡朝桌心那边冒：上半屏的头像往下冒，下半屏往上
+      const below = c.y < window.innerHeight * 0.45;
+      const w = el.offsetWidth, h = el.offsetHeight;
+      let left = c.x - w / 2;
+      if (x.kind === 'phrase') {
+        if (c.x < window.innerWidth * 0.25) left = c.r.right + 4;
+        else if (c.x > window.innerWidth * 0.75) left = c.r.left - w - 4;
+      }
+      left = Math.max(4, Math.min(window.innerWidth - w - 4, left));
+      const top = x.kind === 'emoji' ? c.y - h / 2 : (below ? c.r.bottom + 4 : c.r.top - h - 4);
+      el.style.left = left + 'px'; el.style.top = Math.max(4, top) + 'px';
+      el.classList.add(below ? 'is-below' : 'is-above');
+      setTimeout(() => el.classList.add('is-out'), x.kind === 'phrase' ? 2400 : 1600);
+      setTimeout(() => el.remove(), x.kind === 'phrase' ? 2800 : 2000);
+      if (p) announce(p.nick + '：' + (x.kind === 'phrase' ? ROOM_PHRASES[x.id] : x.id));
+      return;
+    }
+    if (x.kind === 'prop') {
+      const to = roomAvatarEl(x.to);
+      if (!to) return;
+      const a = centerOf(from), b = centerOf(to);
+      const em = (ROOM_PROPS.find(e => e[0] === x.id) || [])[1] || '';
+      const el = document.createElement('div');
+      el.className = 'gd-fx-prop';
+      el.textContent = em;
+      el.style.left = a.x + 'px'; el.style.top = a.y + 'px';
+      layer.appendChild(el);
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const hit = () => {
+        el.remove();
+        const h = document.createElement('div');
+        h.className = 'gd-fx-hit is-' + x.id;
+        h.textContent = ROOM_PROP_HIT[x.id] || em;
+        h.style.left = b.x + 'px'; h.style.top = b.y + 'px';
+        layer.appendChild(h);
+        to.classList.remove('gd-fx-shake'); void to.offsetWidth; to.classList.add('gd-fx-shake');
+        setTimeout(() => { h.remove(); to.classList.remove('gd-fx-shake'); }, 1100);
+      };
+      if (reduceMotion() || !el.animate) { setTimeout(hit, 200); return; }
+      const lift = -Math.min(120, 40 + Math.hypot(dx, dy) * 0.25);
+      el.animate([
+        { transform: 'translate(-50%,-50%) translate(0,0) rotate(0) scale(.8)' },
+        { transform: 'translate(-50%,-50%) translate(' + dx * 0.5 + 'px,' + (dy * 0.5 + lift) + 'px) rotate(200deg) scale(1.15)', offset: 0.5 },
+        { transform: 'translate(-50%,-50%) translate(' + dx + 'px,' + dy + 'px) rotate(400deg) scale(1)' },
+      ], { duration: 620, easing: 'cubic-bezier(.35,.1,.45,1)', fill: 'forwards' }).onfinish = hit;
+      if (p) { const tp = roomPlayerAtSrv(x.to); announce(p.nick + ' 朝 ' + (tp ? tp.nick : '') + ' 扔了 ' + x.id); }
+    }
+  }
+
+  // ── 本房间战绩（打完至少一局才有）：头游次数、平均名次、打过 A 几盘，右边一排最近每局第几 ──
+  function roomRecordHtml(rec) {
+    if (!rec || !rec.rows || !rec.rows.length) return '';
+    const me = onlineState && onlineState.playerId;
+    const showWins = (rec.matches | 0) > 0;
+    const placeCls = (n) => 'p' + n;
+    return '<div class="gd-record">' +
+      '<div class="gd-record-h"><b>本房间战绩</b><small>' + rec.rounds + ' 局' + (showWins ? ' · ' + rec.matches + ' 盘' : '') + '</small></div>' +
+      '<table><thead><tr><th></th><th class="nm"></th>' + (showWins ? '<th>过A</th>' : '') + '<th>头游</th><th>平均</th><th class="pl"></th></tr></thead><tbody>' +
+      rec.rows.map((r, i) => {
+        const av = r.isAi ? '🤖' : avatarEmoji(r.avatar);
+        return '<tr class="' + (r.id === me ? 'is-me' : '') + '"><td class="pos">' + (i + 1) + '</td>' +
+          '<td class="nm"><span class="av">' + av + '</span><span class="tx">' + escGdHtml(r.nick) + '</span></td>' +
+          (showWins ? '<td>' + r.wins + '</td>' : '') + '<td>' + r.first + '</td><td>' + Number(r.avg).toFixed(1) + '</td>' +
+          '<td class="pl">' + (r.places || []).slice(-8).map(n => '<i class="' + placeCls(n) + '">' + n + '</i>').join('') + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+  function renderRoomRecord(where, rec) {
+    if (where === 'gdLobbyRecord') {   // 房间页：只亮一颗「战绩」小键，点开看
+      const b = $('gdRecordBtn');
+      if (b) b.hidden = !(rec && rec.rows && rec.rows.length);
+      return;
+    }
+    const box = $(where);
+    if (!box) return;
+    const html = state.isNetworked ? roomRecordHtml(rec) : '';
+    box.innerHTML = html;
+    box.hidden = !html;
+  }
+  const recordDlg = $('gdRecordDlg');
+  function closeRecord() { if (!recordDlg || recordDlg.hidden) return; deactivateDialog(recordDlg); recordDlg.hidden = true; }
+  function openRecord(ev) {
+    if (!recordDlg || !onlineState) return;
+    const html = roomRecordHtml(onlineState.record);
+    $('gdRecordBox').innerHTML = html || '<div class="gd-record-empty">' + ROOM_IC.check + '</div>';
+    recordDlg.hidden = false;
+    activateDialog(recordDlg, closeRecord, '#gdRecordClose', ev && ev.currentTarget);
+  }
+  if ($('gdRecordBtn')) $('gdRecordBtn').addEventListener('click', openRecord);
+  if ($('gdRecordClose')) $('gdRecordClose').addEventListener('click', closeRecord);
+  if (recordDlg) { const bd = recordDlg.querySelector('[data-close="record"]'); if (bd) bd.addEventListener('click', closeRecord); }
+  if ($('gdMenuRecord')) $('gdMenuRecord').addEventListener('click', (ev) => { closeMenu(); openRecord(ev); });
+  if ($('gdRoundBack')) $('gdRoundBack').addEventListener('click', () => {
+    deactivateDialog(els.roundOverlay);
+    els.roundOverlay.classList.remove('open');
+    sendBackToLobby();
+  });
+
+  // 一局打完点「继续」= 我准备好了；服务器等真人都点了（机器人 / 托管自动算）才开下一局
+  async function sendNetReady(phase) {
+    if (!isNetworked() || !onlineState) return;
+    state._readyPressed = true;
+    if (state._netReady) state._netReady[0] = true;
+    renderRoomBadges();
+    const r = await gdMutation('next_round', phase ? { phase } : {});
+    const gv = r && r.ok && r.data && r.data.state && r.data.state.game;
+    if (gv && (gv.phase === 'playing' || gv.phase === 'tribute')) {
+      enterNewNetRound(gv, r.data.state.version);
+    } else if (r && r.ok) {
+      applyActionResult(r);
+    } else {
+      pokePoll();
+    }
+  }
+  // 服务器开了新的一局（我点的最后一下，或者推送 / 轮询带回来的）：清掉上一局，按新牌重开
+  function enterNewNetRound(gv, version) {
+    state._readyPressed = false;
+    state._netReady = null;
+    closeEndOverlays();
+    state.selected.clear();
+    state.hands = [[], [], [], []];
+    state.lastPlay = [null, null, null, null];
+    state.out = [];
+    state.ranking = null;
+    state.matchWinner = null;
+    state.bombMult = 1;
+    state.customGroups = [];
+    startNetworkedGame(gv);
+    if (typeof version === 'number' && onlineState) onlineState.lastVersion = Math.max(onlineState.lastVersion || 0, version);
+    pokePoll();
+  }
+  // 房主「回房间」
+  async function sendBackToLobby() {
+    const r = await gdMutation('back_to_lobby', {});
+    if (r && r.ok) applyActionResult(r);
+    else toast(errText(r && r.error));
+  }
+  // 本机调试（localhost）：脚本里直接发房间动作，快速把一盘打到底验收
+  if (IS_LOCAL_RUNTIME) window.__gdRoomDebug = { mut: (a, p) => gdMutation(a, p || {}), st: () => onlineState };
+  // 服务器回到了等人页（房主点了「回房间」）：收起牌桌，回到四座位的房间
+  function returnToLobbyView(srv) {
+    closeEndOverlays();
+    closeRoomPop();
+    stopTurnClock();
+    state.isNetworked = false;
+    state.autopilot = false;
+    state._netReady = null;
+    state._netAuto = null;
+    state.phase = PHASE.IDLE;
+    state.hands = [[], [], [], []];
+    state.lastPlay = [null, null, null, null];
+    state.out = [];
+    state.revealHands = false;
+    clearSession();
+    if (onlineState) {
+      onlineState._startedTransition = false;
+      onlineState._netGameReady = false;
+    }
+    renderAll();
+    revealLobby();
+    renderLobby(srv);
   }
 
   // 刷新、关闭标签和 PWA 切后台都不是“离开房间”：保留联机会话，下一次加载按 token 重连。
