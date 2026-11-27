@@ -817,11 +817,9 @@
      * 点一张：那张抬起、描朱红边，其余的退下去，然后收起。点空白处 = 不挑。竖屏两列、宽一点三列、横屏一排六张，取牌最大的那种 */
     function rolePicker() {
       const ids = ROLE_IDS(), vw = innerWidth, vh = innerHeight, gap = 12;
-      let best = { w: 0, cols: 3 };
-      [2, 3, 6].forEach((cols) => {
-        const rows = Math.ceil(ids.length / cols), w = Math.floor(Math.min((vw - 36 - gap * (cols - 1)) / cols, (vh - 56 - gap * (rows - 1)) / rows / 1.4, 150));
-        if (w > best.w) best = { w, cols };
-      });
+      // 2026-11-27 用户：六张排成两行三列（以前竖屏三行两列、横屏一排六张）
+      const cols = 3, rows = Math.ceil(ids.length / cols);
+      const best = { cols, w: Math.floor(Math.min((vw - 36 - gap * (cols - 1)) / cols, (vh - 56 - gap * (rows - 1)) / rows / 1.4, 150)) };
       const m = document.createElement('div');
       m.className = 'zb-pick';
       const html = TB() && TB().roleCardHtml ? (id) => TB().roleCardHtml(id, { big: true, w: best.w }) : (id) => id;

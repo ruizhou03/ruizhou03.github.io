@@ -3918,6 +3918,7 @@
   async function animAskGive(e, t, prev) {
     if (game.arrow) game.arrow.remove();
     game.arrow = aim(e.from, '#e0566e');
+    if (!(prev && prev.t === 'give' && prev.from === e.from && prev.to === e.to)) favorNuzzle(e.to, e.from, t);   // 同一张索要的第二次问（贪吃猫）不再蹭一遍
     // 贪吃猫出的索要：第一次问的时候猫章亮起；被要的人头像旁边冒出两张贪吃猫橙色描边的小牌背（= 要你两张），给一张飞走一张；
     // 第二次问（同一张索要的第二张，2026-11-26 用户：以前看不出是角色技能在要第二张；小圆点太隐晦）：猫章再弹一下、剩下那张小牌背跳一下、
     // 桌沿再漾一道，灯带换成贪吃猫的橙色重连
@@ -3951,6 +3952,41 @@
     } else if (!(prev && prev.t === 'give')) game.giveTwo = false;
     await wait(ms(260));
     void t;
+  }
+  /* 索要（2026-11-27 用户：索要猫的动画可以更好看）——照牌面「蹭一张」：要牌的人头像朝被要的人歪过去蹭两下，
+   * 一串粉色小心心从他那儿一颗颗飘向对方（不出字）；给牌那一下见 animTransfer / favorLand */
+  function favorNuzzle(asker, giver, t) {
+    if (fx.reduce()) return;
+    const av = avEl(asker);
+    if (!av) return;
+    const a = avPoint(asker), b = avPoint(giver), dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
+    const lean = Math.max(-1, Math.min(1, dx / L * 1.6 + (dy < 0 ? 0 : 0.2))), tx = (dx / L * 6).toFixed(1), ty = (dy / L * 6).toFixed(1);
+    av.animate([
+      { transform: 'none' },
+      { transform: 'translate(' + tx + 'px,' + ty + 'px) rotate(' + (lean * 13).toFixed(1) + 'deg)', offset: 0.22 },
+      { transform: 'translate(' + (tx * 0.4).toFixed(1) + 'px,' + (ty * 0.4).toFixed(1) + 'px) rotate(' + (lean * 4).toFixed(1) + 'deg)', offset: 0.42 },
+      { transform: 'translate(' + tx + 'px,' + ty + 'px) rotate(' + (lean * 13).toFixed(1) + 'deg)', offset: 0.64 },
+      { transform: 'none' },
+    ], { duration: ms(760), easing: 'ease-in-out', composite: 'add' });
+    const r0 = avEl(asker).getBoundingClientRect().width / 2;
+    for (let i = 0; i < 4; i++) {
+      setTimeout(() => {
+        if (t !== token) return;
+        const k = 0.2 + i * 0.16, sx = a.x + dx / L * r0, sy = a.y + dy / L * r0 - 6;
+        fx.float(sx, sy, 'heart', { dx: dx * k + (i % 2 ? 10 : -10), dy: dy * k - 18, size: 12 + i * 2, color: PINKS[i % 3], dur: ms(900), rot: i % 2 ? 14 : -14 });
+      }, ms(120 + i * 120));
+    }
+  }
+  /* 牌给到了要牌的人：头像边「啵」地冒一颗大心（先鼓起来再飘走）+ 一圈粉色小心心炸开 + 粉色波纹，头像开心地左右晃两下 */
+  function favorLand(to, at) {
+    if (fx.reduce()) return;
+    const av = avEl(to), p = at || avPoint(to), R0 = av ? av.getBoundingClientRect().width : 44;
+    snd('ding');
+    fx.ring(p.x, p.y, { color: '#ef8f9f', size: R0 * 2.2, width: 3, dur: ms(560) });
+    fx.burst(p.x, p.y, { n: 10, shapes: ['heart'], colors: PINKS, radius: R0 * 1.15, size: [7, 14], life: ms(820), gravity: -30, pattern: 'ring' });
+    const side = p.x > innerWidth / 2 ? -1 : 1;   // 大心冒在头像朝桌心那一侧（贴屏幕边的头像别冒出屏）
+    fx.float(p.x + side * R0 * 0.5, p.y - R0 * 0.55, 'heart', { dx: side * 6, dy: -42, size: Math.round(R0 * 0.62), color: '#e0566e', dur: ms(1050), s0: 0.2, s1: 1.15, rot: 8 });
+    if (av && to !== 0) av.animate([{ transform: 'none' }, { transform: 'rotate(-9deg) scale(1.06)', offset: 0.25 }, { transform: 'rotate(8deg) scale(1.06)', offset: 0.55 }, { transform: 'rotate(-3deg)', offset: 0.8 }, { transform: 'none' }], { duration: ms(620), easing: 'ease-in-out', composite: 'add' });
   }
   // 贪吃猫：给到一张，小圆点填实一颗；两张都给了（或对方只剩一张、给完就没了）猫章才缩回
   async function fatGave(e, t) {
@@ -4025,21 +4061,27 @@
     if (e.to === 0) to = aboveSlot(reserveHandSlot(e.card));
     snd(kind === 'give' ? 'give' : 'steal');
     releaseRim();   // 牌开始飞了：桌沿那截从被指的人那头缩回出牌人
+    const gdur = ms(kind === 'give' ? 680 : 600);
     if (kind === 'give' && !fx.reduce()) {
+      // 2026-11-27：小心心沿牌真正飞的那道弧一路跟在牌后面冒（以前是另画的一条直线 + 正弦，和牌对不上），越往后越大
       const a = e.from === 0 ? fx.center(src) : src, b = e.to === 0 ? fx.center(to) : to;
-      for (let i = 1; i <= 4; i++) {
-        const tt = i / 5;
-        setTimeout(() => { if (t === token) fx.float(a.x + (b.x - a.x) * tt, a.y + (b.y - a.y) * tt - Math.sin(Math.PI * tt) * 60, 'heart', { dy: -30, size: 14 + i * 2, color: PINKS[i % 3], dur: 800 }); }, ms(520) * tt);
+      const lift = 80, cx = (a.x + b.x) / 2, cy = Math.min(a.y, b.y) - lift;
+      const eT = (q) => (q < 0.5 ? 2 * q * q : 1 - Math.pow(-2 * q + 2, 2) / 2) * 0.35 + (1 - Math.pow(1 - q, 3)) * 0.65;
+      for (let i = 1; i <= 7; i++) {
+        const q = i / 8 * 0.86, tt = eT(i / 8), uu = 1 - tt;
+        const x = uu * uu * a.x + 2 * uu * tt * cx + tt * tt * b.x, y = uu * uu * a.y + 2 * uu * tt * cy + tt * tt * b.y;
+        setTimeout(() => { if (t === token) fx.float(x + (i % 2 ? 7 : -7), y + 6, 'heart', { dx: i % 2 ? 8 : -8, dy: -26, size: 9 + i * 1.4, color: PINKS[i % 3], dur: ms(760), rot: i % 2 ? 12 : -12 }); }, gdur * q);
       }
     }
     await fx.fly({
-      html: mine ? cardHtml(e.card) : backHtml(), back: backHtml(),
+      html: mine ? cardHtml(e.card) : backHtml(), back: backHtml(), cls: kind === 'give' ? 'is-favor' : '',
       flip: mine ? (e.from === 0 ? (e.to === 0 ? null : 'down') : 'up') : null, flipAt: e.from === 0 ? 0.5 : 0.2,
       from: src, to, w: u, s0: e.from === 0 ? 1 : 0.4, s1: e.to === 0 ? 1 : 0.4, fadeOut: e.to !== 0,
-      dur: ms(600), lift: 80, r0: -8, r1: 0,
+      dur: gdur, lift: 80, r0: kind === 'give' ? -14 : -8, r1: 0,
     });
     if (t !== token) return;
-    if (e.to === 0) revealHandCard(e.card, to); else { ov.counts[e.to] += 1; renderSeat(e.to); fx.pop(avEl(e.to), { scale: 1.15 }); }
+    if (e.to === 0) revealHandCard(e.card, to); else { ov.counts[e.to] += 1; renderSeat(e.to); if (kind !== 'give') fx.pop(avEl(e.to), { scale: 1.15 }); }
+    if (kind === 'give') { const hr = e.to === 0 && e.card != null ? handRectOf(e.card) : null; favorLand(e.to, hr ? fx.center(hr) : null); }
     markVictim(-1);
     await wait(ms(220));
   }
@@ -6019,7 +6061,8 @@
       const tf = (p) => 'translate(' + (p.x - cw / 2).toFixed(1) + 'px,' + (p.y - cw * 0.7).toFixed(1) + 'px) rotate(' + (p.r || 0) + 'deg) scale(' + (p.s == null ? 1 : p.s) + ')';
       const mv = (d, a, b, dur, ease, delay) => d.animate([{ transform: tf(a) }, { transform: tf(b) }], { duration: dur, easing: ease || 'cubic-bezier(.45,0,.25,1)', delay: delay || 0, fill: 'both' }).finished.catch(() => {});
       const pile = (k, s) => ({ x: c.x - k * 0.8, y: c.y - k * 1.6, r: 0, s });   // 一摞：越上面越往左上错一点，看得出厚度
-      const pileLow = (k, s) => ({ x: c.x - k * 0.8, y: c.y + cw * 0.95 - k * 1.6, r: 0, s });   // 我抽走一张后剩下的收在桌心偏下，给抽出来的那张让路
+      const stg = rdStage(cr, c, cw, 0.9);
+      const pileLow = (k, s) => ({ x: c.x - k * 0.8, y: stg.py - k * 1.6, r: 0, s });   // 我抽走一张后剩下的收在大牌正下方，下半截露在大牌外面（见 rdStage）
       let zTop = 1;
       const lift = (d) => { d.style.zIndex = String(5 + (zTop++)); };
       const cards = seats.map(() => { const d = document.createElement('div'); d.className = 'zm-rd'; d.innerHTML = roleBackHtml(cw); els.fly.appendChild(d); nodes.push(d); lift(d); d.style.opacity = '0'; return d; });
@@ -6072,10 +6115,10 @@
       // 背面朝上飞到桌心、一路变大（停在 0.86）→ 再往前凑近放大到整张、轻轻晃两下、背后角色色的光越来越亮 →
       // 慢翻：先转到侧面（一道白光闪过），再翻过来、弹一下 → 光芒 + 星星，亮相
       const myRole = st.roles[me], tone = ART.ROLE_TONE[myRole] || ART.ROLE_TONE.fat;
-      const BW = Math.round(Math.max(150, Math.min(230, innerWidth * 0.52, cr.height * 0.82 / 1.4)));
+      const BW = stg.BW;
       const big = document.createElement('div');
       big.className = 'zm-rd-big';
-      big.style.cssText = 'left:' + (c.x - BW / 2) + 'px;top:' + (c.y - BW * 0.7) + 'px;--glow:' + tone.band;
+      big.style.cssText = 'left:' + (c.x - BW / 2) + 'px;top:' + (stg.by - BW * 0.7) + 'px;--glow:' + tone.band;
       big.style.zIndex = '200';   // 永远压在剩下那摞上面（那摞的 z 会随抽牌一路往上加）
       big.innerHTML = '<i class="zm-rd-rays"></i>' + roleFlipHtml(myRole, BW, true);
       // 2026-11-26 用户：点中那张不能一下子跳到最上层——拈起来时照旧被右边的牌压着；剩下的牌往下收成一摞让开，
@@ -6116,7 +6159,7 @@
       if (gone()) return;
       big.classList.add('is-rays', 'is-flash');
       snd('ding');
-      fx.burst(c.x, c.y, { n: 16, shapes: ['star', 'dot'], colors: ['#c9a96e', tone.band, '#fff4d6'], radius: BW * 0.95, size: [5, 13], life: 900 });
+      fx.burst(c.x, stg.by, { n: 16, shapes: ['star', 'dot'], colors: ['#c9a96e', tone.band, '#fff4d6'], radius: BW * 0.95, size: [5, 13], life: 900 });
       await fin.animate([{ transform: 'rotateY(90deg) scale(1)' }, { transform: 'rotateY(180deg) scale(1.08)', offset: 0.6 }, { transform: 'rotateY(180deg) scale(1)' }], { duration: 520, easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'forwards' }).finished.catch(() => {});
       if (gone()) return;
       big.classList.remove('is-flash');
@@ -6152,6 +6195,15 @@
       cleanup();
       if (gone()) g.roleHide = null;
     }
+  }
+  /* 亮我那张角色牌时的站位（单机联机共用）。2026-11-27 用户：翻自己角色牌那一下，底下应该还看得到那摞背面朝上的角色牌——
+   * 以前大牌正正压在那摞上、把它整摞盖没了，翻的时候像凭空在半空翻一张牌，不真实。
+   * 现在大牌稍往上挪、那摞摆在它正下方，下半截一直露在大牌下沿外面（大牌转到侧面时整摞都看得见）：像从这摞里抽了一张举起来翻 */
+  function rdStage(cr, c, cw, ps) {
+    const ph = cw * 1.4 * ps, show = ph * 0.6;
+    const BW = Math.round(Math.max(140, Math.min(230, innerWidth * 0.52, (cr.height * 0.92 - show) / 1.4)));
+    const top = c.y - (BW * 1.4 + show) / 2;
+    return { BW, by: top + BW * 0.7, py: top + BW * 1.4 + show - ph / 2 };
   }
   /* 抽角色的扇面（单机联机共用）。2026-11-26 用户：9 人局扇面太挤、点不准（以前 9 张每张只露一指宽）——
    * 7 人以上：桌子够宽（横屏 / 平板）就把扇子打开；竖屏手机放不开就改成上下两排错开：上排、下排交替（从左到右照旧是第 0、1、2… 张），下排压在上排下半截上、正好落在两张上排牌的缝里，
@@ -6390,10 +6442,10 @@
         const role = mine.role, pk = cards[mine.k];
         pk.style.zIndex = '250';
         const tone = ART.ROLE_TONE[role] || ART.ROLE_TONE.fat;
-        const BW = Math.round(Math.max(150, Math.min(230, innerWidth * 0.52, cr.height * 0.82 / 1.4)));
+        const BW = stg.BW;
         const big = document.createElement('div');
         big.className = 'zm-rd-big';
-        big.style.cssText = 'left:' + (c.x - BW / 2) + 'px;top:' + (c.y - BW * 0.7) + 'px;--glow:' + tone.band;
+        big.style.cssText = 'left:' + (c.x - BW / 2) + 'px;top:' + (stg.by - BW * 0.7) + 'px;--glow:' + tone.band;
         big.style.zIndex = '300';   // 压在扇面和别人飞去头像的小牌上面
         big.innerHTML = '<i class="zm-rd-rays"></i>' + roleFlipHtml(role, BW, true);
         const from = pk.getBoundingClientRect();
@@ -6421,7 +6473,7 @@
         if (gone()) return;
         big.classList.add('is-rays', 'is-flash');
         snd('ding');
-        fx.burst(c.x, c.y, { n: 16, shapes: ['star', 'dot'], colors: ['#c9a96e', tone.band, '#fff4d6'], radius: BW * 0.95, size: [5, 13], life: 900 });
+        fx.burst(c.x, stg.by, { n: 16, shapes: ['star', 'dot'], colors: ['#c9a96e', tone.band, '#fff4d6'], radius: BW * 0.95, size: [5, 13], life: 900 });
         await fin.animate([{ transform: 'rotateY(90deg) scale(1)' }, { transform: 'rotateY(180deg) scale(1.08)', offset: 0.6 }, { transform: 'rotateY(180deg) scale(1)' }], { duration: 520, easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'forwards' }).finished.catch(() => {});
         if (gone()) return;
         big.classList.remove('is-flash');
@@ -6479,9 +6531,10 @@
       await wait(250);
       if (gone()) return;
       const pileAt = (k, y0) => ({ x: c.x - k * 0.8, y: y0 - k * 1.6, r: 0, s: 1 });
+      const stg = rdStage(cr, c, cw, 1);
       const m = parked.length;
       parked.forEach((p, i) => {
-        const el = cards[p.k], k = m - 1 - i, to = pileAt(k, c.y + cw * 0.95);
+        const el = cards[p.k], k = m - 1 - i, to = pileAt(k, stg.py);
         el.querySelectorAll('.zm-rd-who').forEach((t) => t.animate([{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(.4)' }], { duration: 200, fill: 'forwards' }));
         el.getAnimations().forEach((a) => { try { a.commitStyles(); } catch (e) { /* 拿不到就算了 */ } a.cancel(); });
         el.style.filter = '';
