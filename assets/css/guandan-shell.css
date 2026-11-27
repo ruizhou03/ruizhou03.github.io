@@ -583,6 +583,13 @@ body.gd-game-fullscreen .guandan-wrap .gd-sort-actions { bottom: calc(6px + env(
 body.gd-game-fullscreen .guandan-wrap .gd-table { --gd-hand-l: 62px; --gd-hand-r: 56px; }
 body.gd-game-fullscreen .guandan-wrap .gd-hand { padding-bottom: 2px; }
 body.gd-game-fullscreen .guandan-wrap .gd-table { padding-bottom: calc(2px + env(safe-area-inset-bottom, 0px)); }
+/* 2026-11-27 用户：下家出 5 张就被叠成一摞。出牌槽原来居中，整排离按钮近、一挤就叠；改成贴着各自头像往桌心长 */
+body.gd-game-fullscreen .guandan-wrap #gdPlay1:not(.gd-revealing) { align-items: flex-end; }
+body.gd-game-fullscreen .guandan-wrap #gdPlay3:not(.gd-revealing) { align-items: flex-start; }
+/* 2026-11-27 用户：手牌整体再往下一丢丢。iPhone 横屏底部安全区约 21px（微信里牌离底边空了一大截），
+   手牌只让出其中四成（~8px，避开 Home 条），按钮行跟着一起下移；头像 / 理牌按钮不动。 */
+body.gd-game-fullscreen .guandan-wrap .gd-table { --gd-sab: calc(env(safe-area-inset-bottom, 0px) * 0.4); padding-bottom: calc(2px + var(--gd-sab)); }
+body.gd-game-fullscreen .guandan-wrap .gd-play-band { bottom: calc(var(--gd-band-bottom, 200px) + var(--gd-sab)); }
 
 /* 10. 局终摊牌：就在各家出牌区摊开，小一号、一张张滑出来，不另开一幕 */
 .guandan-wrap .gd-played.gd-revealing { --gd-card-w: calc(var(--u, 46px) * 0.74); --gd-card-h: calc(var(--u, 46px) * 0.74 * 1.44); min-height: 0; }
@@ -690,7 +697,15 @@ body.gd-game-fullscreen .guandan-wrap .gd-pass-big { display: none; }
 .guandan-wrap #gdSeat3 .gd-pass-tag { left: calc(100% + 12px); top: 23px; --gd-pass-t: translateY(-50%); transform: var(--gd-pass-t); }
 .guandan-wrap #gdSeat1 .gd-pass-tag { right: calc(100% + 12px); top: 23px; --gd-pass-t: translateY(-50%); transform: var(--gd-pass-t); }
 .guandan-wrap #gdSeat2 .gd-pass-tag { left: 23px; top: calc(100% + 10px); --gd-pass-t: translateX(-50%); transform: var(--gd-pass-t); }
-.guandan-wrap #gdSeat0 .gd-pass-tag { left: 0; bottom: calc(100% + 12px); --gd-pass-t: none; transform: none; }
+.guandan-wrap #gdSeat0 .gd-pass-tag { display: none !important; }
+/* 2026-11-27 用户：我自己的「不出」应该出现在我的出牌区（按钮那一行、我打出的牌平时出现的地方），不在头像上面 */
+body.gd-game-fullscreen .guandan-wrap #gdPlay0Center .gd-pass-big {
+  display: block; white-space: nowrap; pointer-events: none;
+  font: 700 22px/1 var(--gd-serif); letter-spacing: 0.12em; color: var(--gd-ink-mute, #6b645a);
+  text-shadow: 0 0 6px var(--gd-paper), 0 0 2px var(--gd-paper);
+  background: none; border: 0; box-shadow: none; padding: 0; text-indent: 0;
+  top: 50%;   /* 就在我打出的牌会出现的那一格正中（按钮那一行） */
+}
 
 /* R3-2. 自己的头像回到左下角：右下角小圆标写剩几张；点头像弹出「托管」，托管中机器人一直亮着 */
 body.gd-game-fullscreen .guandan-wrap .gd-self-bar { left: 8px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); gap: 0; display: block; }
@@ -813,3 +828,18 @@ body.gd-game-fullscreen .guandan-wrap .gd-btn:not([hidden]),
 
 /* R3c-1. 进 / 还贡不再给牌做任何标记（2026-11-27 用户：飘带太丑；大家都知道那是进贡 / 还贡的牌） */
 .guandan-wrap .gd-tribute-tag { display: none !important; }
+
+/* R4-1. 牌面统一（2026-11-27 用户：选中 / 打出去时牌面样子不统一，换手机、换大小也会变）：
+   点数和 JOKER 原来写的是 Cormorant（本页没加载 → iPhone 落到 Georgia、安卓落到别的衬线体），
+   改用随页面下发的 ZM Num（Gelasio，和 Georgia 同一套字宽），各手机一样；横排竖排的 JOKER 也用同一个字体。
+   花色 / 星星 / 皇冠已在 guandan.js 里改成矢量。 */
+.guandan-wrap .gd-card .q-tl,
+.guandan-wrap .gd-card.is-joker .q-tr,
+.guandan-wrap .gd-card.is-joker .q-bl { font-family: var(--gd-num); }
+/* R4-2. 选中态：原来是「灰化 + 半透明 0.78」——半透明会把压在下面那张牌的大花色透出来（选中的大小王里能看到两顶皇冠），
+   红色也被灰化成褐色，跟打出去的同一张牌对不上。改成牌面原样不动，只盖一层淡墨 + 描边。 */
+.guandan-wrap .gd-rank-col .gd-card.size-full.selected { filter: none; opacity: 1; }
+.guandan-wrap .gd-rank-col .gd-card.size-full.selected::before {
+  content: ''; position: absolute; inset: 0; z-index: 5; pointer-events: none; border-radius: inherit;
+  background: rgba(29, 27, 24, 0.24); box-shadow: inset 0 0 0 2px var(--gd-accent, #1d1b18);
+}
