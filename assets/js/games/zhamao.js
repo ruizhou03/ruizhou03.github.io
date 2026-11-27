@@ -11,8 +11,12 @@
   const T = R.T;   // 多语言：T('键', '简体原文', { 占位 })，见 zhamao-rules.js。站点网页不装语言包时原样返回简体
   const LANG = R.lang();
   const AI = window.ZhamaoAI;
-  const HL = window.ZhamaoHlog || null;   // 真人单机对局匿名日志（zhamao-hlog.js，2026-11-19）
-  const WAL = window.ZhamaoWallet || null;   // 小鱼干（zhamao-wallet.js，2026-11-22）：单机开局领票、名次定下来就结算
+  /* 商店预览（2026-11-27）：商店把这一页用 ?zmshow=1 嵌成小窗（见 index.html 顶上）——3 人普通经典局、我也交给机器猫、不限时，
+   * 打完直接再开一局；不扣门票、不记日志、不连联机、不出声、不存档 */
+  const SHOW = !!window.ZM_SHOW;
+  if (SHOW) window.ZhamaoAudio = null;
+  const HL = SHOW ? null : window.ZhamaoHlog || null;   // 真人单机对局匿名日志（zhamao-hlog.js，2026-11-19）
+  const WAL = SHOW ? null : window.ZhamaoWallet || null;   // 小鱼干（zhamao-wallet.js，2026-11-22）：单机开局领票、名次定下来就结算
   const ART = window.ZhamaoArt;
   const AV = window.GongzhuAvatars || null;
   const TUT = window.ZhamaoTutorial || null;
@@ -95,6 +99,7 @@
   if (!(settings.players >= R.MIN_PLAYERS && settings.players <= R.MAX_PLAYERS)) settings.players = 4;
   if (AI.TIERS.indexOf(settings.tier) < 0) settings.tier = 'normal';
   const saveSettings = () => writeJSON(SETTINGS_KEY, settings);
+  if (SHOW) Object.assign(settings, { players: 3, tier: 'normal', turnSec: 0, rules: R.normalizeRules({ mode: 'classic' }) });
 
   let game = null;      // { state, bots: [{nick, avatar}], tiers: [], tutorial }
   let token = 0;        // 重开 / 退出时作废旧的异步流程
@@ -118,7 +123,7 @@
    * 「离开」从最后一次存档算起：每步都存、切后台 / 关页面 / 回主页面也会存一次，所以就是「最后一次还在玩」的时候 */
   const STALE_MS = 30 * 60 * 1000;
   function save() {
-    if (!game || game.tutorial || game.online || game.stale) return;
+    if (SHOW || !game || game.tutorial || game.online || game.stale) return;
     if (game.state.phase === 'over') { try { localStorage.removeItem(STORE_KEY); } catch (_) { /* 无痕 */ } return; }
     const back = game.pov ? game.state.n - game.pov : 0;   // 观战时桌子是转过的：存回我自己坐在 0 号的样子
     writeJSON(STORE_KEY, { v: VERSION, t: Date.now(), state: rotState(game.state, back), bots: rotSeats(game.bots, back), tiers: rotSeats(game.tiers, back), openKits: game.openKits ? Array.from(game.openKits) : [], hl: game.hl || null, wt: game.wt || null });   // 火眼露在牌堆里的那几只也存上
@@ -6856,6 +6861,7 @@
     const won = team ? R.teamOf(s, 0) === s.winnerTeam : s.winner === 0;
     const ok = await celebrate(s.winner, team ? winners : null);
     if (!ok) return;
+    if (SHOW) { const g0 = game; setTimeout(() => { if (game === g0) newGame(); }, 900); return; }   // 商店预览：不出排行榜，接着下一局
     if (game.tutorial && tut && tut.mini) { showCoach(tut.finish ? tut.finish(won) : [], lessonDone); return; }
     if (game.tutorial) {
       markLesson('basic');
@@ -7895,7 +7901,7 @@
     if (WAL && game) WAL.settle(game);   // 上一局我已经出局、没等打完就开新局：名次已定，先结掉
     resetTable();
     viewSeat = -1; els.app.classList.remove('is-watching', 'is-spectator'); els.me.classList.remove('is-watched');
-    autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
+    autopilot = SHOW; timeouts = 0; els.me.classList.remove('is-auto');
     tut = null;
     els.skipTut.hidden = true;
     const nr = R.normalizeRules(settings.rules), n = nr.mode === 'team' ? R.teamPlayers(nr) : settings.players;
@@ -8484,7 +8490,7 @@
    *     需要哪张牌露面时，就把它和占位的那张对调（putInHand / putTop），别人看不见的地方怎么摆都无所谓。
    *   · 一组播完、队列空了：拿镜像和服务器最新快照对一遍（sameAsSnapshot），对不上就按快照重摆（resync），不播动画
    *   · 我的操作（出牌 / 摸牌 / 作废 / 取消 / 给牌 / 塞回……）都发给服务器，等它推回事件再播；自己不先动 */
-  const NET = window.ZhamaoNet && window.ZhamaoNet.ENABLED ? window.ZhamaoNet : null;
+  const NET = !SHOW && window.ZhamaoNet && window.ZhamaoNet.ENABLED ? window.ZhamaoNet : null;
   let online = null;   // { code, token, st, base, n, matchNo, lastQueued, queue, playing, poll, pendingSrc, skew, inGame }
   const G = () => online && online.st && online.st.game;
   const locOf = (s) => (s == null || s < 0 || !online ? s : (s - online.base + online.n) % online.n);
@@ -10514,6 +10520,7 @@
       await sleep(Math.max(0, 900 - (performance.now() - t0)));
       bump(1);
       await sleep(240);
+      if (SHOW) { els.app.classList.add('is-show'); newGame(); return; }
       if (!els.cover.hidden) coverReveal();
       // 联机：邀请链接 ?room=1234 → 直接弹「加入」；上次的房间还在 → 直接接回去
       const invite = (new URLSearchParams(location.search).get('room') || '').replace(/\D/g, '').slice(0, 4);

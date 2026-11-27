@@ -177,14 +177,23 @@
 .zb-pick-in{display:grid;grid-template-columns:repeat(3,auto);gap:12px;padding:16px;background:#f3eee3;border-radius:14px;border:1px solid #1d1b18}
 .zb-pick-in button{border:0;background:none;padding:0;border-radius:9px}
 .zb-pick-in button[aria-pressed=true]{box-shadow:0 0 0 3px #b4392c}
-.zb-ctr{position:absolute;left:50%;transform:translateX(-50%);z-index:1;pointer-events:none;display:flex;background:rgba(255,253,248,.92);border:1px solid rgba(29,27,24,.55);border-radius:5px;box-shadow:0 1px 0 rgba(29,27,24,.08);max-width:calc(100% - 12px);overflow:hidden}
-.zb-ctr span{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:19px;padding:1px 1px 0;font-size:10px;font-weight:700;line-height:1;color:#1d1b18;font-family:'ZM Num','ZM Serif',serif}
-.zb-ctr span+span{border-left:1px solid rgba(29,27,24,.14)}
-.zb-ctr span svg{width:11px;height:11px}
-.zb-ctr span.z{color:#c2bbaf}
-.zb-ctr span.z svg{opacity:.3;filter:grayscale(1)}
+.zb-ctrb{position:absolute;right:calc(100% + 9px);bottom:1px;width:24px;height:24px;padding:0;border:0;border-radius:5px;background:#b4392c;box-shadow:0 1px 0 rgba(29,27,24,.35),inset 0 0 0 1.5px rgba(251,246,236,.55);transform:rotate(-6deg);cursor:pointer;display:grid;place-items:center;pointer-events:auto;-webkit-tap-highlight-color:transparent}
+.zb-ctrb svg{width:17px;height:17px;display:block}
+.zb-ctrb:active{transform:rotate(-6deg) scale(.92)}
+.zb-ctrb::after{content:'';position:absolute;inset:-10px}
+.zb-ctrp{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(243,238,227,.5);-webkit-backdrop-filter:blur(1px);backdrop-filter:blur(1px);animation:zb-fade .18s ease both}
+.zb-ctrp-in{display:grid;grid-template-columns:repeat(5,auto);gap:10px 8px;padding:14px 14px 12px;background:#fffdf8;border:1.5px solid #1d1b18;border-radius:14px;box-shadow:0 10px 26px rgba(20,18,15,.2);max-width:calc(100vw - 28px);position:relative}
+.zb-ctrp-in::before{content:'';position:absolute;left:-6px;top:-6px;width:22px;height:22px;border-radius:5px;background:#b4392c url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg stroke='%23fbf6ec' stroke-width='2' stroke-linecap='round' fill='none'%3E%3Cpath d='M5 5.2h10M10 5.2v9.6M10 9.8h4M6 9.2v5.6M4.2 14.8h11.6'/%3E%3C/g%3E%3C/svg%3E") center/15px no-repeat;transform:rotate(-6deg);box-shadow:0 1px 0 rgba(29,27,24,.3)}
+.zb-ctrp-in span{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;width:44px}
+.zb-ctrp-in i{display:grid;place-items:center;width:38px;aspect-ratio:100/130;border-radius:7px;background:var(--bg);border:1.5px solid #fff;box-shadow:0 1px 3px rgba(29,27,24,.24)}
+.zb-ctrp-in i svg{width:84%;height:auto}
+.zb-ctrp-in b{position:absolute;right:-1px;top:34px;min-width:19px;height:19px;padding:0 4px;border-radius:10px;background:#1d1b18;color:#fbf6ec;font:700 12px/19px 'ZM Num','ZM Serif',serif;text-align:center;box-shadow:0 0 0 1.5px #fffdf8}
+.zb-ctrp-in small{font-size:11px;line-height:1;color:#6a6358;white-space:nowrap}
+.zb-ctrp-in span.z i{opacity:.35;filter:grayscale(1)}
+.zb-ctrp-in span.z b{background:#d9d2c5;color:#8a8274}
+.zb-ctrp-in span.z small{color:#b4ab9c}
+@keyframes zb-fade{from{opacity:0}to{opacity:1}}
 .zb-cnt-br .zm-seat-me .zm-count{top:auto!important;bottom:-7px!important;right:-9px!important;left:auto!important}
-.zb-ls-av.me .zb-ls-n{top:auto;bottom:-7px}
 .zb-cnt-br .zm-seat-me .zm-turns{left:calc(100% + 14px)!important}
 .zb-x2m{position:absolute;right:-14px;bottom:24px;z-index:4;font-size:9px;font-weight:700;color:#b4392c;background:#fbf6ec;border:1px solid #b4392c;border-radius:4px;padding:1px 2px;line-height:1;transform:rotate(-10deg);font-family:'ZM Num','ZM Serif',serif;opacity:.9}
 .zb-cf{position:absolute;inset:0;z-index:5;background:rgba(29,27,24,0);display:flex;align-items:center;justify-content:center;transition:background .2s}
@@ -202,7 +211,7 @@
 .zb-x2s{display:inline-flex;align-items:center;justify-content:center;margin-left:6px;font-size:12px;font-weight:700;color:#fbf6ec;background:#b4392c;border-radius:50%;width:24px;height:24px;transform:rotate(-12deg);vertical-align:middle}
 .zb-frame{position:absolute;inset:-6px;pointer-events:none;z-index:2}
 .zb-frame svg{width:100%;height:100%;overflow:visible!important;border-radius:0!important}
-.zb-pv.av>svg,.zb-ls-av>svg{overflow:visible;border-radius:0}
+.zb-pv.av>svg{overflow:visible;border-radius:0}
 .zb-fxp{position:fixed;left:0;top:0;pointer-events:none;z-index:2147483500;will-change:transform,opacity}
 .zb-card{border:1px solid #1d1b18;background:#fffdf8;border-radius:12px;padding:12px;margin-bottom:10px}
 .zb-card .h{display:flex;align-items:center;justify-content:space-between;font-weight:700;margin-bottom:8px}
@@ -291,31 +300,11 @@
 .zb-sub{display:block;margin-top:3px;font-size:11.5px;font-weight:400;color:#8a8275}
 .zb-shop{display:flex;flex-direction:column}
 .zb-shop .zb-scene-wrap{padding:10px 12px 0;flex:1;min-height:0;display:flex}
+.zb-scene-if{position:absolute;left:0;top:0;border:0;transform-origin:0 0;pointer-events:none;opacity:0;transition:opacity .45s;background:transparent}
+.zb-scene.is-live .zb-scene-if{opacity:1}
+/* 嵌在商店里的那局（?zmshow=1）：没有按钮、顶栏，只看牌局 */
+.zm-app.is-show .zm-band,.zm-app.is-show .zm-topbar,.zm-app.is-show .zm-cover{visibility:hidden!important}
 .zb-shop .zb-scene{--zm-ink:#1d1b18;--zm-card:#fffdf8;--u:60px;flex:1;height:auto;min-height:300px;max-height:560px;position:relative;border-radius:14px;border:1px solid #1d1b18;outline:none;overflow:hidden;transition:background-color .35s;background-color:#f3eee3}
-.zb-ls-rim{position:absolute;left:9%;right:9%;top:13%;bottom:calc(var(--hh,100px) + 36px);border:2px solid rgba(201,162,74,.28);border-radius:22px;pointer-events:none}
-.zb-ls-opp{position:absolute;top:5%;display:flex;flex-direction:column;align-items:center;gap:3px;transform:translateX(-50%)}
-.zb-ls-opp.o0{left:37%}.zb-ls-opp.o1{left:63%}
-.zb-ls-opp small{font-size:12px;color:#1d1b18}
-.zb-ls-av{position:relative;width:46px;height:46px;border-radius:50%;box-shadow:0 0 0 1.5px #1d1b18;background:#ebe5d8;display:block;transition:box-shadow .25s}
-.zb-ls-av.me{width:50px;height:50px}
-.zb-ls-av.is-act{box-shadow:0 0 0 1.5px #1d1b18,0 0 0 5px rgba(227,182,74,.55)}
-.zb-ls-av svg{position:absolute;inset:-6px;width:calc(100% + 12px);height:calc(100% + 12px);overflow:visible}
-.zb-ls-av .zb-face svg{position:static;width:100%;height:100%}
-.zb-ls-n{position:absolute;right:-9px;top:-7px;min-width:19px;height:21px;border-radius:5px;background:#2f4a6d;color:#fffdf8;font:700 12px/21px 'ZM Num',Georgia,serif;text-align:center;box-shadow:2px 2px 0 rgba(29,27,24,.22);z-index:3}
-.zb-ls-piles{position:absolute;left:50%;top:calc((100% - var(--hh,100px)) * .55);transform:translate(-50%,-50%);display:flex;gap:26px;align-items:center}
-.zb-ls-deck{position:relative;width:54px;aspect-ratio:100/140;display:block}
-.zb-ls-deck>i{position:absolute;inset:0;border-radius:6px;background:#ece3cf;border:1px solid rgba(29,27,24,.25)}
-.zb-ls-deck>i:nth-child(1){transform:translate(1px,2px)}.zb-ls-deck>i:nth-child(2){transform:translate(0,0)}.zb-ls-deck>i:nth-child(3){transform:translate(-1px,-2px)}
-.zb-ls-top{position:absolute;inset:0;transform:translate(-1px,-4px);display:block}
-.zb-ls-top .zm-card,.zb-ls-fly .zm-card,.zb-ls-dc .zm-card,.zb-ls-hc .zm-card{width:100%!important;position:static}
-.zb-ls-top svg,.zb-ls-fly>svg{width:100%;height:auto;display:block}
-.zb-ls-disc{width:54px;aspect-ratio:100/140;display:block;border-radius:6px;box-shadow:inset 0 0 0 1.5px rgba(29,27,24,.12)}
-.zb-ls-dc{display:block;width:100%}
-.zb-ls-me{position:absolute;left:calc(9% - 6px);bottom:calc(var(--hh,100px) + 11px)}
-.zb-ls-hand{position:absolute;left:0;right:0;bottom:0;height:var(--hh,100px)}
-.zb-ls-hc{position:absolute;left:0;bottom:4px;display:block;transition:transform .3s cubic-bezier(.3,1.4,.5,1)}
-.zb-ls-hc .zm-card{box-shadow:-2px 0 6px rgba(29,27,24,.08)}
-.zb-ls-fly{position:absolute;left:0;top:0;z-index:6;display:block;pointer-events:none;filter:drop-shadow(0 6px 8px rgba(29,27,24,.25))}
 .zb-shop .zb-tabs{padding:12px 12px 0}
 .zb-shop .zb-tabs button{position:relative;font-size:14px;height:34px;color:#1d1b18}
 .zb-shop .zb-tabs button[aria-pressed=true]{color:#fbf6ec}
@@ -339,7 +328,30 @@
 .zb-cf-row span small{font-size:12px}
 .zb-cf-row>i{font-style:normal;font-size:13px;display:inline-flex;align-items:center;gap:2px}
 .zb-cf-row>i svg{width:16px;height:10px}
-.zb-items.zr-box{margin-top:10px;padding:12px 8px 10px}
+.zb-items.zr-box{display:block;margin-top:10px;padding:9px 10px 13px}
+.zb-ih{display:flex;align-items:center;justify-content:space-between;margin:0 2px 9px;font-size:13px;line-height:18px}
+.zb-ih b{font-weight:700;color:#1d1b18;letter-spacing:.04em}
+.zb-ih em{font-style:normal;color:#8a8274;display:inline-flex;align-items:center;gap:2px}
+.zb-ih em.on{color:#b4392c;font-family:'ZM Num','ZM Serif',serif}
+.zb-ih em svg{width:15px;height:9px}
+.zb-dress{padding:9px 10px 11px!important}
+.zb-dr-h{font-size:14px;margin:0 2px 8px}
+.zb-dr-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.zb-dr-c,.zb-dr-o{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;padding:4px 0 2px;border-radius:10px;font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.zb-dr-c small,.zb-dr-o small{font-size:11.5px;color:#6a6358;white-space:nowrap}
+.zb-dr-c[aria-pressed=true]{background:rgba(29,27,24,.06)}
+.zb-dr-c[aria-pressed=true] small{color:#1d1b18;font-weight:700}
+.zb-dr-pv{width:52px;height:52px;display:grid;place-items:center}
+.zb-dr-pv>.zb-pv{transform:scale(.72);flex:none}
+.zb-dr-pv>.zb-pv.av{transform:scale(.62);margin:0}
+.zb-dr-pv>i{font-style:normal;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;border:1.5px dashed rgba(29,27,24,.3)}
+.zb-dr-pv>i svg{width:24px;height:15px}
+.zb-dr-opts{display:flex;gap:4px;overflow-x:auto;margin-top:8px;padding:8px 2px 2px;border-top:1px solid rgba(29,27,24,.12);scrollbar-width:none}
+.zb-dr-opts::-webkit-scrollbar{display:none}
+.zb-dr-o{flex:none;width:64px}
+.zb-dr-o .zb-on{top:0;right:4px;transform:scale(.8)}
+.zb-dr-shop small{color:#b4392c}
+.zb-items.is-lock{opacity:.55;pointer-events:none}
 .zb-items .zr-chips{justify-content:space-around}
 .zb-it2{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;flex:1;max-width:72px;border:0;background:none;padding:0;font:inherit;color:inherit;-webkit-tap-highlight-color:transparent;cursor:pointer}
 .zb-it2 .zr-mc{transition:box-shadow .2s,transform .2s}
@@ -354,7 +366,7 @@
 .zb-it2[aria-pressed=true] .pr{color:#b4392c;border-top-color:rgba(180,57,44,.35)}
 ` + Object.keys(BACK_FILL).filter((k) => k !== 'navy').map((k) => `.zb-back-${k} .zm-card.is-back svg>rect:first-child{fill:${BACK_FILL[k]}}`).join('\n') + '\n' +
       `.zb-back-gilt .zm-card.is-back svg>rect:nth-child(2){stroke:#f3d58a}\n` +
-      Object.keys(FELT).filter((k) => FELT[k]).map((k) => `.zb-felt-${k}.zm-app{background-color:${FELT[k]}}\n.zb-felt-${k} .zm-table{${feltStyle(k)}}`).join('\n');
+      Object.keys(FELT).filter((k) => FELT[k]).map((k) => `.zb-felt-${k}.zm-app{${feltStyle(k)}}`).join('\n');
     const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
 
     // ── 假广告（接口照微信激励视频：show() 之后 onClose({ isEnded })；以后换真的只改这里）──
@@ -453,7 +465,6 @@
     function actHtml() {
       const nb = toBuy();
       if (nb.length) { const t = nb.reduce((s, c) => s + priceOf(c, sel[c]), 0); return '<button type="button" class="zb-big is-red" data-act="buy"' + (bal() < t ? ' disabled' : '') + '>购买' + (nb.length > 1 ? ' ' + nb.length + ' 件' : '') + ' ' + FISH() + fmt(t) + '</button>'; }
-      if (CATS_ORDER.some((c) => d.use[c] !== sel[c])) return '<button type="button" class="zb-big" data-act="use">使用</button>';
       return '<button type="button" class="zb-big is-idle" disabled aria-hidden="true"></button>';   // 已经是这一身：按钮收起（留着位置不跳）
     }
     function shopHtml() {
@@ -523,7 +534,12 @@
       const a = e.target.closest('[data-zb]');
       if (a) { if (a.dataset.zb === 'close') closeShop(); if (a.dataset.zb === 'ledger') openLedger(); return; }
       const o = e.target.closest('[data-o]');
-      if (o) { sel[tab] = o.dataset.o; paintShop(true); if (tab === 'fx' && scene) scene.poke(); return; }
+      if (o) {
+        sel[tab] = o.dataset.o;
+        /* 11-27 用户：对局中退到商店换了装扮，回牌桌还是原样 → 点一款已经有的 = 当场换上（不用再按「使用」）；没买的只在上面那局里预览 */
+        if (owns(tab, sel[tab]) && d.use[tab] !== sel[tab]) { d.use[tab] = sel[tab]; save(); applyLook(); }
+        paintShop(true); if (tab === 'fx' && scene) scene.poke(); return;
+      }
       const act = e.target.closest('[data-act]');
       if (!act || act.disabled) return;
       if (act.dataset.act === 'use') { Object.assign(d.use, sel); save(); applyLook(); paintShop(true); return; }
@@ -536,100 +552,33 @@
       });
     }
 
-    /* ── 商店顶上那局：照真牌桌的样子摆（两只机器猫、牌堆、弃牌堆、我的头像和手牌），自己一直打下去 ──
-     * 一轮：左边机器猫出一张 → 右边机器猫摸一张 → 我出一张（放出牌特效）→ 我摸一张；换款当场换到这张桌上 */
-    // 只出不用再选人 / 看牌的牌（洗牌、预知这些在真牌桌上有自己的动画，这里做不像，2026-11-27 用户）
-    const PLAYS = ['skip', 'attack', 'nope', 'reverse', 'bottom', 'tattack'];
-    const MINE = ['skip', 'attack', 'reverse', 'bottom', 'tattack'];
-    const HAND0 = ['defuse', 'skip', 'orange', 'attack', 'tabby'];
-    const DRAWS = ['reverse', 'calico', 'skip', 'cow', 'bottom', 'nope', 'attack', 'siamese', 'tattack'];
+    /* ── 商店顶上那局（11-27 第六轮，用户：以前是摆出来的假局，和真对局有明显失真 → 换成真对局）──
+     * 把游戏页本身用 ?zmshow=1 嵌进来：3 人普通经典局，我也交给机器猫，打完接着开下一局（zhamao.js 里 SHOW 那几处）。
+     * 小窗按 390 宽的手机来排版、整体缩小塞进框里，底边对齐（手牌一定露全，顶栏被裁掉）；不接点按。
+     * 换款：postMessage 把这一身发进去，小窗里的内测脚本当场换上；挑出牌特效时在弃牌堆上先放一下 */
     function liveScene(el, look0) {
-      let look = Object.assign({}, look0), alive = true, t = 0, step = 0, di = 0, pi = 0;
-      const card = (k) => (TB() ? TB().cardHtml(k) : '');
-      const a = AVS(), bots = a && a.ROBOT ? [a.ROBOT[3], a.ROBOT[1]] : [{ svg: '' }, { svg: '' }];
-      const cnt = [5, 5];
-      el.innerHTML = '<div class="zb-ls-rim"></div>' +
-        [0, 1].map((i) => '<div class="zb-ls-opp o' + i + '"><span class="zb-ls-av"><span class="zb-face">' + bots[i].svg + '</span><b class="zb-ls-n">' + cnt[i] + '</b></span><small>' + ['贝塔', '欧米伽'][i] + '</small></div>').join('') +
-        '<div class="zb-ls-piles"><span class="zb-ls-deck"><i></i><i></i><i></i><span class="zb-ls-top"></span></span><span class="zb-ls-disc"></span></div>' +
-        '<div class="zb-ls-me"><span class="zb-ls-av me"></span></div>' +
-        '<div class="zb-ls-hand"></div>';
-      const $q = (s) => el.querySelector(s);
-      const disc = $q('.zb-ls-disc'), hand = $q('.zb-ls-hand');
-      disc.innerHTML = '<span class="zb-ls-dc">' + card('nope') + '</span>';
-      let hk = HAND0.slice();
-      function paintLook() {
-        el.setAttribute('style', feltStyle(look.felt));
-        $q('.zb-ls-top').innerHTML = backOf(look.back);
-        $q('.zb-ls-me .zb-ls-av').innerHTML = myFace() + (FRAME_SVG[look.frame] || '') + '<b class="zb-ls-n">' + hk.length + '</b>';
-      }
-      function layoutHand() {   // 照真牌桌：一排立着、底边对齐，放不下才一张压一张
-        const n = hk.length, w = el.clientWidth, cw = Math.min(66, (w - 12) / 5), room = w - 12;
-        const stepX = n * cw <= room ? cw : (room - cw) / Math.max(1, n - 1), x0 = w / 2 - (stepX * (n - 1) + cw) / 2;
-        el.style.setProperty('--hh', Math.round(cw * 1.4 + 8) + 'px');
-        el.style.setProperty('--u', cw.toFixed(1) + 'px');   // 牌面圆角、描边照真牌桌（.zm-card 读 --u / --zm-ink / --zm-card）
-        [...hand.children].forEach((c, i) => { c.style.width = cw + 'px'; c.style.transform = 'translate(' + (x0 + i * stepX).toFixed(1) + 'px,0)'; });
-        const me = $q('.zb-ls-me .zb-ls-n'); if (me) me.textContent = n;
-      }
-      function paintHand() { hand.innerHTML = hk.map((k) => '<span class="zb-ls-hc">' + card(k) + '</span>').join(''); layoutHand(); }
-      const rel = (node) => { const r = node.getBoundingClientRect(), s = el.getBoundingClientRect(); return { x: r.left - s.left + r.width / 2, y: r.top - s.top + r.height / 2, w: r.width }; };
-      function fly(html, from, to, w, dur, rot) {   // 一张牌从 from 飞到 to（牌桌里的坐标，牌心）
-        const f = document.createElement('span');
-        f.className = 'zb-ls-fly'; f.style.width = w + 'px'; f.innerHTML = html;
-        el.appendChild(f);
-        const h = w * 1.4;
-        return f.animate([{ transform: 'translate(' + (from.x - w / 2) + 'px,' + (from.y - h / 2) + 'px) scale(' + (from.s || 1) + ') rotate(' + (rot ? rot[0] : 0) + 'deg)' }, { transform: 'translate(' + (to.x - w / 2) + 'px,' + (to.y - h / 2) + 'px) scale(' + (to.s || 1) + ') rotate(' + (rot ? rot[1] : 0) + 'deg)' }],
-          { duration: dur, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' }).finished.then(() => f, () => f);
-      }
-      const dcW = () => $q('.zb-ls-dc').getBoundingClientRect().width || 50;
-      function land(k, f) { disc.innerHTML = '<span class="zb-ls-dc" style="transform:rotate(' + ((Math.random() * 16 - 8).toFixed(1)) + 'deg)">' + card(k) + '</span>'; if (f) f.remove(); }
-      function acting(i) { el.querySelectorAll('.zb-ls-av').forEach((x) => x.classList.remove('is-act')); const av = i < 2 ? el.querySelectorAll('.zb-ls-opp .zb-ls-av')[i] : $q('.zb-ls-me .zb-ls-av'); if (av) av.classList.add('is-act'); }
-      function playFx(at) { if (look.fx !== 'none') burst(look.fx, at, el); }
-      async function tick() {
-        if (!alive || !el.isConnected) return;
-        const s = step++ % 4;
-        try {
-          if (s === 0) {   // 左边机器猫出一张
-            acting(0);
-            const k = PLAYS[pi++ % PLAYS.length], from = rel(el.querySelectorAll('.zb-ls-opp .zb-ls-av')[0]);
-            from.s = 0.5; cnt[0] = Math.max(2, cnt[0] - 1); el.querySelectorAll('.zb-ls-opp .zb-ls-n')[0].textContent = cnt[0];
-            const f = await fly(card(k), from, rel(disc), dcW(), 520, [-20, 4]); land(k, f);
-          } else if (s === 1) {   // 右边机器猫摸一张
-            acting(1);
-            const to = rel(el.querySelectorAll('.zb-ls-opp .zb-ls-av')[1]); to.s = 0.45;
-            const f = await fly(backOf(look.back), rel($q('.zb-ls-top')), to, dcW(), 520, [0, 12]); f.remove();
-            cnt[1] = Math.min(7, cnt[1] + 1); el.querySelectorAll('.zb-ls-opp .zb-ls-n')[1].textContent = cnt[1];
-          } else if (s === 2) {   // 我出一张：先抬起来，再飞到弃牌堆、放特效
-            acting(2);
-            const can = hk.map((k, i) => (MINE.includes(k) ? i : -1)).filter((i) => i >= 0);
-            if (!can.length) { t = setTimeout(tick, 200); return; }
-            const idx = can[(Math.random() * can.length) | 0], node = hand.children[idx];
-            node.style.transform += ' translateY(-20px)';
-            await new Promise((r) => setTimeout(r, 380));
-            if (!alive) return;
-            const k = hk[idx], from = rel(node);
-            hk.splice(idx, 1); node.remove(); layoutHand();
-            const f = await fly(card(k), from, rel(disc), dcW(), 420, [0, -5]); land(k, f);
-            playFx(disc);
-          } else {   // 我摸一张：牌背从牌堆飞进手里，翻过来
-            const k = DRAWS[di++ % DRAWS.length];
-            hk.push(k); paintHand();
-            const last = hand.lastElementChild; last.style.visibility = 'hidden';
-            const f = await fly(backOf(look.back), rel($q('.zb-ls-top')), rel(last), last.getBoundingClientRect().width, 520, [0, 0]);
-            f.remove(); last.style.visibility = '';
-            last.animate([{ transform: last.style.transform + ' scaleX(0)' }, { transform: last.style.transform }], { duration: 200, easing: 'ease-out' });
-            if (hk.length > 7) { hk = HAND0.slice(); paintHand(); }
-          }
-        } catch (_) { /* 预览：出错也别停 */ }
-        if (alive) t = setTimeout(tick, s === 2 ? 1300 : 650);
-      }
-      paintLook(); paintHand();
-      const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => layoutHand()) : null;
+      let look = Object.assign({}, look0), ready = false;
+      const f = document.createElement('iframe');
+      f.className = 'zb-scene-if'; f.setAttribute('aria-hidden', 'true'); f.tabIndex = -1; f.title = '对局预览';
+      f.src = location.pathname.replace(/[^/]*$/, '') + '?zmshow=1';
+      el.innerHTML = ''; el.appendChild(f);
+      const send = (m) => { try { f.contentWindow.postMessage(Object.assign({ zbShow: 1 }, m), location.origin); } catch (_) { /* */ } };
+      const fit = () => {
+        const w = el.clientWidth, h = el.clientHeight;
+        if (!w || !h) return;
+        const IW = 390, k = w / IW, IH = Math.max(Math.round(h / k) + 52, IW);   // 多出顶栏那 52 从上面裁掉；至少是方的：一定按竖屏排（横屏那套布局在矮窗里会切过去）
+        f.style.width = IW + 'px'; f.style.height = IH + 'px';
+        f.style.transform = 'translateY(' + Math.round(h - IH * k) + 'px) scale(' + k + ')';
+      };
+      fit();
+      const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(fit) : null;
       if (ro) ro.observe(el);
-      t = setTimeout(tick, 700);
+      const onMsg = (e) => { if (e.source === f.contentWindow && e.data && e.data.zbShowReady) { ready = true; send({ look }); el.classList.add('is-live'); } };
+      window.addEventListener('message', onMsg);
       return {
-        look(L) { const fxNew = L.fx !== look.fx; look = Object.assign({}, L); paintLook(); if (fxNew) setTimeout(() => playFx(disc), 50); },
-        poke() { playFx(disc); },
-        stop() { alive = false; clearTimeout(t); if (ro) ro.disconnect(); },
+        look(L) { look = Object.assign({}, L); if (ready) send({ look }); },
+        poke() { if (ready) send({ look, poke: 1 }); },
+        stop() { window.removeEventListener('message', onMsg); if (ro) ro.disconnect(); f.src = 'about:blank'; f.remove(); },
       };
     }
 
@@ -703,24 +652,37 @@
     let soloCtx = null;
     const ROLE_IDS = () => (R() && R().ROLES ? R().ROLES.map((r) => r.id) : []);
     const ITEM_BG = { counter: '#f3e6cf', x2: '#f6e0da', role: '#efe3d0', nope: '#e9e2f0', swap: '#dcebea' };
+    function chipsFor(ctx) {
+      const team = ctx.mode === 'team';
+      const icon = (k) => (ART() && ART().icon ? ART().icon(k) : '');
+      const chips = [['counter', CTR_IC]];
+      if (!team) chips.push(['x2', X2_IC]);
+      if (ctx.online) return chips;   // 联机只开记牌器、加倍
+      if (ctx.mode === 'roles') chips.push(['role', ART() ? (d.pick.role ? '<span class="rf">' + ART().roleFace(d.pick.role) + '</span>' : '<span class="rb">' + ART().ROLE_BACK + '</span>') : '']);   // 没挑：一张小角色牌背；挑了：那只猫的脸
+      if (!team) chips.push(['nope', icon('nope')]);
+      if (!team && ctx.rules && ctx.rules.swap) chips.push(['swap', icon('swap')]);
+      return chips;
+    }
+    /* 11-27 第六轮（用户：玩家不知道这些能点起来带进这局；内容偏上、下面空得多）：
+     * 顶上一行和规则格的「规则 ›」同一个位置——左边「开局道具」，右边一句提示；挑了以后提示换成这局开局要扣多少 */
+    function boxHtml(chips, pk, attr) {
+      let cost = 0;
+      chips.forEach(([k]) => { if (!(k === 'counter' && counterDayOn()) && (k === 'role' ? !!pk.role : !!pk[k])) cost += priceAt(k); });
+      return '<span class="zb-ih"><b>开局道具</b>' + (cost ? '<em class="on">开局扣 ' + FISH() + fmt(cost) + '</em>' : '<em>点一下，带进这局</em>') + '</span>' +
+        '<span class="zr-chips">' + chips.map(([k, ic]) => {
+        const free = k === 'counter' && counterDayOn(), on = free || (k === 'role' ? !!pk.role : !!pk[k]), p = priceAt(k);
+        return '<button type="button" class="zb-it2" ' + attr + '="' + k + '" aria-pressed="' + on + '"' + (free ? ' data-free="1"' : '') + '><i class="zr-mc" style="--bg:' + ITEM_BG[k] + '" aria-hidden="true">' + ic + '</i><small>' + ITEM_NAME[k] + '</small>' +
+          '<span class="pr">' + (free ? '今日畅用' : FISH() + fmt(p)) + '</span></button>';
+      }).join('') + '</span>';
+    }
     function solo(ctx) {
       soloCtx = ctx;
       const pick = document.querySelector('.zm-solo-pick');
       if (!pick) return;
       let row = pick.querySelector('.zb-items');
       if (!row) { row = document.createElement('div'); row.className = 'zb-items zr-box is-ro'; pick.appendChild(row); row.addEventListener('click', onChip); }
-      const team = ctx.mode === 'team';
-      const icon = (k) => (ART() && ART().icon ? ART().icon(k) : '');
-      const chips = [['counter', CTR_IC]];
-      if (!team) chips.push(['x2', X2_IC]);
-      if (ctx.mode === 'roles') chips.push(['role', ART() ? (d.pick.role ? '<span class="rf">' + ART().roleFace(d.pick.role) + '</span>' : '<span class="rb">' + ART().ROLE_BACK + '</span>') : '']);   // 没挑：一张小角色牌背；挑了：那只猫的脸
-      if (!team) chips.push(['nope', icon('nope')]);
-      if (!team && ctx.rules && ctx.rules.swap) chips.push(['swap', icon('swap')]);
-      row.innerHTML = '<span class="zr-chips">' + chips.map(([k, ic]) => {
-        const free = k === 'counter' && counterDayOn(), on = free || (k === 'role' ? !!d.pick.role : !!d.pick[k]), p = priceAt(k);
-        return '<button type="button" class="zb-it2" data-zbp="' + k + '" aria-pressed="' + on + '"' + (free ? ' data-free="1"' : '') + '><i class="zr-mc" style="--bg:' + ITEM_BG[k] + '" aria-hidden="true">' + ic + '</i><small>' + ITEM_NAME[k] + '</small>' +
-          '<span class="pr">' + (free ? '今日畅用' : FISH() + fmt(p)) + '</span></button>';
-      }).join('') + '</span>';
+      const html = boxHtml(chipsFor(ctx), d.pick, 'data-zbp');
+      if (row.__h !== html) { row.innerHTML = html; row.__h = html; }
     }
     function onChip(e) {
       const b = e.target.closest('[data-zbp]');
@@ -728,8 +690,8 @@
       e.stopPropagation();
       if (b.dataset.free) return;
       const k = b.dataset.zbp;
-      if (k === 'role') { if (d.pick.role) { d.pick.role = null; save(); solo(soloCtx); } else rolePicker(); return; }
-      d.pick[k] = !d.pick[k]; save(); solo(soloCtx);
+      if (k === 'role') { if (d.pick.role) { d.pick.role = null; save(); repaintPicks(); } else rolePicker(); return; }
+      d.pick[k] = !d.pick[k]; save(); repaintPicks();
     }
     function rolePicker() {
       const m = document.createElement('div');
@@ -740,7 +702,7 @@
         e.stopPropagation();
         const b = e.target.closest('[data-r]');
         if (b) { d.pick.role = b.dataset.r; save(); }
-        m.remove(); if (soloCtx) solo(soloCtx);
+        m.remove(); repaintPicks();
       });
       document.body.appendChild(m);
     }
@@ -756,6 +718,7 @@
       return true;
     }
     function onDeal(game, ctx) {
+      if (root.ZM_SHOW) return;
       if (!game || game.tutorial || game.online) return;
       const s = game.state, o = { tier: ctx.tier, mode: ctx.mode, n: s.n, rules: s.rules };
       const zb = {};
@@ -772,7 +735,7 @@
         if ((zb.nope || zb.swap) && R().sortHand) s.hands[0] = R().sortHand(s.hands[0]);
       }
       if (zb.role || zb.nope || zb.swap) game.hl = null;   // 改过发牌：这局的录像按种子重放会对不上，不收
-      if (Object.keys(zb).length) s.zb = zb;
+      if (Object.keys(zb).length) { s.zb = zb; game.zb = zb; }
       d.pick = { counter: false, x2: false, role: null, nope: false, swap: false };   // 开局道具一局一买，开局后清掉
       dayRec().games++; save();
     }
@@ -781,33 +744,48 @@
     const CTR_KINDS = ['defuse', 'nope', 'attack', 'tattack', 'skip', 'reverse', 'bottom', 'favor', 'swap', 'shuffle', 'future', 'alter', 'flux', 'cat'];
     let ctrEl = null, ctrInit = null, ctrGame = null;
     function kindOf(id) { const r = R(), k = r.KIND_OF[id]; return r.CATS.includes(k) || k === r.WILD ? 'cat' : k; }
+    /* 记牌器（11-27 第六轮，用户：手牌上面那条纸条难看、发牌时上下乱跳）→ 牌堆左边一枚「正」字小红章，位置跟着牌堆、不随手牌动；
+     * 点开一张面板：每种牌一张小牌，角上是还在牌堆 + 别人手里的张数，打光的那种变灰。点面板任意处关。只有买的人看得到 */
+    const CTR_SEAL = '<svg viewBox="0 0 20 20" aria-hidden="true"><g stroke="#fbf6ec" stroke-width="2" stroke-linecap="round" fill="none"><path d="M5 5.2h10M10 5.2v9.6M10 9.8h4M6 9.2v5.6M4.2 14.8h11.6"/></g></svg>';
+    let ctrPanel = null, ctrNow = {};
+    function ctrHtml() {
+      const r = R(), tone = ART() && ART().TONE;
+      return CTR_KINDS.filter((k) => ctrInit[k]).map((k) => {
+        const ic = k === 'cat' ? 'wild' : k, n = ctrNow[k] || 0;
+        return '<span class="' + (n ? '' : 'z') + '"><i style="--bg:' + ((tone && tone[ic] && tone[ic].bg) || '#f3eee3') + '">' + (ART().icon(ic) || '') + '</i><b>' + n + '</b><small>' + (k === 'cat' ? '猫牌' : (r.NAMES[k] || '')) + '</small></span>';
+      }).join('');
+    }
+    function closeCtr() { if (ctrPanel) { ctrPanel.remove(); ctrPanel = null; } }
+    function openCtr() {
+      closeCtr();
+      ctrPanel = document.createElement('div'); ctrPanel.className = 'zb-ctrp';
+      ctrPanel.innerHTML = '<div class="zb-ctrp-in">' + ctrHtml() + '</div>';
+      ctrPanel.addEventListener('click', (e) => { e.stopPropagation(); closeCtr(); });
+      ($('zmApp') || document.body).appendChild(ctrPanel);
+    }
     function paintCounter(g) {
       const s = g.state;
-      if (!s.zb || !s.zb.counter || g.online) { if (ctrEl) { ctrEl.remove(); ctrEl = null; } return; }
+      const zb = zbOf(g);
+      if (!zb || !zb.counter || g.spectator || s.phase === 'over') { if (ctrEl) { ctrEl.remove(); ctrEl = null; } closeCtr(); return; }
       const c = {}, add = (id) => { const k = kindOf(id); c[k] = (c[k] || 0) + 1; };
       s.deck.forEach(add);
       for (let k = 1; k < s.n; k++) if (s.alive[k]) s.hands[k].forEach(add);
       if (ctrGame !== g) { ctrGame = g; ctrInit = {}; const all = s.deck.concat(...s.hands, s.discard); all.forEach((id) => { ctrInit[kindOf(id)] = 1; }); }
-      // 2026-11-27 用户：桌心上方一排太丑 → 一张细长纸条，压在我的头像 / 按钮下面、手牌上面（手牌抬起时盖住它）；炸弹猫不列（牌堆旁已经有数）
-      const table = $('zmTable'), hand = $('zmHand');
-      if (!table || !hand) return;
-      if (!ctrEl || !ctrEl.isConnected) { ctrEl = document.createElement('div'); ctrEl.className = 'zb-ctr'; ctrEl.setAttribute('aria-hidden', 'true'); table.appendChild(ctrEl); }
-      const tr = table.getBoundingClientRect(), hr = hand.getBoundingClientRect(), card = hand.querySelector('.zm-card');
-      const cardTop = card ? Math.min(...[...hand.querySelectorAll('.zm-card:not(.is-sel)')].map((x) => x.getBoundingClientRect().top).concat(hr.bottom)) : hr.top + 16;
-      const h = ctrEl.offsetHeight || 30;
-      let top = cardTop - h - 3;
-      const band = $('zmBand'), br = band && band.getBoundingClientRect();
-      if (br && br.bottom < cardTop && br.bottom > top) top = Math.min(br.bottom + 1, cardTop - h + 4);   // 竖屏：别压住摸牌 / 出牌键，挤不下就让手牌顶边盖住一点
-      ctrEl.style.top = Math.round(top - tr.top) + 'px';
-      const key = JSON.stringify(c);
-      if (ctrEl.dataset.k === key) return;
-      ctrEl.dataset.k = key;
-      ctrEl.innerHTML = CTR_KINDS.filter((k) => ctrInit[k]).map((k) => '<span class="' + (c[k] ? '' : 'z') + '">' + (ART().icon(k === 'cat' ? 'wild' : k) || '') + '<b>' + (c[k] || 0) + '</b></span>').join('');
+      ctrNow = c;
+      const deck = $('zmDeck');
+      if (!deck) return;
+      if (!ctrEl || !ctrEl.isConnected || ctrEl.parentNode !== deck) {
+        if (ctrEl) ctrEl.remove();
+        ctrEl = document.createElement('button'); ctrEl.type = 'button'; ctrEl.className = 'zb-ctrb'; ctrEl.setAttribute('aria-label', '记牌器'); ctrEl.innerHTML = CTR_SEAL;
+        ctrEl.addEventListener('click', (e) => { e.stopPropagation(); openCtr(); });
+        deck.appendChild(ctrEl);
+      }
+      if (ctrPanel) { const key = JSON.stringify(c); if (ctrPanel.dataset.k !== key) { ctrPanel.dataset.k = key; ctrPanel.firstChild.innerHTML = ctrHtml(); } }
     }
     /* 加倍的 ×2 小印（2026-11-27 用户：一直贴着头像丑）：只在开局盖一下章、两秒多后淡掉；整局不再挂着，结算那行照旧标 ×2 */
     const x2Shown = new WeakSet();
     function paintX2(g) {
-      const on = !!(g && g.state.zb && g.state.zb.x2 && !g.online);
+      const zb = zbOf(g), on = !!(zb && zb.x2);
       if (!on || x2Shown.has(g)) return;
       const av = document.querySelector('#zmMe .zm-av');
       if (!av || !document.querySelector('#zmHand .zm-card') || document.querySelector('.zm-role-it, .zm-rd')) return;   // 等发完牌、抽完角色再盖章
@@ -817,19 +795,77 @@
         { duration: 2800, easing: 'ease-out', fill: 'forwards' }).finished.then(() => m.remove(), () => m.remove());
     }
     // 结算：加倍 = 再记一份名次结算（扣的也翻倍），封顶同真实规则（赢不超过余额、扣到 0 为止）
+    /* 结算：加倍 = 名次结算再记一份（扣的也翻倍），封顶同真实规则（赢不超过余额、扣到 0 为止）。
+     * 联机（2026-11-27 用户同意）：多赢的那份系统出、多亏的那份系统收，别人的结算一分不动；别人看不到我加没加倍 */
     function settleX2(g) {
-      const s = g.state;
-      if (!s.zb || !s.zb.x2 || s.zb.x2done || !g.wt) return;
-      const r = g.wt.done || g.wt.est;
+      const zb = zbOf(g);
+      if (!zb || !zb.x2 || zb.x2done) return;
       const line = document.querySelector('#zmDialog .zmw-ln.is-main b');
-      if (!r || r.pay == null || !line) return;
-      if (!g.wt.done && !(g.wt.__zbT)) { g.wt.__zbT = Date.now(); return; }
-      if (!g.wt.done && Date.now() - g.wt.__zbT < 3000) return;
-      s.zb.x2done = true;
-      let x = r.pay;
+      const solo = g.wt && (g.wt.done || g.wt.est), r = solo || (g.wSeq && g.wSeq.r);
+      if (!r || !line) return;
+      const pay = r.pay != null ? r.pay : (r.delta || 0) + (r.price || 0) - (r.firstWin || 0);
+      const final = g.wt ? !!g.wt.done : false;
+      if (!final && !zb.__t) { zb.__t = Date.now(); return; }   // 先按估的数，等服务器回来（最多 3 秒）
+      if (!final && Date.now() - zb.__t < 3000) return;
+      zb.x2done = true; if (g.online) { d.onl = Object.assign({}, d.onl, { done: true }); save(); }
+      let x = pay;
       if (x > 0) x = Math.min(x, bal()); else if (x < 0) x = -Math.min(-x, bal());
-      if (x) book(x, '加倍（' + (x > 0 ? '多赢' : '多扣') + '）');
+      if (x) book(x, '加倍（' + (x > 0 ? '多赢' : '多扣') + '）' + (g.online ? '·联机' : ''));
       if (!line.parentNode.querySelector('.zb-x2s')) { const sp = document.createElement('span'); sp.className = 'zb-x2s'; sp.textContent = '×2'; line.parentNode.insertBefore(sp, line.nextSibling); }
+    }
+    const zbOf = (g) => g.zb || (g.state && g.state.zb) || null;
+    /* 联机开局（2026-11-27 用户同意：联机只开记牌器和加倍，作废 / 交换 / 挑角色不开——会改发牌、影响别人）：
+     * 房间页底下一格开局道具，开局那一刻当场买。刷新 / 断线回来同一局不重复扣：按「这局刚发的手牌」认是不是新的一局 */
+    function onlineStart(g) {
+      if (!g.online || g.spectator || g.zb !== undefined) return;
+      const s = g.state;
+      if (!s || !s.hands || !s.hands[0] || !s.discard) return;
+      const fresh = s.discard.length === 0, key = (g.matchNo || 0) + ':' + s.hands[0].slice().sort((a, b) => a - b).join(',');
+      if (!fresh) { g.zb = d.onl && d.onl.m === g.matchNo && Date.now() - d.onl.at < 3 * 3600e3 && !d.onl.done ? d.onl.zb : null; return; }
+      if (d.onl && d.onl.key === key) { g.zb = d.onl.done ? null : d.onl.zb; return; }
+      const zb = {};
+      if (counterDayOn()) zb.counter = true;
+      else if (d.opick && d.opick.counter && bal() >= priceAt('counter')) { takeBuy('counter', '记牌器（联机）'); zb.counter = true; }
+      const team = s.teams && s.teams.length;
+      if (!team && d.opick && d.opick.x2 && bal() >= priceAt('x2')) { takeBuy('x2', '加倍（联机）'); zb.x2 = true; }
+      g.zb = Object.keys(zb).length ? zb : null;
+      d.onl = { key, m: g.matchNo, at: Date.now(), zb: g.zb };
+      if (d.opick) d.opick = { counter: false, x2: false };   // 一局一买
+      save();
+    }
+    /* 开局道具格放在哪（2026-11-27 用户：联机没有单机那张开局单；排行榜点「再来一局 / 下一局」直接开，也没地方买）：
+     *   单机：开局单 + 单机结算页（「再来一局」上面）
+     *   联机：房间页（「离开房间 / 开始」上面）+ 联机排行榜（房主「下一局」、客人「等房主开下一局」上面）
+     * 都是选好、开局那一刻当场扣 */
+    function mountBox(host, before, ctx, pk, attr, onClick) {
+      let row = host.querySelector(':scope > .zb-items');
+      const html = boxHtml(chipsFor(ctx), pk, attr);
+      /* 「全员准备」线程（11-27）会在按钮行前面放一排准备条 .zm-readyrow：道具格要在它上面；我准备好了（按钮行或我的座位挂 is-ready）道具格就锁住 */
+      const rr = before && before.previousElementSibling && before.previousElementSibling.classList.contains('zm-readyrow') ? before.previousElementSibling : null;
+      if (rr) before = rr;
+      if (!row) { row = document.createElement('div'); row.className = 'zb-items zr-box is-ro'; row.addEventListener('click', onClick); }
+      if (row.nextElementSibling !== before) host.insertBefore(row, before);
+      const lock = !!host.querySelector(':scope > .zm-lobby-actions.is-ready, :scope > .zm-actions.is-ready');
+      row.classList.toggle('is-lock', lock);
+      if (row.__h === html) return;
+      row.innerHTML = html; row.__h = html;
+    }
+    function onOnlineChip(e) { const b = e.target.closest('[data-zbo]'); if (!b || b.dataset.free || b.closest('.is-lock')) return; e.stopPropagation(); d.opick = d.opick || {}; d.opick[b.dataset.zbo] = !d.opick[b.dataset.zbo]; save(); repaintPicks(); }
+    function repaintPicks() {
+      if (soloCtx && document.querySelector('.zm-solo-pick .zb-items')) solo(soloCtx);
+      d.opick = d.opick || { counter: false, x2: false };
+      const inner = document.querySelector('.zm-lobby:not([hidden]) .zm-lobby-inner');
+      if (inner && inner.querySelector('.zm-lseat.is-me')) {
+        const acts = inner.querySelector('.zm-lobby-actions');
+        if (acts) mountBox(inner, acts, { online: true, mode: inner.querySelector('.zm-lobby-seats.is-team') ? 'team' : '' }, d.opick, 'data-zbo', onOnlineChip);
+      }
+      const dlg = document.querySelector('#zmDialog'), acts = dlg && dlg.querySelector('.zm-actions');
+      if (!acts || dlg.closest('[hidden]')) return;
+      const g = TB() && TB().game ? TB().game() : null;
+      if (!g || g.tutorial || g.spectator) return;
+      const rules = (g.state && g.state.rules) || {};
+      if (g.online && acts.querySelector('[data-leave]')) mountBox(acts.parentNode, acts, { online: true, mode: g.state && g.state.teams ? 'team' : rules.mode }, d.opick, 'data-zbo', onOnlineChip);
+      else if (!g.online && acts.querySelector('[data-again]')) mountBox(acts.parentNode, acts, { mode: rules.mode, rules }, d.pick, 'data-zbp', onChip);
     }
     // 每日任务：开局计数在 onDeal；赢、联机在这里看
     const seen = new WeakSet();
@@ -869,12 +905,58 @@
           { duration: kind === 'fish' ? 1300 : 1100 + Math.random() * 400, easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'both' }).finished.then(() => p.remove(), () => p.remove());
       }
     }
+    /* 设置里的「装扮」卡（11-27 用户：装扮不只在商店里能换，常规设置里也要能改；对局里也允许，只列已有的款、不放去商店）：
+     * 插在「作废」开关那张卡下面。一排四格是正在用的那一身；点一格展开这一类已有的款式，点一下当场换上 */
+    let dressCat = null;
+    function dressHtml(inGame) {
+      const head = '<div class="zb-dr-h"><b>装扮</b></div><div class="zb-dr-row">' + CATS_ORDER.map((c) => '<button type="button" class="zb-dr-c" data-drc="' + c + '" aria-pressed="' + (dressCat === c) + '"><span class="zb-dr-pv">' + previewHtml(c, d.use[c]) + '</span><small>' + CAT_NAME[c] + '</small></button>').join('') + '</div>';
+      if (!dressCat) return head;
+      const c = dressCat;
+      const opts = CAT[c].filter(([id]) => owns(c, id)).map(([id, name]) => '<button type="button" class="zb-dr-o" data-dro="' + id + '" aria-pressed="' + (d.use[c] === id) + '">' + (d.use[c] === id ? USE_MARK : '') + '<span class="zb-dr-pv">' + previewHtml(c, id) + '</span><small>' + name + '</small></button>').join('');
+      const more = inGame ? '' : '<button type="button" class="zb-dr-o zb-dr-shop" data-drshop="1"><span class="zb-dr-pv"><i>' + FISH() + '</i></span><small>去商店 ›</small></button>';
+      return head + '<div class="zb-dr-opts">' + opts + more + '</div>';
+    }
+    function mountDress() {
+      const dl = $('zmDialog');
+      if (!dl || !dl.classList.contains('zs') || dl.closest('[hidden]')) { dressCat = null; return; }
+      if (dl.querySelector('.zb-dress')) return;
+      const nope = dl.querySelector('[data-nope-mine]'), after = nope && nope.closest('.zs-card');
+      if (!after) return;
+      const cv = $('zmCover'), g = TB() && TB().game ? TB().game() : null;
+      const inGame = !!(cv && cv.hidden && g && g.state && g.state.phase !== 'over');
+      const sec = document.createElement('section');
+      sec.className = 'zs-card zb-dress';
+      const paint = () => { sec.innerHTML = dressHtml(inGame); };
+      paint();
+      sec.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const c = e.target.closest('[data-drc]');
+        if (c) { dressCat = dressCat === c.dataset.drc ? null : c.dataset.drc; paint(); return; }
+        const o = e.target.closest('[data-dro]');
+        if (o && dressCat) { d.use[dressCat] = o.dataset.dro; save(); applyLook(); paintFrame(); paint(); return; }
+        if (e.target.closest('[data-drshop]')) openShop();
+      });
+      after.after(sec);
+    }
+    /* 嵌在商店里的那局（?zmshow=1，见 zhamao.js 的 SHOW）：只管换装扮和出牌特效；装扮听外面商店发进来的，不碰账本 */
+    const SHOW = !!root.ZM_SHOW;
+    if (SHOW) {
+      const app = $('zmApp'); if (app) app.classList.add('is-show');
+      window.addEventListener('message', (e) => {
+        if (e.source !== window.parent || e.origin !== location.origin || !e.data || !e.data.zbShow) return;
+        if (e.data.look) { d.use = Object.assign({}, d.use, e.data.look); applyLook(); paintFrame(); }
+        if (e.data.poke && d.use.fx !== 'none') burst(d.use.fx, $('zmDiscard'));
+      });
+      try { window.parent.postMessage({ zbShowReady: 1 }, location.origin); } catch (_) { /* */ }
+    }
     setInterval(() => {
+      if (SHOW) { paintFrame(); const g = TB() && TB().game ? TB().game() : null; if (g && g.state) try { fxWatch(g); } catch (_) { /* */ } return; }
       mountCover();
+      try { repaintPicks(); mountDress(); } catch (_) { /* */ }
       paintFrame();
       const g = TB() && TB().game ? TB().game() : null;
-      if (!g || !g.state) { if (ctrEl) { ctrEl.remove(); ctrEl = null; } return; }
-      try { paintCounter(g); paintX2(g); settleX2(g); taskWatch(g); fxWatch(g); } catch (_) { /* 内测：别让它拖垮牌局 */ }
+      if (!g || !g.state) { if (ctrEl) { ctrEl.remove(); ctrEl = null; } closeCtr(); return; }
+      try { onlineStart(g); paintCounter(g); paintX2(g); settleX2(g); taskWatch(g); fxWatch(g); } catch (_) { /* 内测：别让它拖垮牌局 */ }
     }, 150);
     applyLook();
 
@@ -893,13 +975,22 @@
       TASKS.forEach(([k, name, goal, amt]) => {
         const v = Math.min(goal, r[k] || 0), got = r.got[k] || 0;
         // 没做完：「去完成」（同今日首胜，点了关档案、打开单机 / 联机设置单），进度写在名字底下
-        const right = got === 2 ? '<em>已领</em>' : got === 1 ? ad('t2:' + k, true) : v >= goal ? '<button type="button" data-zbt="' + k + '">领取</button>' : '<button type="button" class="go" data-zbgo="' + (k === 'online' ? 'online' : 'solo') + '">去完成</button>';
+        const right = got === 2 ? '<em>已领取</em>' : got === 1 ? ad('t2:' + k, true) : v >= goal ? '<button type="button" data-zbt="' + k + '">领取</button>' : '<button type="button" class="go" data-zbgo="' + (k === 'online' ? 'online' : 'solo') + '">去完成</button>';
         // 2026-11-27 用户：一局没做只写名字；做了一部分名字后面加（1/3）；做完不写 3/3，按钮直接变「领取」
         h += line(name + (v > 0 && v < goal ? '（' + v + '/' + goal + '）' : ''), amt, got === 1 ? '看广告再领一份' : '', v >= goal && got < 2, right);
       });
       if (used > r.rAd) h += line('救济翻倍', RELIEF, '今天领过 ' + used + ' 次救济', true, ad('relief', true));
       if (rl.left === 0) h += line('额外救济', RELIEF, '今天 ' + r.extra + ' / ' + EXTRA_MAX, r.extra < EXTRA_MAX, r.extra < EXTRA_MAX ? ad('extra', true) : '<em>明天再来</em>');
       return h + '</div>';
+    }
+    /* 领任务的鱼（11-27 用户：档案滑到任务时上面的余额看不见了，领的时候要有动画）：内测的余额就在任务这张卡顶上那行，
+     * 鱼从这一行游进那行的数字、数字滚上去（和档案的 ZhamaoProfile.fishTo 一个样子；内测记的是本机账，不动档案第一格的服务器余额） */
+    function fishIn(bodyEl, k, from) {
+      const fx = root.ZhamaoWalletFx, num = bodyEl.querySelector('[data-zbcard] [data-zbbal]');
+      const src = bodyEl.querySelector('[data-zbcard] [data-zbad="t2:' + k + '"]') || num;
+      if (!fx || !num || !fx.school || (W() && W().fxOn && !W().fxOn())) return;
+      const to = bal(); num.textContent = fmt(from);
+      fx.school(FISH(), src, num.parentNode, 3, { spread: 16, gap: 90, dur: 700, lift: -50, size: 26, onLand: () => fx.roll(num, from, to, 520) });
     }
     function mountCard(bodyEl) {
       const week = bodyEl.querySelector('.zmp-week');
@@ -916,7 +1007,7 @@
         if (go) { if (root.ZhamaoProfile) root.ZhamaoProfile.close(); const k = go.dataset.zbgo; setTimeout(() => { const b = document.querySelector('.zm-cover:not([hidden]) [data-cover="' + k + '"]'); if (b) b.click(); }, 350); return; }
         const a = e.target.closest('[data-zbad]'), t = e.target.closest('[data-zbt]');
         const r = dayRec();
-        if (t && !t.disabled) { const k = t.dataset.zbt, row = TASKS.find((x) => x[0] === k); r.got[k] = 1; save(); book(row[3], '每日任务「' + row[1] + '」'); mountCard(bodyEl); return; }
+        if (t && !t.disabled) { const k = t.dataset.zbt, row = TASKS.find((x) => x[0] === k), from = bal(); r.got[k] = 1; save(); book(row[3], '每日任务「' + row[1] + '」'); mountCard(bodyEl); fishIn(bodyEl, k, from); return; }
         if (!a || a.disabled) return;
         const k = a.dataset.zbad;
         if (k === 'relief') adThen('relief', () => { r.rAd++; save(); book(RELIEF, '救济·看广告翻倍'); mountCard(bodyEl); });

@@ -19,6 +19,16 @@ body_class: zm-fullscreen
 <noscript><p>百变小咪是一款在线猫咪卡牌游戏，需要打开 JavaScript 才能玩。<a href="/baibianxiaomi/">看看百变小咪的介绍</a></p></noscript>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"百变小咪","url":"https://ruizhou03.com/toolbox/puffcat/","image":"https://ruizhou03.com/assets/images/puffcat/share.jpg","description":"在线猫咪卡牌游戏：经典、百变、角色、组队四种玩法，单机三档机器猫，联机最多 9 人。","genre":["卡牌游戏","聚会游戏"],"inLanguage":"zh-CN","playMode":["SinglePlayer","MultiPlayer"],"gamePlatform":["Web browser"],"isAccessibleForFree":true,"author":{"@type":"Person","name":"Rui Zhou"},"sameAs":"https://ruizhou03.com/baibianxiaomi/"}</script>
 
+<!-- 商店预览（2026-11-27 用户：商店上面那局要是真对局）：商店把这一页用 ?zmshow=1 嵌成小窗，机器猫自己打。
+     这种嵌着的页一律不往本机存东西（存档、设置、内测账本都和外面那页共用一个 localStorage，不能被它改掉），也不出声 -->
+<script>
+(function () {
+  if (!/[?&]zmshow=1\b/.test(location.search) || window.parent === window) return;
+  window.ZM_SHOW = true;
+  var no = function () {};
+  try { Storage.prototype.setItem = no; Storage.prototype.removeItem = no; Storage.prototype.clear = no; } catch (_) { /* */ }
+})();
+</script>
 <!-- 2026-11-13 用户：微信里双击 / 双指会把页面放大——这一页一律不许缩放：
      视口写死 1 倍（不许用户缩放），双指捏合的手势直接拦掉；双击放大靠 CSS 的 touch-action（zhamao.css 顶上），不拦点击，连点按钮照样两下都算 -->
 <script>
@@ -37,7 +47,7 @@ body_class: zm-fullscreen
 <script>
 (function () {
   var A = window.AudioContext || window.webkitAudioContext;
-  if (!A) return;
+  if (!A || window.ZM_SHOW) return;
   function grab() {
     try {
       if (navigator.audioSession && navigator.audioSession.type !== 'ambient') navigator.audioSession.type = 'ambient';
