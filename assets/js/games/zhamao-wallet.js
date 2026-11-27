@@ -83,6 +83,10 @@
   /* 这份钱包是谁的：'a:账号' / 'd:设备号'。本机存的余额 / 档案都按它分开（2026-11-26 事故：登录后先摆了游客那份 6,000，像是账号被清空） */
   const who = () => { if (!loggedIn()) return 'd:' + deviceId(); const u = auth().getUser ? auth().getUser() : null; return 'a:' + ((u && (u.id || u.accountId)) || ''); };
   let state = (() => { try { const c = JSON.parse(ls.get(CACHE)) || null; return c && c.who === who() ? c : null; } catch (_) { return null; } })();
+  /* 显示的余额 = 服务器余额 + 内测在本机记的加减（zhamao-beta.js 的 ZhamaoProfileBalAdj，和档案第一格同一个数）。
+   * 2026-11-27 用户：进局扣了门票 / 道具钱，左上角还是旧数——内测道具钱只记在本机，左上角以前只摆服务器的数 */
+  const adj = () => { try { return root.ZhamaoProfileBalAdj ? Number(root.ZhamaoProfileBalAdj()) || 0 : 0; } catch (_) { return 0; } };
+  const vb = () => Math.max(0, state.bal + adj());
   let syncing = false;   // 刚换了身份、服务器的余额还没回来：左上角显示加载，不摆旧数
   let quiet = false;     // 这次更新是「和服务器对一下」，不是真的进账：数字直接摆，不游鱼
   const listeners = [];
@@ -256,12 +260,12 @@
     chip.classList.toggle('is-load', !has);
     if (!has) { chip.querySelector('b').textContent = ''; chip.querySelector('.zmw-dot').hidden = true; shown = null; return; }   // 加载中：只有鱼 + 三个点，不摆错的数
     const b = chip.querySelector('b');
-    if (quiet && !(shortOpen && shown != null)) { b.textContent = fmt(state.bal); shown = state.bal; }   // 和服务器对数（打开游戏、登录、关档案）：直接摆，不游鱼——2026-11-26 用户：打开游戏莫名其妙有加减
+    if (quiet && !(shortOpen && shown != null)) { b.textContent = fmt(vb()); shown = vb(); }   // 和服务器对数（打开游戏、登录、关档案）：直接摆，不游鱼——2026-11-26 用户：打开游戏莫名其妙有加减
     else if (shortOpen && shown != null) { /* 「不够了」弹窗开着：后面这个先不动，关窗时对齐（录屏：弹窗里鱼还没游到，后面已经先跳成新数） */ }
-    else if (shown == null) { b.textContent = fmt(state.bal); shown = state.bal; }
+    else if (shown == null) { b.textContent = fmt(vb()); shown = vb(); }
     else if (chip.offsetParent === null) { /* 封面藏着（在打牌）：等回到主页面露出来再滚 */ }
-    else if (profileOpen() || shortOpen || !fxOn() || !FX() || shown === state.bal) { b.textContent = fmt(state.bal); shown = state.bal; }   // 档案开着：鱼飞进档案里的余额，后面这个不动
-    else { const from = shown; shown = state.bal; animateIn(from, state.bal); }
+    else if (profileOpen() || shortOpen || !fxOn() || !FX() || shown === vb()) { b.textContent = fmt(vb()); shown = vb(); }   // 档案开着：鱼飞进档案里的余额，后面这个不动
+    else { const from = shown; shown = vb(); animateIn(from, vb()); }
     chip.querySelector('.zmw-dot').hidden = !hasNews();
   }
 
@@ -284,7 +288,7 @@
   let fxGen = 0;   // 每收一次动画 +1：放到一半被收掉的扣票，不能再接着开局
   function pay(o) {
     const p = price(o.tier, o.mode, o.n);
-    if (state && state.bal != null && state.bal < p) return shortDialog(o, p).then((ok) => (ok ? fishPay(p, o.from, o.to) : false));
+    if (state && state.bal != null && vb() < p) return shortDialog(o, p).then((ok) => (ok ? fishPay(p, o.from, o.to) : false));
     return fishPay(p, o.from, o.to);
   }
   function fishPay(p, from, to) {
@@ -292,9 +296,11 @@
     if (!fx || !fxOn() || !from || !to || from.offsetParent === null || !state || state.bal == null) return Promise.resolve(true);
     cancelFx();
     const gen = fxGen, b = from.querySelector('b') || from;
-    const bal = from === chip ? (shown != null ? shown : state.bal) : (Number(String(b.textContent).replace(/[^\d]/g, '')) || state.bal);   // 结算页：从它上面显示的数往下滚
+    const bal = from === chip ? (shown != null ? shown : vb()) : (Number(String(b.textContent).replace(/[^\d]/g, '')) || vb());   // 结算页：从它上面显示的数往下滚
     if (from === chip) shown = bal - p;
-    if (from === tchip) { tGen++; tShown = bal - p; held = false; if (state) state = Object.assign({}, state, { bal: bal - p }); }   // 本机先记上：开新局时左上角别先弹回旧数再被门票扣下来   // 牌桌左上角（结算页「再来一局」）：还没放完的进账一律收掉，从现在显示的数往下扣
+    if (from === tchip) { tGen++; tShown = bal - p; held = false; }
+    // 本机先记上（主页面「开始」和牌桌「再来一局」都是）：进牌桌时左上角就是扣完票的数，不等服务器的门票回来（2026-11-27 用户：进局余额没马上变）
+    if (state && (from === chip || from === tchip)) state = Object.assign({}, state, { bal: state.bal - p });   // 本机先记上：开新局时左上角别先弹回旧数再被门票扣下来   // 牌桌左上角（结算页「再来一局」）：还没放完的进账一律收掉，从现在显示的数往下扣
     fx.roll(b, bal, bal - p, 520, { delay: 120 });
     const n = Math.min(5, 2 + Math.round(Math.log10(Math.max(10, p)) - 1));
     return fx.school(FISH, from, to, n, { spread: 14, gap: 70, dur: 700, lift: 30, size: 28, toPoint: center(to) }).then(() => gen === fxGen);
@@ -315,12 +321,12 @@
       mask.className = 'zmw-short-mask';
       mask.innerHTML = '<div class="zmw-short" role="dialog" aria-modal="true"><svg class="zmw-big" viewBox="0 0 32 20" aria-hidden="true">' + FISH.replace(/^<svg[^>]*>/, '').replace('</svg>', '') + '</svg>' +
         '<h3>' + T('ui.wallet.short', '小鱼干不够了') + '</h3>' +
-        '<div class="zmw-row"><span class="zmw-pill" data-bal>' + FISH + '<b>' + fmt(state.bal) + '</b></span><i>/</i><span class="zmw-pill is-price">' + FISH + fmt(p) + '</span></div>' +
+        '<div class="zmw-row"><span class="zmw-pill" data-bal>' + FISH + '<b>' + fmt(vb()) + '</b></span><i>/</i><span class="zmw-pill is-price">' + FISH + fmt(p) + '</span></div>' +
         '<div class="zmw-acts"></div></div>';
       document.body.appendChild(mask);
       const acts = mask.querySelector('.zmw-acts'), balEl = mask.querySelector('[data-bal]');
       let done = false;
-      const end = (ok) => { if (done) return; done = true; shortOpen = false; mask.remove(); if (chip && state) { shown = state.bal; chip.querySelector('b').textContent = fmt(state.bal); } resolve(ok); };
+      const end = (ok) => { if (done) return; done = true; shortOpen = false; mask.remove(); if (chip && state) { shown = vb(); chip.querySelector('b').textContent = fmt(vb()); } resolve(ok); };
       mask.addEventListener('click', (e) => { if (e.target === mask) end(false); });
       const btn = (cls, html, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.innerHTML = html; b.addEventListener('click', () => fn(b)); acts.appendChild(b); return b; };
       // 拿到小鱼干（点下去就放，不等服务器——知道能领多少）：鱼从按钮游进上面的余额、数字滚上去；服务器回来且动画放完再按服务器的余额重摆按钮
@@ -328,16 +334,16 @@
       const claim = (b, amt, req) => {
         b.disabled = true;
         busy++;
-        const from = state.bal, fx = FX(), numEl = balEl.querySelector('b');
+        const from = vb(), fx = FX(), numEl = balEl.querySelector('b');
         const anim = fx && fxOn()
           ? fx.school(FISH, b, balEl, Math.min(4, 2 + Math.round(Math.log10(amt) - 1)), { spread: 16, gap: 80, dur: 640, lift: -40, size: 26, onLand: () => fx.roll(numEl, from, from + amt, 480) })
           : Promise.resolve().then(() => { numEl.textContent = fmt(from + amt); });
         const settle = (v) => { busy--; numEl.__zmwRoll = {}; numEl.textContent = fmt(v); draw(); };   // 收掉还在滚的那段，再摆服务器的数（录屏：滚到 1,990 被晚到的一帧盖住）
-        Promise.all([req(), anim]).then(([j]) => settle(j.bal)).catch(() => settle(state.bal));   // 没领成：数字摆回去
+        Promise.all([req(), anim]).then(() => settle(vb())).catch(() => settle(vb()));   // 没领成：数字摆回去
       };
       function draw() {
         acts.innerHTML = '';
-        const bal = state.bal, rl = state.relief || {};
+        const bal = vb(), rl = state.relief || {};
         mask.querySelector('h3').hidden = bal >= p;   // 凑够了：标题收起，只剩数字和「开始」
         if (bal >= p) { const go = btn('is-main', o.okLabel || T('ui.start', '开始'), () => end(true)); go.focus(); btn('is-plain', T('ui.cancel', '取消'), () => end(false)); return; }
         const list = document.createElement('div');
@@ -420,7 +426,7 @@
     return anim;
   }
   function cancelFx() { fxGen++; if (FX()) FX().cancelAll(); }
-  function canPay(tier, mode, n) { return !(state && state.bal != null && state.bal < price(tier, mode, n)); }
+  function canPay(tier, mode, n) { return !(state && state.bal != null && vb() < price(tier, mode, n)); }
   function mountChip(cover) {
     style();
     if (!cover || chip) return;
@@ -435,7 +441,7 @@
     cover.appendChild(chip);
     // 封面一藏起来（开局 / 进联机 / 进教程，不管从哪儿走的）：小鱼干的动画一律当场收掉，不带到下一页
     // 回到主页面（2026-11-26 用户：打完牌回主页面，鱼数突然往上涨）：这局的加减牌桌左上角已经放过了，主页面这个直接摆成现在的数，不再游一遍
-    if (root.MutationObserver) new MutationObserver(() => { if (cover.hidden) cancelFx(); else if (chip && state && state.bal != null) { shown = state.bal; chip.querySelector('b').textContent = fmt(state.bal); } }).observe(cover, { attributes: true, attributeFilter: ['hidden'] });
+    if (root.MutationObserver) new MutationObserver(() => { if (cover.hidden) cancelFx(); else if (chip && state && state.bal != null) { shown = vb(); chip.querySelector('b').textContent = fmt(vb()); } }).observe(cover, { attributes: true, attributeFilter: ['hidden'] });
     coverEl = cover;
     if (!state) syncing = true;   // 本机没有这个身份的余额：先显示加载，不摆别人的数
     paintChip();
@@ -681,7 +687,7 @@
     liftT(true);
     if (seq.r) { paintPay(el, seq.r, label, true); return; }
     holdT();
-    if (base != null) setT(base);
+    if (base != null) setT(Math.max(0, base + adj()));   // base 是服务器余额：摆的时候也算上内测的本机加减
     const gen = tGen;
     paintPay(el, r0, label);
     seq.r = r0;
@@ -756,29 +762,29 @@
     const has = !!(state && state.bal != null);
     tchip.hidden = !has;
     tTop.classList.toggle('has-zmw', has);
-    if (!has || held || tShown === state.bal) return;
-    if (quiet) { setT(state.bal); return; }   // 和服务器对数：直接摆
+    if (!has || held || tShown === vb()) return;
+    if (quiet) { setT(vb()); return; }   // 和服务器对数：直接摆
     // 平时（打着牌、联机开局扣门票）余额变了：数字滚过去（加绿、减红），不跳
     const fx = FX(), from = tShown;
-    if (from != null && fx && fxOn() && tchip.offsetParent !== null) { tShown = state.bal; fx.roll(tchip.querySelector('b'), from, state.bal, 520).then(() => { if (!held && tShown === state.bal) setT(state.bal); }); }
-    else setT(state.bal);
+    if (from != null && fx && fxOn() && tchip.offsetParent !== null) { tShown = vb(); fx.roll(tchip.querySelector('b'), from, vb(), 520).then(() => { if (!held && tShown === vb()) setT(vb()); }); }
+    else setT(vb());
   }
-  function holdT() { if (!held) { held = true; if (tShown == null && state && state.bal != null) tShown = state.bal; } }
+  function holdT() { if (!held) { held = true; if (tShown == null && state && state.bal != null) tShown = vb(); } }
   function releaseT() {
     held = false;
     if (!state || state.bal == null) return;
-    shown = state.bal; if (chip) chip.querySelector('b').textContent = fmt(state.bal);   // 主页面那个不再重放一遍进账
-    if (tchip && tShown !== state.bal) {
+    shown = vb(); if (chip) chip.querySelector('b').textContent = fmt(vb());   // 主页面那个不再重放一遍进账
+    if (tchip && tShown !== vb()) {
       const fx = FX(), b = tchip.querySelector('b'), from = tShown;
-      tShown = state.bal;
-      if (fx && fxOn() && tchip.offsetParent !== null && from != null) fx.roll(b, from, state.bal, 420).then(() => { if (!held) setT(state.bal); }); else setT(state.bal);
+      tShown = vb();
+      if (fx && fxOn() && tchip.offsetParent !== null && from != null) fx.roll(b, from, vb(), 420).then(() => { if (!held) setT(vb()); }); else setT(vb());
     }
   }
   /* 一笔进账 / 出账（排队）：amt > 0 鱼从 from 游进左上角，< 0 从左上角游到 from；数字跟着滚 */
   function tAdd(from, amt, gen, delay, now, rollNow) {
     const step = () => new Promise((res) => {
       if (gen !== tGen || !amt) { res(); return; }
-      const fx = FX(), b = tchip && tchip.querySelector('b'), a = tShown != null ? tShown : (state ? state.bal : 0), z = a + amt;
+      const fx = FX(), b = tchip && tchip.querySelector('b'), a = tShown != null ? tShown : (state && state.bal != null ? vb() : 0), z = a + amt;
       tShown = z;
       const done = () => { if (gen === tGen) setT(z); res(); };
       if (!tchip || !fx || !fxOn() || tchip.offsetParent === null || !from || !from.isConnected) { done(); return; }
@@ -800,10 +806,10 @@
   function holdFx(btn, p, on) {
     const from = tchip && tchip.offsetParent !== null ? tchip : null;
     if (!p || !from || !btn || !state || state.bal == null) return Promise.resolve();
-    if (on) return state.bal < p ? Promise.resolve() : fishPay(p, from, btn).then(() => {});
+    if (on) return vb() < p ? Promise.resolve() : fishPay(p, from, btn).then(() => {});
     const fx = FX();
     cancelFx();
-    const b = from.querySelector('b'), a = tShown != null ? tShown : state.bal, z = a + p;
+    const b = from.querySelector('b'), a = tShown != null ? tShown : vb(), z = a + p;
     tGen++; tShown = z; held = false; state = Object.assign({}, state, { bal: state.bal + p });
     if (!fx || !fxOn()) { setT(z); return Promise.resolve(); }
     fx.roll(b, a, z, 700);
@@ -815,6 +821,7 @@
     const ov = document.querySelector('.zmw-bdg'); if (ov) ov.remove();
     liftT(false);
     if (game) { game.wBadges = state && state.badges ? state.badges.slice() : []; game.wWin = state && state.winToday != null ? !!state.winToday : null; }
+    if (game && !game.online && state && state.bal != null) setT(vb());   // 单机：门票在主页面已经扣着放过了，进牌桌直接摆扣完的数（2026-11-27 用户：进局余额没马上变）
     paintT();
     if (game && game.online) setTimeout(() => { if (!held) refresh(); }, 1500);   // 联机门票在服务器上扣：拉一次，左上角对上
   }
@@ -884,6 +891,7 @@
     me: refresh,
     checkin: () => post('checkin').then((j) => { state = Object.assign({}, state || {}, { ck: today() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); return j; }), profile, profileCached, profileWait, synced, who, today, fb: (steps) => post('fb', { steps }).catch(() => null), fbAward,
     ledger: (offset) => post('ledger', { offset }), costTag, tagHtml, onNoScore: null,
+    nudge: (q) => { quiet = !!q; try { paintChip(); paintT(); } finally { quiet = false; } },   // 内测本机加减变了：左上角跟着滚（q = 直接摆）
     mountChip, mountTable, tableStart, holdFx, refresh, tableChip: () => tchip, badgeShow, claimFirstWin, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login, markBadgesSeen, seenBadges, fxOn, playTicket, pay, canPay, cancelFx, payout, topUp,
     __demo: { setShown: (x) => { shown = x; if (chip) chip.querySelector('b').textContent = fmt(x); }, repaint: () => paintChip() },
   };
