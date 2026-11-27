@@ -8109,31 +8109,14 @@
     const st = R.createGame(n, seed, settings.rules);
     game = { state: st, bots: drawBots(n, settings.tier), tiers: [null].concat(Array(n - 1).fill(settings.tier)), tutorial: false };
     if (HL) HL.start(game, st, seed);
-    /* 先拿到门票再开局（2026-11-27 用户：钱不够就不能开；开了就一定扣上票、结算一定兑现）。
-     * 以前开局和要门票同时走，门票没扣上（余额不够 / 网断 / 服务器不认）这局照样打完、结算时整张榜没有奖罚。
-     * 现在服务器发了门票号才发牌；没发 = 不开这局，回主页面说一声，左上角余额按服务器的数摆回去 */
-    const g = game, tp = WAL && !SHOW ? WAL.start(game, settings.tier) : null;
-    if (tp && tp.then) {
-      g.gate = true;   // 等门票这段：门票没扣上不弹「这局不计小鱼干」，下面自己说
-      busy = true;
-      tp.then(() => {
-        if (game !== g) return;
-        g.gate = false;
-        if ((g.wt && g.wt.tid) || (g.wt && g.wt.off && /^(localhost|127\.0\.0\.1)$/.test(location.hostname))) { dealNew(g); return; }   // 本机调试没起钱包后端：照开
-        game = null; busy = false;
-        toast(g.wt && g.wt.short ? T('ui.wallet.noStartShort', '小鱼干不够，这局没开') : T('ui.wallet.noStart', '门票没扣上，这局没开，稍后再试'));
-        if (WAL.refresh) WAL.refresh();
-        closeDialog();
-        showCover();
-      });
-      return;
+    if (window.ZhamaoBeta && window.ZhamaoBeta.onDeal) window.ZhamaoBeta.onDeal(game, { tier: settings.tier, mode: curMode() });   // 内测：开局道具（挑角色 / 保证拿牌 / 记牌器 / 加倍）
+    if (WAL && WAL.tableStart) WAL.tableStart(game);   // 放在买道具之后：牌桌左上角一出来就是门票 + 道具都扣完的数（2026-11-27 用户）
+    if (WAL) {
+      // 2026-11-26 用户：开局后（发牌 / 抽角色还没放完）退出再回来，没有「接着打上一局」、门票白扣——以前要等发完牌走第一步才存档。
+      // 现在一开局就存；服务器发的门票号回来后再存一次（门票号没存上，接回来这局结算不了）
+      const g = game, tp = WAL.start(game, settings.tier);
+      if (tp && tp.then) tp.then(() => { if (game === g) save(); });
     }
-    dealNew(g);
-  }
-  function dealNew(g) {
-    if (window.ZhamaoBeta && window.ZhamaoBeta.onDeal) window.ZhamaoBeta.onDeal(g, { tier: settings.tier, mode: curMode() });   // 内测：开局道具（挑角色 / 保证拿牌 / 记牌器 / 加倍）——门票扣上了才买
-    if (WAL && WAL.tableStart) WAL.tableStart(g);   // 放在买道具之后：牌桌左上角一出来就是门票 + 道具都扣完的数（2026-11-27 用户）
-    // 2026-11-26 用户：开局后（发牌 / 抽角色还没放完）退出再回来，没有「接着打上一局」、门票白扣——一开局就存（门票号已经在 g.wt 里）
     save();
     els.cover.hidden = true;
     buildSeats();
@@ -10853,7 +10836,7 @@
   initSocial();
   if (WAL) WAL.mountChip(els.cover);   // 主菜单左上角：小鱼干余额，点了去猫咪档案
   if (WAL && WAL.mountTable) WAL.mountTable(els.app.querySelector('.zm-topleft'));   // 牌桌左上角常驻小鱼干（2026-11-26 用户挑方案 A：标题位换成余额，结算加减、扣门票都往这里游）
-  if (WAL) WAL.onNoScore = (g) => { if (g === game && !g.gate) toast(T('ui.wallet.noScore', '这局不计小鱼干（门票没扣上）')); };   // 2026-11-24：服务器没发票时不再悄悄白玩
+  if (WAL) WAL.onNoScore = (g) => { if (g === game) toast(T('ui.wallet.noScore', '这局不计小鱼干（门票没扣上）')); };   // 2026-11-24：服务器没发票时不再悄悄白玩
   refreshCover();
   refreshTools();
   // 进来先是主菜单 + 一条进度条（等字体到位，太快也让它走完一程，不闪），跑完换成按钮
