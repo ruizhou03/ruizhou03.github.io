@@ -225,7 +225,6 @@
 .zb-cf-btns{display:flex;gap:10px;margin-top:12px}
 .zb-cf-btns .zb-btn{height:40px;padding:0 18px;font-size:15px}
 
-.zb-x2s{display:inline-flex;align-items:center;justify-content:center;margin-left:6px;font-size:12px;font-weight:700;color:#fbf6ec;background:#b4392c;border-radius:50%;width:24px;height:24px;transform:rotate(-12deg);vertical-align:middle}
 .zb-frame{position:absolute;inset:-6px;pointer-events:none;z-index:2}
 .zb-frame svg{width:100%;height:100%;overflow:visible!important;border-radius:0!important}
 .zb-pv.av>svg{overflow:visible;border-radius:0}
@@ -393,6 +392,11 @@
 .zb-it2 small{font-size:11.5px;color:#6a6358;white-space:nowrap}
 .zb-it2 .pr{align-self:stretch;border-top:1px solid rgba(29,27,24,.13);padding-top:4px;display:inline-flex;align-items:center;justify-content:center;gap:1px;font-size:11.5px;color:#6a6358;white-space:nowrap;font-family:'ZM Num','ZM Serif',serif}
 .zb-it2 .pr svg{width:15px;height:9px}
+.zb-it2{position:relative}
+.zb-it2 .pr:empty::after{content:'\\00a0'}
+.zb-by{position:absolute;top:-7px;left:calc(50% + 9px);width:19px;height:19px;border-radius:50%;overflow:hidden;background:#ebe5d8;box-shadow:0 0 0 1.5px #fffdf8,0 0 0 2.6px #1d1b18;display:flex;align-items:center;justify-content:center;font-size:10px;color:#1d1b18}
+.zb-by svg{width:100%;height:100%;display:block}
+.zb-x2r{font-style:normal;font-size:.62em;margin-left:2px;font-weight:700;opacity:.85;letter-spacing:0}
 .zb-it2[aria-pressed=true] .zr-mc{box-shadow:0 0 0 2px #b4392c,0 2px 5px rgba(29,27,24,.25);transform:translateY(-2px)}
 .zb-it2[aria-pressed=true] small{color:#1d1b18;font-weight:700}
 .zb-it2[aria-pressed=true] .pr{color:#b4392c;border-top-color:rgba(180,57,44,.35)}
@@ -697,14 +701,24 @@
     }
     /* 11-27 第六轮（用户：玩家不知道这些能点起来带进这局；内容偏上、下面空得多）：
      * 顶上一行和规则格（左「游戏规则」右「设置规则 ›」）同一个样子——左边「开局道具」，右边「点选使用」；挑了以后换成「合计 🐟N」（11-27 用户：右上角要简洁、正式） */
+    // 联机准备阶段：记牌器已经有别人带了 → 那个人（players 里的一项）
+    const faceOfP = (p) => { const a = AVS(); return p && p.avatar && a && a.byId && a.byId[p.avatar] ? a.byId[p.avatar].svg : '<span class="zb-by-t">' + String((p && p.nick) || '?').slice(0, 1).replace(/[<>&"]/g, '') + '</span>'; };
+    function ctrTaker(attr) {
+      if (attr !== 'data-zbo') return null;
+      const st = OST();
+      if (!st || !st.ctrBy || st.ctrBy === st.me || !oPhaseOk(st)) return null;
+      return (st.players || []).find((p) => p.id === st.ctrBy) || { nick: '?' };
+    }
     function boxHtml(chips, pk, attr) {
       let cost = 0;
-      chips.forEach(([k]) => { if (!(k === 'counter' && counterDayOn()) && (k === 'role' ? !!pk.role : !!pk[k])) cost += priceAt(k); });
+      const tk = ctrTaker(attr);
+      chips.forEach(([k]) => { if (!(k === 'counter' && (counterDayOn() || tk)) && (k === 'role' ? !!pk.role : !!pk[k])) cost += priceAt(k); });
       return '<span class="zb-ih"><b>开局道具</b>' + (cost ? '<em class="on">合计 ' + FISH() + fmt(cost) + '</em>' : '<em>点选使用</em>') + '</span>' +
         '<span class="zr-chips">' + chips.map(([k, ic]) => {
-        const free = k === 'counter' && counterDayOn(), on = free || (k === 'role' ? !!pk.role : !!pk[k]), p = priceAt(k);
-        return '<button type="button" class="zb-it2" ' + attr + '="' + k + '" aria-pressed="' + on + '"' + (free ? ' data-free="1"' : '') + '><i class="zr-mc" style="--bg:' + ITEM_BG[k] + '" aria-hidden="true">' + ic + '</i><small>' + ITEM_NAME[k] + '</small>' +
-          '<span class="pr">' + (free ? '今日畅用' : FISH() + fmt(p)) + '</span></button>';
+        const by = k === 'counter' && tk;   // 别人带了：亮着、不写价、角上挂他的小头像
+        const free = k === 'counter' && (counterDayOn() || !!by), on = free || (k === 'role' ? !!pk.role : !!pk[k]), p = priceAt(k);
+        return '<button type="button" class="zb-it2' + (by ? ' is-by' : '') + '" ' + attr + '="' + k + '" aria-pressed="' + on + '"' + (free ? ' data-free="1"' : '') + (by ? ' aria-label="' + ITEM_NAME[k] + '，' + String(tk.nick || '').replace(/[<>&"]/g, '') + ' 已带"' : '') + '><i class="zr-mc" style="--bg:' + ITEM_BG[k] + '" aria-hidden="true">' + ic + '</i>' + (by ? '<span class="zb-by" aria-hidden="true">' + faceOfP(tk) + '</span>' : '') + '<small>' + ITEM_NAME[k] + '</small>' +
+          '<span class="pr">' + (by ? '' : counterDayOn() && k === 'counter' ? '今日畅用' : FISH() + fmt(p)) + '</span></button>';
       }).join('') + '</span>';
     }
     function solo(ctx) {
@@ -863,7 +877,6 @@
       let x = pay;
       if (x > 0) x = Math.min(x, bal()); else if (x < 0) x = -Math.min(-x, bal());
       if (x) book(x, '加倍（' + (x > 0 ? '多赢' : '多扣') + '）' + (g.online ? '·联机' : ''));
-      if (!line.parentNode.querySelector('.zb-x2s')) { const sp = document.createElement('span'); sp.className = 'zb-x2s'; sp.textContent = '×2'; line.parentNode.insertBefore(sp, line.nextSibling); }
     }
     const zbOf = (g) => g.zb || (g.state && g.state.zb) || null;
     /* 联机开局（2026-11-27 用户同意：联机只开记牌器和加倍，作废 / 交换 / 挑角色不开——会改发牌、影响别人）：
@@ -871,26 +884,87 @@
     const ctrShared = () => { const st = TB() && TB().onlineSt ? TB().onlineSt() : null; return !!(st && st.counter); };
     function onlineStart(g) {
       if (!g.online || g.spectator || g.zb !== undefined) return;
-      const s = g.state;
-      if (!s || !s.hands || !s.hands[0] || !s.discard) return;
-      const fresh = s.discard.length === 0, key = (g.matchNo || 0) + ':' + s.hands[0].slice().sort((a, b) => a - b).join(',');
-      if (!fresh) { g.zb = d.onl && d.onl.m === g.matchNo && Date.now() - d.onl.at < 3 * 3600e3 && !d.onl.done ? d.onl.zb : null; return; }
-      if (d.onl && d.onl.key === key) { g.zb = d.onl.done ? null : d.onl.zb; return; }
-      const zb = {};
-      /* 记牌器（11-27 用户：联机里一人买、全桌都能用）：桌上已经有人开了就不再扣我的；我买了就报给服务器，这局全桌都亮 */
-      const want = counterDayOn() || (d.opick && d.opick.counter);
-      if (want && !ctrShared()) {
-        if (counterDayOn()) zb.counter = true;
-        else if (bal() >= priceAt('counter')) { takeBuy('counter', '记牌器（联机·全桌）'); zb.counter = true; }
-        if (zb.counter && TB() && TB().act) TB().act('counter', {});
+      onlineSync();
+      g.zb = d.onl && d.onl.m === g.matchNo && Date.now() - d.onl.at < 3 * 3600e3 && !d.onl.done ? d.onl.zb : null;
+    }
+    /* 联机道具（2026-11-27 用户定）：每局选、只管一局；点「准备 / 再来一局」那一刻和门票一起扣，没开成（取消准备、离开、改规则…）整笔退。
+     * 记牌器全桌一份：先点准备、带着记牌器的那个人报给服务器认领（ctrBy），只扣他的；晚到的不扣、格子变成「已有人带」。加倍各付各的。
+     * d.ohold = { code, counter, x2 }：这会儿替准备垫着的钱；看到这局开了就认掉（记进 d.onl），选的那几样留着当下一局的默认 */
+    const OST = () => (TB() && TB().onlineSt ? TB().onlineSt() : null);
+    const oPhaseOk = (st) => !!(st && !st.spectator && st.mySeat >= 0 && (st.phase === 'lobby' || (st.game && st.game.over)));
+    let oClaimAt = 0, oLast = null;
+    function oRelease(k, why) {
+      const h = d.ohold, amt = h && h[k];
+      if (h) delete h[k];
+      if (amt > 0) book(amt, ITEM_NAME[k] + (why || '退回（没开局）'));
+    }
+    function oReleaseAll(why) { if (!d.ohold) return; ['counter', 'x2'].forEach((k) => oRelease(k, why)); d.ohold = null; save(); }
+    function onlineSync() {
+      const st = OST();
+      if (!st) { if (d.ohold && Date.now() - (d.ohold.t || 0) > 8000) oReleaseAll(); return; }   // 断线重连那几秒不退
+      if (d.ohold) d.ohold.t = Date.now();
+      if (d.ohold && d.ohold.code !== st.code) oReleaseAll();
+      if (st.spectator || st.mySeat < 0) { oReleaseAll(); return; }
+      const g = st.game;
+      // 开局了：垫着的钱认掉
+      if (g && !g.over && st.phase !== 'lobby') {
+        if (d.ohold) {
+          const h = d.ohold, zb = {};
+          if ('counter' in h) { zb.counter = true; ctrSpent(); d.ctr.n += h.counter | 0; if (d.ctr.n >= BASE.counterDay) d.counterDay = today(); }
+          if ('x2' in h) zb.x2 = true;
+          d.onl = { m: g.matchNo, at: Date.now(), zb: Object.keys(zb).length ? zb : null };
+          d.ohold = null; save();
+        }
+        return;
       }
-      const team = s.teams && s.teams.length;
-      if (!team && d.opick && d.opick.x2 && bal() >= priceAt('x2')) { takeBuy('x2', '加倍（联机）'); zb.x2 = true; }
-      g.zb = Object.keys(zb).length ? zb : null;
-      d.onl = { key, m: g.matchNo, at: Date.now(), zb: g.zb };
-      if (d.opick) d.opick = { counter: false, x2: false };   // 一局一买
+      if (!oPhaseOk(st)) return;
+      const me = st.me, ready = (st.ready || []).includes(me), pk = d.opick || {};
+      const team = !!(g && g.teams && g.teams.length) || !!(st.config && st.config.rules && st.config.rules.mode === 'team');
+      const h = d.ohold || (d.ohold = { code: st.code, t: Date.now() });
+      // 加倍：准备了、勾着 → 垫上；否则退
+      if (ready && pk.x2 && !team) { if (!('x2' in h) && bal() >= priceAt('x2')) { h.x2 = priceAt('x2'); book(-h.x2, '加倍（联机）'); } }
+      else if ('x2' in h) oRelease('x2');
+      // 记牌器：准备了、勾着、桌上还没人认 → 报给服务器；服务器认的是我才垫钱，认的是别人就退
+      const wantC = ready && pk.counter;
+      if (wantC && !st.ctrBy && performance.now() - oClaimAt > 1500 && (counterDayOn() || bal() >= priceAt('counter'))) { oClaimAt = performance.now(); if (TB().act) TB().act('counter', {}); }
+      if (wantC && st.ctrBy === me) { if (!('counter' in h)) { h.counter = priceAt('counter'); if (h.counter > 0) book(-h.counter, '记牌器（联机·全桌）'); } }
+      else if ('counter' in h) oRelease('counter');
+      if (!('x2' in h) && !('counter' in h)) d.ohold = null;
       save();
     }
+    /* 「再来一局 / 准备」上的小签：门票 + 我勾的道具（记牌器别人带了不算） */
+    function oItemsCost(st) {
+      const pk = d.opick || {};
+      let c = 0;
+      if (pk.counter && !counterDayOn() && !(st.ctrBy && st.ctrBy !== st.me)) c += (d.ohold && d.ohold.counter != null) ? d.ohold.counter : priceAt('counter');
+      if (pk.x2) c += (d.ohold && d.ohold.x2 != null) ? d.ohold.x2 : priceAt('x2');
+      return c;
+    }
+    function oTag(st) {
+      document.querySelectorAll('[data-ready] .zmw-tag').forEach((t) => {
+        const raw = Number((t.textContent || '').replace(/[^\d]/g, '')) || 0;
+        if (t.__zbOut !== raw) t.__zbBase = raw;   // 钱包刚重写过：记下门票
+        const out = (t.__zbBase || 0) + (oPhaseOk(st) ? oItemsCost(st) : 0);
+        if (raw !== out && t.lastChild) t.lastChild.textContent = fmt(out);
+        t.__zbOut = out;
+      });
+    }
+    // 结算页：开了加倍，我台子上 / 我那行刻的数字（单机结算页那行同理）后面跟个小「×2」，不加字（11-27 起替掉原来那颗红圆章）
+    function resX2() {
+      const g = TB() && TB().game ? TB().game() : null, zb = g && zbOf(g);
+      if (!zb || !zb.x2) return;
+      document.querySelectorAll('#zmDialog .zmw-ln.is-main > b').forEach((b) => {
+        if (!b.querySelector('.zb-x2r')) b.insertAdjacentHTML('beforeend', '<i class="zb-x2r">×2</i>');
+      });
+    }
+    setInterval(() => {
+      try {
+        const st = OST();
+        if (st !== oLast) { oLast = st; onlineSync(); if (st && oPhaseOk(st)) repaintPicks(); }
+        if (st) oTag(st);
+        resX2();
+      } catch (_) { /* 内测：别拖垮牌局 */ }
+    }, 300);
     /* 开局道具格放在哪（2026-11-27 用户：联机没有单机那张开局单；排行榜点「再来一局 / 下一局」直接开，也没地方买）：
      *   单机：开局单 + 单机结算页（「再来一局」上面）
      *   联机：房间页（「离开房间 / 开始」上面）+ 联机排行榜（房主「下一局」、客人「等房主开下一局」上面）
