@@ -1750,7 +1750,8 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 @keyframes zm-life-beat { 50% { background: #6f9e7c; } }
 .zm-btn-life:hover .zm-life i { background: #67977a; }
 /* 百变「急救」挑对子（2026-11-26 用户）：凑不上对的牌变灰，凑得上的描一圈绿；抬起来的那一对就是要交的；「合成」键 = 绿色的命（同救队友） */
-.zm-hand.is-saving .zm-card.is-dim { filter: grayscale(0.85) opacity(0.5); }
+/* 2026-11-27 用户：整排变灰太怪（半透明还把底下绿光透上来，像一层绿膜盖在牌上）——凑不上对的保持原彩、不透明，只往下沉一点；点它会摇一下 */
+.zm-hand.is-saving .zm-card.is-dim { translate: 0 8px; }
 /* 2026-11-26 用户：不要每张能凑的都描绿边——照索要，整排手牌底下一层暖光一呼一吸（急救用绿金色），抬起的那一对描金边 */
 .zm-hand.is-saving .zm-card:not(.is-sel) { box-shadow: -2px 0 6px rgba(29, 27, 24, 0.08); }
 .zm-hand.is-saving .zm-card.is-sel { translate: 0 -10px; box-shadow: 0 0 0 3px #e9c86a, 0 10px 20px rgba(201, 160, 60, 0.45); }

@@ -5277,15 +5277,15 @@
   function saveTap(id, node) {
     const hand = game.state.hands[0];
     if (!saveCandidates(hand).has(id)) { shake(node); return; }
+    // 2026-11-27 用户：一对就是一个选择——点哪张，它和能凑的那张（优先一样的）一起抬起来；点已经抬着的那对不动
     const i = selected.indexOf(id);
-    if (i >= 0) selected.splice(i, 1);
-    else if (selected.length === 1 && R.savePairOk(hand, [selected[0], id])) selected.push(id);
-    else {
-      // 换一对：点的这张能和谁凑（优先一样的那张），一起抬起来
-      const mate = hand.find((x) => x !== id && R.KIND_OF[x] === R.KIND_OF[id]) ?? hand.find((x) => x !== id && R.savePairOk(hand, [id, x]));
+    if (i < 0 || selected.length !== 2) {
+      // 同种的挑离它最近的那张（手里三张奶牛猫时抬相邻的，不跨过中间那张）
+      const at = hand.indexOf(id), near = (xs) => xs.sort((x, y) => Math.abs(hand.indexOf(x) - at) - Math.abs(hand.indexOf(y) - at))[0];
+      const mate = near(hand.filter((x) => x !== id && R.KIND_OF[x] === R.KIND_OF[id])) ?? hand.find((x) => x !== id && R.savePairOk(hand, [id, x]));
       selected = mate != null ? [id, mate] : [id];
     }
-    snd(i >= 0 ? 'untap' : 'tap');
+    snd('tap');
     renderHand({ flip: false });
     renderBand();
     if (selected.length === 2) snd('combo');
