@@ -67,21 +67,12 @@
     // 记牌器的图标：一把小算盘（2026-11-27 用户：用窥探的眼睛会让人以为保证开局有一张窥探）
     const CTR_IC = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.2" fill="#fffdf8" stroke="#7a4f2a" stroke-width="1.8"/><path d="M3.9 9.3h16.2M3.9 14.7h16.2" stroke="#7a4f2a" stroke-width="1.1"/><g fill="#b4392c"><circle cx="7.5" cy="6.8" r="1.5"/><circle cx="15.5" cy="6.8" r="1.5"/><circle cx="10.5" cy="12" r="1.5"/></g><g fill="#c9a24a"><circle cx="12" cy="6.8" r="1.5"/><circle cx="14.5" cy="12" r="1.5"/><circle cx="8" cy="17.3" r="1.5"/><circle cx="16.5" cy="17.3" r="1.5"/></g></svg>';
     // ── 价格（2026-11-27 用户定）──
-    // 门票的锚一律指顶格那张：高手 6–9 人 600。记牌器一天 = 5 张顶格门票，一局 = 1 张；加倍 = 本场门票；挑角色 = 本场门票 1.5 倍
+    // 门票的锚一律指顶格那张：高手 6–9 人 600（用户 2026-11-27）。道具能囤，所以不按本场门票定价，一律按顶格：
+    // 记牌器一局 / 加倍 / 作废 / 交换 = 1 张，挑角色 = 1.5 张，记牌器一整天 = 5 张。当天同一样越买越贵（见 priceAt）
+    // 模拟（/mnt/project-files/shop-sim/res.jsonl，高手机器猫当玩家 2500 局一格）：开局保证拿作废多赢的期望 ≈ 0（±0.02 份），交换 2 人 +0.14 份、4–9 人 ≤ +0.03 份；
+    // 挑最强角色（截胡 / 影子）+0.05–0.08 份——一份最多 6,000（高手 9 人），多赢 ≤ 500，都低于这里的价，单机刷不了鱼
     const TOP = 600;
-    const ticket = (o) => (W() && W().price ? W().price(o.tier, o.mode === 'team' ? 'team' : o.mode, o.n) : 200);
-    // 保证拿作废 / 交换：按模拟（shop-sim）多赢的期望定价——单机里一局多赢的期望（份数）× 一份，再加两成，至少一张本场门票
-    const GAIN = { nope: { 2: 0.06, 4: 0.06, 6: 0.06, 9: 0.06 }, swap: { 2: 0.06, 4: 0.06, 6: 0.06, 9: 0.06 } };
-    const UNIT = { easy: [500, 600, 800, 900, 1100, 1200, 1400, 1500], normal: [1000, 1200, 1500, 1800, 2100, 2400, 2700, 3000], hard: [2000, 2400, 3000, 3600, 4200, 4800, 5400, 6000] };
-    function gainOf(kind, n) { const t = GAIN[kind]; const ks = Object.keys(t).map(Number); let best = ks[0]; ks.forEach((k) => { if (Math.abs(k - n) < Math.abs(best - n)) best = k; }); return t[best]; }
-    const PRICES = {
-      counterDay: () => TOP * 5,
-      counter: () => TOP,
-      x2: (o) => ticket(o),
-      role: (o) => nice(ticket(o) * 1.5),
-      nope: (o) => Math.max(ticket(o), Math.ceil(gainOf('nope', o.n) * (UNIT[o.tier] || UNIT.normal)[o.n - 2] * 1.2 / 100) * 100),
-      swap: (o) => Math.max(ticket(o), Math.ceil(gainOf('swap', o.n) * (UNIT[o.tier] || UNIT.normal)[o.n - 2] * 1.2 / 100) * 100),
-    };
+    const BASE = { counterDay: TOP * 5, counter: TOP, x2: TOP, role: nice(TOP * 1.5), nope: TOP, swap: TOP };
     const counterDayOn = () => d.counterDay === today();
 
     // ── 外观目录 ──
@@ -93,14 +84,21 @@
     };
     const CAT_NAME = { felt: '桌布', back: '牌背', frame: '头像框', fx: '出牌特效' };
     const BACK_FILL = { navy: '#2f4a6d', cinnabar: '#a63a2e', jade: '#2f5e4a', wisteria: '#6b4f8e', gilt: '#8a6a2a' };
-    const FELT = {
-      paper: '', celadon: '#e3ebe2', sakura: '#f6e6e4', bamboo: '#e6ecdc', indigo: '#e2e7ef',
-    };
+    // 桌布（2026-11-27 用户：太素，看不出用起来多好看）：底色 + 一层纹样 + 四周一圈暗角；纹样都很淡，牌和字照样清楚
+    const svgUrl = (x) => 'url("data:image/svg+xml,' + encodeURIComponent(x) + '")';
+    const sakuraFlower = (x, y, r, rot, o) => '<g transform="translate(' + x + ' ' + y + ') rotate(' + rot + ')" opacity="' + o + '">' + [0, 72, 144, 216, 288].map((a) => '<ellipse cx="0" cy="' + (-r * 0.55) + '" rx="' + (r * 0.36) + '" ry="' + (r * 0.55) + '" fill="#e48fa0" transform="rotate(' + a + ')"/>').join('') + '<circle r="' + (r * 0.18) + '" fill="#d9a441"/></g>';
+    const FELT = { paper: '', celadon: '#dbe7df', sakura: '#f8e5e3', bamboo: '#e2ead6', indigo: '#dde4ef' };
     const FELT_PAT = {
-      bamboo: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M10 0v60M40 0v60' stroke='%2384a06c' stroke-opacity='.12' stroke-width='5'/%3E%3Cpath d='M7 20h6M37 44h6' stroke='%2384a06c' stroke-opacity='.18' stroke-width='2'/%3E%3C/svg%3E\")",
-      indigo: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Ccircle cx='24' cy='24' r='9' fill='none' stroke='%232f4a6d' stroke-opacity='.10' stroke-width='3'/%3E%3Ccircle cx='0' cy='0' r='5' fill='%232f4a6d' fill-opacity='.07'/%3E%3Ccircle cx='48' cy='48' r='5' fill='%232f4a6d' fill-opacity='.07'/%3E%3C/svg%3E\")",
-      sakura: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='70' height='70'%3E%3Cg fill='%23d98a8a' fill-opacity='.13'%3E%3Ccircle cx='15' cy='18' r='3'/%3E%3Ccircle cx='52' cy='50' r='2.4'/%3E%3C/g%3E%3C/svg%3E\")",
+      celadon: svgUrl('<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140"><g fill="none" stroke="#5f8a76" stroke-opacity=".22" stroke-width="1"><path d="M0 34 L22 40 L41 28 L66 37 L84 22 L110 30 L140 26"/><path d="M22 40 L26 66 L12 92 L18 120 L8 140"/><path d="M66 37 L72 61 L58 84 L70 108 L64 140"/><path d="M110 30 L106 58 L124 80 L116 104 L128 140"/><path d="M26 66 L48 72 L72 61 L96 70 L106 58"/><path d="M12 92 L36 98 L58 84"/><path d="M70 108 L92 114 L116 104"/><path d="M84 22 L80 0 M41 28 L46 0 M140 82 L124 80 M0 98 L12 92"/></g></svg>'),
+      sakura: svgUrl('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160">' + sakuraFlower(28, 34, 13, 10, 0.32) + sakuraFlower(112, 58, 9, 40, 0.25) + sakuraFlower(70, 126, 11, 70, 0.28) + sakuraFlower(146, 140, 7, 20, 0.2) + '<g fill="#e48fa0" opacity=".22"><ellipse cx="62" cy="76" rx="3" ry="5" transform="rotate(30 62 76)"/><ellipse cx="132" cy="102" rx="2.6" ry="4.4" transform="rotate(-20 132 102)"/><ellipse cx="18" cy="118" rx="2.6" ry="4.2" transform="rotate(60 18 118)"/></g></svg>'),
+      bamboo: svgUrl('<svg xmlns="http://www.w3.org/2000/svg" width="180" height="200"><g fill="#6f8f57" fill-opacity=".14"><rect x="22" y="0" width="9" height="200" rx="3"/><rect x="118" y="0" width="7" height="200" rx="3"/></g><g stroke="#6f8f57" stroke-opacity=".22" stroke-width="2"><path d="M20 52h13M20 128h13M116 86h11M116 168h11"/></g><g fill="#6f8f57" fill-opacity=".16"><path d="M31 52c18-6 30-2 40 8-16 2-28-1-40-8z"/><path d="M31 56c14 6 22 16 24 30-12-6-20-16-24-30z"/><path d="M118 86c-18-8-32-6-44 2 16 4 30 4 44-2z"/><path d="M125 168c16-10 30-10 42-4-14 6-28 8-42 4z"/><path d="M125 172c10 8 14 18 12 30-8-8-12-18-12-30z"/></g></svg>'),
+      indigo: svgUrl('<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><g fill="none" stroke="#2f4a6d"><path d="M48 18 L78 48 L48 78 L18 48 Z" stroke-opacity=".16" stroke-width="5"/><path d="M48 32 L64 48 L48 64 L32 48 Z" stroke-opacity=".12" stroke-width="3"/></g><circle cx="48" cy="48" r="3" fill="#2f4a6d" fill-opacity=".16"/><g fill="#2f4a6d" fill-opacity=".09"><circle cx="0" cy="0" r="9"/><circle cx="96" cy="0" r="9"/><circle cx="0" cy="96" r="9"/><circle cx="96" cy="96" r="9"/></g></svg>'),
     };
+    const VIGNETTE = 'radial-gradient(120% 90% at 50% 45%, rgba(255,255,255,0) 55%, rgba(29,27,24,.07) 100%)';
+    function feltStyle(id) {
+      const bg = FELT[id] || '#f3eee3', pat = FELT_PAT[id];
+      return 'background-color:' + bg + ';background-image:' + VIGNETTE + (pat ? ',' + pat : '') + ';background-size:100% 100%' + (pat ? ',auto' : '');
+    }
     const FRAME_SVG = {
       yarn: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="none" stroke="#c0648f" stroke-width="3.2" stroke-dasharray="5 3.4" stroke-linecap="round"/><circle cx="54" cy="12" r="5" fill="#c0648f"/><path d="M50.5 9.5l7 5M51 14.6l6-6" stroke="#fbf6ec" stroke-width="1"/></svg>',
       fishbone: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="none" stroke="#8b8478" stroke-width="2"/>' + Array.from({ length: 16 }, (_, i) => { const a = (i / 16) * Math.PI * 2, x1 = 32 + Math.cos(a) * 27, y1 = 32 + Math.sin(a) * 27, x2 = 32 + Math.cos(a) * 32.5, y2 = 32 + Math.sin(a) * 32.5; return '<path d="M' + x1.toFixed(1) + ' ' + y1.toFixed(1) + 'L' + x2.toFixed(1) + ' ' + y2.toFixed(1) + '" stroke="#8b8478" stroke-width="2" stroke-linecap="round"/>'; }).join('') + '</svg>',
@@ -113,7 +111,9 @@
 .zb-shop{background:#f3eee3;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);transform:translateY(100%);transition:transform .32s cubic-bezier(.2,.8,.25,1)}
 .zb-shop.is-on{transform:none}
 .zb-top{display:flex;align-items:center;gap:8px;height:52px;padding:0 10px;border-bottom:1px solid rgba(29,27,24,.18)}
-.zb-top h2{margin:0;font-size:18px;letter-spacing:.1em;flex:1}
+.zb-top h2{margin:0;font-size:18px;letter-spacing:.1em;flex:1;color:#1d1b18}
+.zb-sub .zb-bal,.zb-shop .zb-bal{color:#1d1b18}
+.zb-opt .zb-pv,.zb-it .zb-pv,.zb-cf-in .zb-pv{background-size:100% 100%,64px 64px!important}
 .zb-x{width:40px;height:40px;border-radius:50%;border:1px solid #1d1b18;background:#f3eee3;display:inline-flex;align-items:center;justify-content:center;padding:0}
 .zb-x svg{width:20px;height:20px}
 .zb-bal{display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:17px}
@@ -187,12 +187,82 @@
 .zb-x2s{display:inline-flex;align-items:center;justify-content:center;margin-left:6px;font-size:12px;font-weight:700;color:#fbf6ec;background:#b4392c;border-radius:50%;width:24px;height:24px;transform:rotate(-12deg);vertical-align:middle}
 .zb-frame{position:absolute;inset:-6px;pointer-events:none;z-index:2}
 .zb-frame svg{width:100%;height:100%;overflow:visible}
-.zb-fxp{position:fixed;left:0;top:0;pointer-events:none;z-index:2147482000;will-change:transform,opacity}
+.zb-fxp{position:fixed;left:0;top:0;pointer-events:none;z-index:2147483500;will-change:transform,opacity}
 .zb-card{border:1px solid #1d1b18;background:#fffdf8;border-radius:12px;padding:12px;margin-bottom:10px}
 .zb-card .h{display:flex;align-items:center;justify-content:space-between;font-weight:700;margin-bottom:8px}
 .zb-card .zb-row{margin-bottom:6px;padding:8px 10px}
 .zb-tk{height:6px;border-radius:3px;background:#ebe5d8;margin-top:5px;overflow:hidden}
 .zb-tk i{display:block;height:100%;background:#3f7a52}
+.zb-top .zb-bal{margin-left:auto}
+.zb-book{margin-left:8px;width:36px;height:36px}
+.zb-book svg{width:20px;height:20px}
+.zb-it{padding:16px 6px 12px;gap:7px}
+.zb-pv.av{margin-top:6px}
+.zb-pv.ic{background:#f3eee3;border-radius:14px}
+.zb-pv.ic svg{width:40px;height:40px}
+.zb-pv.ic .rb{width:30px;display:inline-flex}
+.zb-pv.ic .rb svg{width:100%;height:auto}
+.zb-pv.ic.big{width:96px;height:96px}
+.zb-pv.ic.big svg{width:58px;height:58px}
+.zb-pv.ic.big .rb{width:44px}
+.zb-pv.fx{background:#ebe5d8}
+.zb-pv.fx svg{width:42px;height:42px}
+.zb-n{position:absolute;top:6px;right:6px;min-width:22px;height:22px;border-radius:11px;background:#1d1b18;color:#fbf6ec;font:700 12px/22px 'ZM Num',Georgia,serif;padding:0 6px}
+.zb-face{display:flex;width:100%;height:100%;border-radius:50%;overflow:hidden}
+.zb-face svg{width:100%;height:100%}
+.zb-cats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+.zb-cat{border:1px solid #1d1b18;background:#fffdf8;border-radius:14px;padding:8px 8px 12px;display:flex;flex-direction:column;align-items:stretch;gap:10px;font:inherit;color:#1d1b18}
+.zb-cat b{font-size:15px;letter-spacing:.06em}
+.zb-cv{position:relative;height:118px;border-radius:9px;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:inset 0 0 0 1px rgba(29,27,24,.15)}
+.zb-cv-card{width:46px;display:inline-flex;transform:rotate(-6deg)}
+.zb-cv-card .zm-card{width:46px!important;position:static}
+.zb-cv-card.f{transform:rotate(5deg)}
+.zb-cv-card.b0{transform:rotate(-12deg) translateX(10px)}
+.zb-cv-card.b1{transform:translateY(-4px);z-index:1}
+.zb-cv-card.b2{transform:rotate(12deg) translateX(-10px)}
+.zb-cv-fx{position:absolute;right:16px;top:12px;width:40px;height:40px}
+.zb-pv.av.big{width:70px;height:70px}
+.zb-sub{position:absolute;inset:0;background:#f3eee3;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(.2,.8,.25,1);z-index:3;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.zb-sub.is-on{transform:none}
+.zb-scene-wrap{padding:12px 12px 0}
+.zb-scene{position:relative;height:min(46vh,340px);border-radius:12px;border:1px solid #1d1b18;outline:1px solid rgba(29,27,24,.3);outline-offset:-5px;overflow:hidden;transition:background-color .35s}
+.zb-sc-opp{position:absolute;top:8%;width:46px;height:46px;border-radius:50%;box-shadow:0 0 0 1.5px #1d1b18;background:#ebe5d8}
+.zb-sc-opp.l{left:20%}.zb-sc-opp.r{right:20%}
+.zb-sc-piles{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);display:flex;gap:22px}
+.zb-sc-deck{position:relative;width:52px;height:73px}
+.zb-sc-deck>span{position:absolute;inset:0;display:block}
+.zb-sc-deck .zm-card,.zb-sc-disc .zm-card{width:52px!important;position:static}
+.zb-sc-disc{width:52px;display:block;transform:rotate(7deg)}
+.zb-sc-me{position:absolute;left:9%;bottom:30%}
+.zb-sc-me .zb-pv.av{width:50px;height:50px;margin:0}
+.zb-sc-hand{position:absolute;left:0;right:0;bottom:-14px;display:flex;justify-content:center}
+.zb-sc-hand>span{width:58px;margin:0 -7px;transform-origin:50% 120%;display:block}
+.zb-sc-hand .zm-card{width:58px!important;position:static}
+.zb-opts{display:flex;gap:10px;overflow-x:auto;padding:14px 12px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.zb-opts::-webkit-scrollbar{display:none}
+.zb-opt{flex:none;width:92px;border:1px solid #1d1b18;background:#fffdf8;border-radius:12px;padding:12px 4px 9px;display:flex;flex-direction:column;align-items:center;gap:6px;font:inherit;color:#1d1b18}
+.zb-opt .zb-pv{width:56px;height:56px}
+.zb-opt .zb-pv .zm-card{width:38px!important}
+.zb-opt .zb-pv.av{width:48px;height:48px;margin-top:4px}
+.zb-opt b{font-size:14px}
+.zb-opt i{font-style:normal;font-size:12px;display:inline-flex;align-items:center;gap:2px}
+.zb-opt i svg{width:16px;height:10px}
+.zb-opt i.ok{color:#3f7a52}
+.zb-opt.is-sel{box-shadow:0 0 0 2.5px #b4392c}
+.zb-act{padding:10px 16px 16px;margin-top:auto}
+.zb-big{width:100%;height:52px;border-radius:26px;border:1px solid #1d1b18;background:#fffdf8;font:inherit;font-size:17px;letter-spacing:.08em;display:flex;align-items:center;justify-content:center;gap:4px;color:#1d1b18}
+.zb-big svg{width:24px;height:15px}
+.zb-big.is-red{background:#b4392c;border-color:#b4392c;color:#fbf6ec}
+.zb-big[disabled]{opacity:.55}
+.zb-q{display:flex;align-items:center;gap:16px;margin-top:8px}
+.zb-q button{width:34px;height:34px;border-radius:50%;border:1px solid #1d1b18;background:#fffdf8;font:inherit;font-size:18px;line-height:1;color:#1d1b18}
+.zb-q button[disabled]{opacity:.35}
+.zb-q b{min-width:22px;text-align:center;font-size:20px;margin:0!important;font-family:'ZM Num',Georgia,serif}
+.zb-chip i.inv{min-width:18px;height:18px;border-radius:9px;background:#3f7a52;color:#fbf6ec;justify-content:center;font-weight:700;font-size:11px;padding:0 5px}
+.zb-pshop{display:inline-flex;align-items:center;gap:5px;margin-top:10px;height:34px;padding:0 14px 0 11px;border-radius:17px;border:1.5px solid #1d1b18;background:#b4392c;color:#fffdf8;font:600 14px/1 system-ui,'Noto Sans SC',sans-serif;box-shadow:0 2px 0 #1d1b18;cursor:pointer}
+.zb-pshop svg{width:18px;height:18px}
+.zb-pshop:active{transform:translateY(2px);box-shadow:none}
+
 .zb-tline{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
 .zb-tline .zb-seal{margin:0}
 .zb-tline .zb-bal{font-size:14px}
@@ -200,7 +270,7 @@
 .zb-sub{display:block;margin-top:3px;font-size:11.5px;font-weight:400;color:#8a8275}
 ` + Object.keys(BACK_FILL).filter((k) => k !== 'navy').map((k) => `.zb-back-${k} .zm-card.is-back svg>rect:first-child{fill:${BACK_FILL[k]}}`).join('\n') + '\n' +
       `.zb-back-gilt .zm-card.is-back svg>rect:nth-child(2){stroke:#f3d58a}\n` +
-      Object.keys(FELT).filter((k) => FELT[k]).map((k) => `.zb-felt-${k} .zm-table,.zb-felt-${k}.zm-app{background-color:${FELT[k]}}` + (FELT_PAT[k] ? `\n.zb-felt-${k} .zm-table{background-image:${FELT_PAT[k]}}` : '')).join('\n');
+      Object.keys(FELT).filter((k) => FELT[k]).map((k) => `.zb-felt-${k}.zm-app{background-color:${FELT[k]}}\n.zb-felt-${k} .zm-table{${feltStyle(k)}}`).join('\n');
     const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
 
     // ── 假广告（接口照微信激励视频：show() 之后 onClose({ isEnded })；以后换真的只改这里）──
@@ -222,47 +292,85 @@
     const adThen = (slot, fn) => rewarded(slot).then((r) => { if (r.isEnded) fn(); });
 
     // ── 商店 ──
+    /* 2026-11-27 用户第三轮：
+     *   道具可以囤：商店里买多少都行，同一样东西当天越买越贵（第 k 件 = 原价 ×(1 + 0.2(k−1))，最多 3 倍，取整百）；开局单里先用存货，没存货也能当场买（同一个价、同样算进当天的件数）。
+     *   价格不再跟着本场门票走（能囤就不能按场定价），一律按顶格门票：记牌器一局 / 加倍 / 作废 / 交换 600，挑角色 900（1.5 张），记牌器一整天 3,000（一天一次，不涨）。
+     *   账本挪到右上角小本子里，主页面不放；开局道具不写说明。
+     *   外观：第一层四张大卡（选购桌布 / 牌背 / 头像框 / 出牌特效），点进去是一张真的小牌桌，点不同的款当场换上去看（头像框套的是你自己的头像，出牌特效会在弃牌堆上放）。
+     *   买完停在原地（不重画整页、不跳回顶上）；按钮叫「购买」 */
     const BACK_SVG = '<svg viewBox="0 0 40 40"><path d="M24.5 6.5 13 20l11.5 13.5" fill="none" stroke="#b4392c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    let shop = null, tab = 'look';
+    const BOOK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="#1d1b18" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4.5h11.5a2 2 0 0 1 2 2v13H7a2 2 0 0 1-2-2z"/><path d="M5 17.5a2 2 0 0 1 2-2h11.5"/><path d="M9 8.5h6M9 11.5h4"/></svg>';
+    const X2_IC = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3" fill="#fbf6ec" stroke="#b4392c" stroke-width="1.8" transform="rotate(-8 12 12)"/><text x="12" y="16.2" text-anchor="middle" font-size="10" font-weight="700" fill="#b4392c" font-family="Georgia,serif" transform="rotate(-8 12 12)">×2</text></svg>';
+    let shop = null, tab = 'look', sub = null;
     let balEls = [];
-    function paintBal() { balEls = balEls.filter((e) => e.isConnected); balEls.forEach((e) => { e.textContent = fmt(bal()); }); }
+    function paintBal() { balEls = balEls.filter((e) => e.isConnected); balEls.forEach((e) => { if (!e.__zbHold) e.textContent = fmt(bal()); }); }
     const balHtml = () => '<span class="zb-bal">' + FISH() + '<b data-zbbal>' + fmt(bal()) + '</b></span><span class="zb-seal">内测</span>';
     function grabBal(el) { el.querySelectorAll('[data-zbbal]').forEach((e) => balEls.push(e)); }
+
+    // 道具：存货 + 当天件数
+    const ITEMS = [['counterDay', '记牌器（一整天）'], ['counter', '记牌器（一局）'], ['x2', '加倍'], ['role', '挑角色'], ['nope', '作废'], ['swap', '交换']];
+    const ITEM_NAME = Object.fromEntries(ITEMS);
+    const itemIc = (k) => (k === 'counterDay' || k === 'counter' ? CTR_IC : k === 'x2' ? X2_IC : k === 'role' ? '<span class="rb">' + (ART() ? ART().ROLE_BACK : '') + '</span>' : (ART() ? ART().icon(k) : ''));
+    const inv = (k) => ((d.inv || {})[k] | 0);
+    function bought(k) { if (!d.bd || d.bd.d !== today()) { d.bd = { d: today(), n: {} }; } return d.bd.n[k] | 0; }
+    const priceAt = (k, extra) => (k === 'counterDay' ? BASE.counterDay : nice(BASE[k] * Math.min(3, 1 + 0.2 * (bought(k) + (extra || 0)))));
+    const priceFor = (k, q) => { let t = 0; for (let i = 0; i < q; i++) t += priceAt(k, i); return t; };
+    function takeBuy(k, q, why) { const p = priceFor(k, q); book(-p, why || ITEM_NAME[k] + (q > 1 ? ' ×' + q : '')); bought(k); d.bd.n[k] = (d.bd.n[k] | 0) + q; save(); return p; }
+
     function previewHtml(cat, id) {
-      if (cat === 'felt') return '<span class="zb-pv" style="background-color:' + (FELT[id] || '#f3eee3') + ';' + (FELT_PAT[id] ? 'background-image:' + FELT_PAT[id] + ';' : '') + 'box-shadow:inset 0 0 0 1px rgba(29,27,24,.25)"></span>';
+      if (cat === 'felt') return '<span class="zb-pv" style="' + feltStyle(id) + ';box-shadow:inset 0 0 0 1px rgba(29,27,24,.22)"></span>';
       if (cat === 'back') return '<span class="zb-pv">' + backOf(id) + '</span>';
-      if (cat === 'frame') return '<span class="zb-pv av">' + avFace() + (FRAME_SVG[id] || '') + '</span>';
-      const glyph = { none: '', petals: '🌸', fish: FISH(), sparks: '✨' }[id];
-      return '<span class="zb-pv" style="background:#ebe5d8;font-size:30px">' + (id === 'fish' ? '<span style="width:44px;display:inline-flex">' + glyph + '</span>' : glyph) + '</span>';
+      if (cat === 'frame') return '<span class="zb-pv av">' + myFace() + (FRAME_SVG[id] || '') + '</span>';
+      return '<span class="zb-pv fx">' + FX_IC[id] + '</span>';
     }
+    const FX_IC = {
+      none: '<svg viewBox="0 0 40 40"><path d="M12 28 28 12" stroke="#aaa294" stroke-width="2" stroke-linecap="round"/><circle cx="20" cy="20" r="11" fill="none" stroke="#aaa294" stroke-width="2"/></svg>',
+      petals: '<svg viewBox="0 0 40 40">' + [0, 72, 144, 216, 288].map((a) => '<ellipse cx="20" cy="12" rx="5" ry="8" fill="#f2a7b5" transform="rotate(' + a + ' 20 20)"/>').join('') + '<circle cx="20" cy="20" r="3" fill="#e3b64a"/></svg>',
+      fish: '<svg viewBox="0 0 40 40"><g transform="translate(5 10) scale(.9)">' + '<path d="M3 10c4-6 11-8 17-6 3 1 5 3 6 6-1 3-3 5-6 6-6 2-13 0-17-6Z" fill="#e3a83f" stroke="#1d1b18" stroke-width="1.6"/><path d="M25 10l5-5v10Z" fill="#e3a83f" stroke="#1d1b18" stroke-width="1.6"/><circle cx="7" cy="9" r="1.2" fill="#1d1b18"/></g><circle cx="33" cy="9" r="2" fill="#9cc6e0"/><circle cx="36" cy="15" r="1.3" fill="#9cc6e0"/></svg>',
+      sparks: '<svg viewBox="0 0 40 40"><path d="M20 4l3 11 11 3-11 3-3 11-3-11-11-3 11-3z" fill="#e3b64a"/><path d="M32 26l1.2 4 4 1.2-4 1.2L32 36l-1.2-3.6-4-1.2 4-1.2z" fill="#e3b64a" opacity=".8"/></svg>',
+    };
     function backOf(id) {   // 牌背预览：直接把底色写进这张的 svg，不靠外层 class
       let h = TB() ? TB().backHtml() : '';
       h = h.replace(/(<rect[^>]*?fill=")[^"]*/, '$1' + (BACK_FILL[id] || BACK_FILL.navy));
       if (id === 'gilt') { let i = 0; h = h.replace(/<rect[^>]*>/g, (r) => (++i === 2 ? r.replace(/stroke="[^"]*"/, 'stroke="#f3d58a"') : r)); }
       return h;
     }
-    function avFace() { const a = document.querySelector('#zmMe .zm-av-face'); return a ? '<span style="width:100%;height:100%;border-radius:50%;overflow:hidden;display:flex">' + a.innerHTML + '</span>' : ''; }
+    const AVS = () => root.GongzhuAvatars || null;
+    function myFace() {
+      const p = TB() && TB().profile ? TB().profile() : null, a = AVS();
+      const svg = p && p.avatar && a && a.byId[p.avatar] ? a.byId[p.avatar].svg : (a ? a.svg('cat') : '');
+      return '<span class="zb-face">' + svg + '</span>';
+    }
+
     function shopHtml() {
-      let h = '<div class="zb-top"><button type="button" class="zb-x" data-zb="close" aria-label="返回">' + BACK_SVG + '</button><h2>商店</h2>' + balHtml() + '</div>' +
+      let h = '<div class="zb-top"><button type="button" class="zb-x" data-zb="close" aria-label="返回">' + BACK_SVG + '</button><h2>商店</h2>' + balHtml() +
+        '<button type="button" class="zb-x zb-book" data-zb="ledger" aria-label="账本">' + BOOK_SVG + '</button></div>' +
         '<div class="zb-tabs"><button type="button" data-zbtab="look" aria-pressed="' + (tab === 'look') + '">外观</button><button type="button" data-zbtab="items" aria-pressed="' + (tab === 'items') + '">道具</button></div><div class="zb-body">';
       if (tab === 'look') {
-        Object.keys(CAT).forEach((cat) => {
-          h += '<div class="zb-sec">' + CAT_NAME[cat] + '</div><div class="zb-grid">' + CAT[cat].map(([id, name, p]) => {
-            const own = d.own[cat].includes(id), use = d.use[cat] === id;
-            const tag = use ? '<i class="ok">使用中</i>' : own ? '<i>使用</i>' : '<i>' + FISH() + fmt(p) + '</i>';
-            return '<button type="button" class="zb-it' + (use ? ' is-use' : '') + (!own && bal() < p ? ' is-poor' : '') + '" data-zbcat="' + cat + '" data-zbid="' + id + '">' + previewHtml(cat, id) + '<b>' + name + '</b>' + tag + '</button>';
-          }).join('') + '</div>';
-        });
+        h += '<div class="zb-cats">' + Object.keys(CAT).map((cat) => '<button type="button" class="zb-cat" data-zbopen="' + cat + '">' + catCover(cat) + '<b>选购' + CAT_NAME[cat] + '</b></button>').join('') + '</div>';
       } else {
-        h += '<div class="zb-row"><span class="t">记牌器 · 今天一整天<small>单机牌局里，牌堆旁一列小图标显示还没出现的牌各有几张</small></span>' +
-          (counterDayOn() ? '<span class="zb-btn" style="border-color:#3f7a52;color:#3f7a52">今天已开</span>' : '<button type="button" class="zb-btn is-red" data-zb="counterDay"' + (bal() < PRICES.counterDay() ? ' disabled' : '') + '>' + FISH() + fmt(PRICES.counterDay()) + '</button>') + '</div>';
-        h += '<div class="zb-sec">开局道具</div><div class="zb-row"><span class="t">在单机设置单里选，开局时扣<small>记牌器（这一局）、加倍（只对自己，输赢都翻倍）、挑角色（角色玩法）、保证拿一张作废 / 交换（手牌张数不变，随机换掉一张非逗猫棒的牌）</small></span></div>';
-        h += '<div class="zb-sec">内测账本</div>' + (d.log.length ? d.log.slice(0, 20).map((x) => '<div class="zb-row" style="padding:7px 12px"><span class="t">' + x.why + '<small>' + new Date(x.at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + '</small></span><b style="color:' + (x.amt < 0 ? '#b4392c' : '#3f7a52') + '">' + (x.amt < 0 ? '−' : '+') + fmt(x.amt) + '</b></div>').join('') : '<div class="zb-row"><span class="t" style="color:#6a6358">还没有</span></div>') +
-          '<div class="zb-row"><span class="t">清空内测账本<small>内测花的、领的全部归零，外观也收回</small></span><button type="button" class="zb-btn" data-zb="reset">清空</button></div>';
+        h += '<div class="zb-grid">' + ITEMS.map(([k, name]) => {
+          const day = k === 'counterDay', on = day && counterDayOn(), n = inv(k), p = priceAt(k);
+          return '<button type="button" class="zb-it zb-item' + (!on && bal() < p ? ' is-poor' : '') + '" data-zbitem="' + k + '"' + (on ? ' disabled' : '') + '>' + (n ? '<span class="zb-n">' + n + '</span>' : '') +
+            '<span class="zb-pv ic">' + itemIc(k) + '</span><b>' + name + '</b>' + (on ? '<i class="ok">今天已开</i>' : '<i>' + FISH() + fmt(p) + '</i>') + '</button>';
+        }).join('') + '</div>';
       }
       return h + '</div>';
     }
-    function paintShop() { if (!shop) return; shop.innerHTML = shopHtml(); grabBal(shop); }
+    // 外观第一层：每类一张大卡，卡面是「现在用着的那款」放在小场景里
+    function catCover(cat) {
+      const id = d.use[cat];
+      if (cat === 'felt') return '<span class="zb-cv" style="' + feltStyle(id === 'paper' ? 'sakura' : id) + '"><span class="zb-cv-card">' + backOf(d.use.back) + '</span><span class="zb-cv-card f">' + (TB() ? TB().cardHtml('skip') : '') + '</span></span>';
+      if (cat === 'back') return '<span class="zb-cv" style="' + feltStyle(d.use.felt) + '">' + ['cinnabar', id, 'jade'].map((b, i) => '<span class="zb-cv-card b' + i + '">' + backOf(i === 1 ? id : b) + '</span>').join('') + '</span>';
+      if (cat === 'frame') return '<span class="zb-cv" style="' + feltStyle(d.use.felt) + '"><span class="zb-pv av big">' + myFace() + (FRAME_SVG[id === 'none' ? 'gold' : id] || '') + '</span></span>';
+      return '<span class="zb-cv" style="' + feltStyle(d.use.felt) + '"><span class="zb-cv-card f">' + (TB() ? TB().cardHtml('nope') : '') + '</span><span class="zb-cv-fx">' + FX_IC[id === 'none' ? 'petals' : id] + '</span></span>';
+    }
+    function paintShop() {
+      if (!shop) return;
+      const body = shop.querySelector('.zb-body'), y = body ? body.scrollTop : 0;
+      shop.innerHTML = shopHtml(); grabBal(shop);
+      const nb = shop.querySelector('.zb-body'); if (nb) nb.scrollTop = y;   // 买完 / 换完停在原地
+    }
     function openShop() {
       if (!shop) {
         shop = document.createElement('section');
@@ -274,61 +382,153 @@
       shop.hidden = false;
       requestAnimationFrame(() => requestAnimationFrame(() => shop.classList.add('is-on')));
     }
-    /* 买东西（2026-11-27 用户：点了就直接买了很怪）：先弹一张确认卡（预览 + 名字 + 价钱），点「买下」→ 余额滚下去、鱼从余额游到这件东西上，放完才换成「使用中」 */
+    /* 确认卡：预览 + 名字 + 价钱；道具多一个数量（当天递增价按件加总）。「购买」→ 余额滚下去、鱼游到这件东西上 */
     let buying = false;
     function confirmBuy(o, tile, done) {
       if (buying) return;
       const m = document.createElement('div');
       m.className = 'zb-cf';
-      m.innerHTML = '<div class="zb-cf-in" role="dialog" aria-label="确认购买">' + o.pv + '<b>' + o.name + '</b><small>' + o.sub + '</small>' +
-        '<div class="zb-cf-btns"><button type="button" class="zb-btn" data-cf="no">取消</button><button type="button" class="zb-btn is-red" data-cf="yes">买下 ' + FISH() + fmt(o.price) + '</button></div></div>';
-      shop.appendChild(m);
+      let q = 1;
+      const total = () => (o.priceFor ? o.priceFor(q) : o.price);
+      const paint = () => {
+        const t = total(), ok = bal() >= t;
+        m.querySelector('[data-cf="yes"]').innerHTML = '购买 ' + FISH() + fmt(t);
+        m.querySelector('[data-cf="yes"]').disabled = !ok;
+        const qn = m.querySelector('.zb-q b'); if (qn) qn.textContent = q;
+        const mi = m.querySelector('[data-q="-1"]'), pl = m.querySelector('[data-q="1"]');
+        if (mi) mi.disabled = q <= 1; if (pl) pl.disabled = q >= 9 || bal() < (o.priceFor ? o.priceFor(q + 1) : 0);
+      };
+      m.innerHTML = '<div class="zb-cf-in" role="dialog" aria-label="确认购买">' + o.pv + '<b>' + o.name + '</b>' + (o.sub ? '<small>' + o.sub + '</small>' : '') +
+        (o.priceFor ? '<div class="zb-q"><button type="button" data-q="-1" aria-label="少一件">−</button><b>1</b><button type="button" data-q="1" aria-label="多一件">+</button></div>' : '') +
+        '<div class="zb-cf-btns"><button type="button" class="zb-btn" data-cf="no">取消</button><button type="button" class="zb-btn is-red" data-cf="yes"></button></div></div>';
+      (sub || shop).appendChild(m);
+      paint();
       requestAnimationFrame(() => m.classList.add('is-on'));
       const close = () => { m.classList.remove('is-on'); setTimeout(() => m.remove(), 200); };
       m.addEventListener('click', (e) => {
         e.stopPropagation();
+        const qb = e.target.closest('[data-q]');
+        if (qb) { q = Math.max(1, Math.min(9, q + Number(qb.dataset.q))); paint(); return; }
         const b = e.target.closest('[data-cf]');
         if (!b) { if (e.target === m) close(); return; }
         if (b.dataset.cf === 'no') { close(); return; }
-        if (buying) return;
+        if (buying || b.disabled) return;
         buying = true;
-        const num = shop.querySelector('.zb-top [data-zbbal]'), from = bal(), fx = root.ZhamaoWalletFx;
+        const host = sub || shop, num = host.querySelector('.zb-top [data-zbbal]'), from = bal(), fx = root.ZhamaoWalletFx;
         close();
-        done();
+        if (num) num.__zbHold = true;
+        done(q);
         const to = bal();
         if (num) num.textContent = fmt(from);
-        const end = () => { buying = false; paintShop(); };
+        const end = () => { buying = false; if (num) num.__zbHold = false; paintBal(); if (o.after) o.after(); };
         if (fx && num) {
           fx.roll(num, from, to, 520);
-          fx.school(FISH(), num, tile, 3, { spread: 12, gap: 90, dur: 620, lift: -30, size: 24 }).then(end, end);
+          fx.school(FISH(), num, tile, Math.min(5, 2 + q), { spread: 12, gap: 90, dur: 620, lift: -30, size: 24 }).then(end, end);
         } else end();
       });
     }
-    function closeShop() { if (!shop) return; shop.classList.remove('is-on'); setTimeout(() => { shop.hidden = true; }, 320); }
+    function closeShop() { if (!shop) return; closeSub(); shop.classList.remove('is-on'); setTimeout(() => { shop.hidden = true; }, 320); }
     function onShop(e) {
+      if (sub && sub.contains(e.target)) return;
       const t = e.target.closest('[data-zbtab]');
       if (t) { tab = t.dataset.zbtab; paintShop(); return; }
       const a = e.target.closest('[data-zb]');
       if (a) {
         const k = a.dataset.zb;
         if (k === 'close') closeShop();
-        if (k === 'counterDay' && bal() >= PRICES.counterDay()) confirmBuy({ pv: '<span class="zb-pv" style="background:#ebe5d8">' + CTR_IC.replace('<svg', '<svg style="width:44px;height:44px"') + '</span>', name: '记牌器', sub: '今天一整天', price: PRICES.counterDay() }, a, () => { book(-PRICES.counterDay(), '记牌器（一天）'); d.counterDay = today(); save(); });
-        if (k === 'reset') { const keep = d.pick, tops = d.tops; d = D0(); d.pick = keep; d.tops = tops; save(); applyLook(); paintShop(); }
+        if (k === 'ledger') openLedger();
         return;
       }
-      const it = e.target.closest('[data-zbcat]');
-      if (it) {
-        const cat = it.dataset.zbcat, id = it.dataset.zbid, row = CAT[cat].find((x) => x[0] === id);
-        if (!d.own[cat].includes(id)) {
-          if (bal() < row[2]) return;
-          confirmBuy({ pv: previewHtml(cat, id), name: row[1], sub: CAT_NAME[cat], price: row[2] }, it, () => { book(-row[2], CAT_NAME[cat] + '「' + row[1] + '」'); d.own[cat].push(id); d.use[cat] = id; save(); applyLook(); });
-          return;
-        }
-        d.use[cat] = id; save(); applyLook(); paintShop();
+      const op = e.target.closest('[data-zbopen]');
+      if (op) { openLook(op.dataset.zbopen); return; }
+      const it = e.target.closest('[data-zbitem]');
+      if (it && !it.disabled) {
+        const k = it.dataset.zbitem;
+        if (bal() < priceAt(k)) return;
+        const pv = '<span class="zb-pv ic big">' + itemIc(k) + '</span>';
+        if (k === 'counterDay') confirmBuy({ pv, name: ITEM_NAME[k], price: BASE.counterDay, after: paintShop }, it, () => { takeBuy(k, 1); d.counterDay = today(); save(); });
+        else confirmBuy({ pv, name: ITEM_NAME[k], priceFor: (q) => priceFor(k, q), after: paintShop }, it, (q) => { takeBuy(k, q); d.inv = d.inv || {}; d.inv[k] = inv(k) + q; save(); });
       }
     }
 
-    // 主页底部加一个「商店」
+    // ── 二级页（账本 / 外观预览）：从右边滑进来，盖在商店上面 ──
+    function openSub(html, onClick) {
+      closeSub(true);
+      sub = document.createElement('section');
+      sub.className = 'zb-sub';
+      sub.innerHTML = html;
+      shop.appendChild(sub);
+      grabBal(sub);
+      sub.addEventListener('click', (e) => { e.stopPropagation(); if (e.target.closest('[data-zb="back"]')) { closeSub(); return; } onClick(e); });
+      requestAnimationFrame(() => requestAnimationFrame(() => sub && sub.classList.add('is-on')));
+    }
+    function closeSub(now) {
+      if (!sub) return;
+      const s0 = sub; sub = null; clearInterval(fxLoop);
+      if (now) { s0.remove(); return; }
+      s0.classList.remove('is-on'); setTimeout(() => s0.remove(), 300);
+      paintShop();
+    }
+    const subTop = (title) => '<div class="zb-top"><button type="button" class="zb-x" data-zb="back" aria-label="返回">' + BACK_SVG + '</button><h2>' + title + '</h2>' + balHtml() + '</div>';
+    function openLedger() {
+      const rows = d.log.length ? d.log.slice(0, 40).map((x) => '<div class="zb-row" style="padding:7px 12px"><span class="t">' + x.why + '<small>' + new Date(x.at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + '</small></span><b style="color:' + (x.amt < 0 ? '#b4392c' : '#3f7a52') + '">' + (x.amt < 0 ? '−' : '+') + fmt(x.amt) + '</b></div>').join('') : '<div class="zb-row"><span class="t" style="color:#6a6358">还没有</span></div>';
+      openSub(subTop('账本') + '<div class="zb-body">' + rows + '<div class="zb-row" style="margin-top:14px"><span class="t">清空内测账本<small>内测花的、领的全部归零，外观和存货也收回</small></span><button type="button" class="zb-btn" data-zb="reset">清空</button></div></div>', (e) => {
+        if (e.target.closest('[data-zb="reset"]')) { const keep = d.pick, tops = d.tops; d = D0(); d.pick = keep; d.tops = tops; save(); applyLook(); openLedger(); }
+      });
+    }
+    // 外观预览页：上面一张真的小牌桌（两只机器猫、牌堆、弃牌堆、我的头像和手牌），下面一排款式，点哪款牌桌当场换上；底下一颗大键 购买 / 使用 / 使用中
+    let fxLoop = 0;
+    function sceneHtml(look) {
+      const a = AVS(), bots = a && a.ROBOT ? a.ROBOT.slice(0, 2).map((x) => x.svg) : ['', ''];
+      const card = (k) => (TB() ? TB().cardHtml(k) : '');
+      return '<div class="zb-scene" style="' + feltStyle(look.felt) + '">' +
+        '<div class="zb-sc-opp l"><span class="zb-face">' + bots[0] + '</span></div><div class="zb-sc-opp r"><span class="zb-face">' + bots[1] + '</span></div>' +
+        '<div class="zb-sc-piles"><span class="zb-sc-deck">' + [2, 1, 0].map((i) => '<span style="transform:translate(' + (-i * 1.5) + 'px,' + (-i * 2) + 'px)">' + backOf(look.back) + '</span>').join('') + '</span><span class="zb-sc-disc" data-zbdisc>' + card('nope') + '</span></div>' +
+        '<div class="zb-sc-me"><span class="zb-pv av">' + myFace() + (FRAME_SVG[look.frame] || '') + '</span></div>' +
+        '<div class="zb-sc-hand">' + ['defuse', 'skip', 'favor', 'shuffle', 'calico'].map((k, i) => '<span style="transform:rotate(' + ((i - 2) * 5) + 'deg) translateY(' + Math.abs(i - 2) * 3 + 'px)">' + card(k) + '</span>').join('') + '</div></div>';
+    }
+    function openLook(cat) {
+      let sel = d.use[cat];
+      const look = () => Object.assign({}, d.use, { [cat]: sel });
+      const optsHtml = () => CAT[cat].map(([id, name, p]) => {
+        const own = d.own[cat].includes(id), use = d.use[cat] === id;
+        return '<button type="button" class="zb-opt' + (id === sel ? ' is-sel' : '') + '" data-o="' + id + '">' + previewHtml(cat, id) + '<b>' + name + '</b>' + (use ? '<i class="ok">使用中</i>' : own ? '<i>已拥有</i>' : '<i>' + FISH() + fmt(p) + '</i>') + '</button>';
+      }).join('');
+      const actHtml = () => {
+        const row = CAT[cat].find((x) => x[0] === sel), own = d.own[cat].includes(sel), use = d.use[cat] === sel;
+        if (use) return '<button type="button" class="zb-big" disabled>使用中</button>';
+        if (own) return '<button type="button" class="zb-big" data-act="use">使用</button>';
+        return '<button type="button" class="zb-big is-red" data-act="buy"' + (bal() < row[2] ? ' disabled' : '') + '>购买 ' + FISH() + fmt(row[2]) + '</button>';
+      };
+      const repaint = (all) => {
+        if (!sub) return;
+        const sc = sub.querySelector('.zb-scene-wrap');
+        if (all) sc.innerHTML = sceneHtml(look());
+        else {   // 只换这一类，场景不重建（换桌布有一点过渡）
+          const s = sc.querySelector('.zb-scene'), L = look();
+          if (cat === 'felt') s.setAttribute('style', feltStyle(L.felt));
+          if (cat === 'back') sc.querySelectorAll('.zb-sc-deck>span').forEach((x) => { x.innerHTML = backOf(L.back); });
+          if (cat === 'frame') sc.querySelector('.zb-sc-me').innerHTML = '<span class="zb-pv av">' + myFace() + (FRAME_SVG[L.frame] || '') + '</span>';
+        }
+        const ol = sub.querySelector('.zb-opts'), x = ol.scrollLeft; ol.innerHTML = optsHtml(); ol.scrollLeft = x;
+        sub.querySelector('.zb-act').innerHTML = actHtml();
+        if (cat === 'fx') playFx();
+      };
+      const playFx = () => { const el = sub && sub.querySelector('[data-zbdisc]'); if (el && sel !== 'none') burst(sel, el); };
+      openSub(subTop(CAT_NAME[cat]) + '<div class="zb-scene-wrap">' + sceneHtml(look()) + '</div><div class="zb-opts">' + optsHtml() + '</div><div class="zb-act">' + actHtml() + '</div>', (e) => {
+        const o = e.target.closest('[data-o]');
+        if (o) { sel = o.dataset.o; repaint(false); return; }
+        if (cat === 'fx' && e.target.closest('.zb-scene')) { playFx(); return; }
+        const act = e.target.closest('[data-act]');
+        if (!act || act.disabled) return;
+        if (act.dataset.act === 'use') { d.use[cat] = sel; save(); applyLook(); repaint(false); return; }
+        const row = CAT[cat].find((x) => x[0] === sel), id = sel;
+        confirmBuy({ pv: previewHtml(cat, id), name: row[1], sub: CAT_NAME[cat], price: row[2], after: () => repaint(false) }, sub.querySelector('.zb-opt.is-sel') || act, () => { book(-row[2], CAT_NAME[cat] + '「' + row[1] + '」'); d.own[cat].push(id); d.use[cat] = id; save(); applyLook(); });
+      });
+      if (cat === 'fx') { setTimeout(playFx, 450); fxLoop = setInterval(playFx, 2400); }
+    }
+
+    // 主页底部加一个「商店」；猫咪档案余额旁边也放一个（2026-11-27 用户：入口太隐晦）
     function mountCover() {
       const foot = document.querySelector('.zm-cover-foot');
       if (!foot || foot.querySelector('[data-zbshop]')) return;
@@ -336,6 +536,16 @@
       b.type = 'button'; b.className = 'zm-cover-link'; b.dataset.zbshop = '1'; b.textContent = '商店';
       b.addEventListener('click', (e) => { e.stopPropagation(); openShop(); });
       foot.insertBefore(b, foot.firstChild);
+    }
+    const BAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M5 8.5h14l-1.2 11a1.5 1.5 0 0 1-1.5 1.3H7.7a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M9 10.5V7a3 3 0 0 1 6 0v3.5"/></svg>';
+    function mountProfileShop(b) {
+      if (b.querySelector('[data-zbpshop]')) return;
+      const host = b.querySelector('.zmp-bal') || b.querySelector('.zmp-card');
+      if (!host) return;
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'zb-pshop'; btn.dataset.zbpshop = '1'; btn.innerHTML = BAG + '<span>商店</span>';
+      btn.addEventListener('click', (e) => { e.stopPropagation(); openShop(); });
+      host.appendChild(btn);
     }
 
     // ── 外观落到牌桌上 ──
@@ -369,13 +579,14 @@
       const team = ctx.mode === 'team';
       const icon = (k) => (ART() && ART().icon ? ART().icon(k) : '');
       const chips = [];
-      if (!counterDayOn()) chips.push(['counter', CTR_IC, PRICES.counter(ctx)]);
-      if (!team) chips.push(['x2', '<span class="x2">×2</span>', PRICES.x2(ctx)]);
-      if (ctx.mode === 'roles') chips.push(['role', ART() ? (d.pick.role ? '<span class="rf">' + ART().roleFace(d.pick.role) + '</span>' : '<span class="rb">' + ART().ROLE_BACK + '</span>') : '', PRICES.role(ctx)]);   // 没挑：一张小角色牌背；挑了：那只猫的脸（2026-11-27 用户：技能小图标看不出是什么）
-      if (!team) chips.push(['nope', icon('nope'), PRICES.nope(ctx)]);
-      if (!team && ctx.rules && ctx.rules.swap) chips.push(['swap', icon('swap'), PRICES.swap(ctx)]);
+      if (!counterDayOn()) chips.push(['counter', CTR_IC]);
+      if (!team) chips.push(['x2', '<span class="x2">×2</span>']);
+      if (ctx.mode === 'roles') chips.push(['role', ART() ? (d.pick.role ? '<span class="rf">' + ART().roleFace(d.pick.role) + '</span>' : '<span class="rb">' + ART().ROLE_BACK + '</span>') : '']);   // 没挑：一张小角色牌背；挑了：那只猫的脸
+      if (!team) chips.push(['nope', icon('nope')]);
+      if (!team && ctx.rules && ctx.rules.swap) chips.push(['swap', icon('swap')]);
       const label = { counter: '记牌器', x2: '加倍', role: '挑角色', nope: '作废', swap: '交换' };
-      row.innerHTML = chips.map(([k, ic, p]) => { const on = k === 'role' ? !!d.pick.role : !!d.pick[k]; return '<button type="button" class="zb-chip" data-zbp="' + k + '" aria-pressed="' + on + '" aria-label="' + label[k] + '">' + ic + '<i>' + FISH() + fmt(p) + '</i></button>'; }).join('');
+      // 有存货：角上写剩几件、点亮就用一件；没存货：写当场买的价（同商店当天价）
+      row.innerHTML = chips.map(([k, ic]) => { const on = k === 'role' ? !!d.pick.role : !!d.pick[k], n = inv(k); return '<button type="button" class="zb-chip" data-zbp="' + k + '" aria-pressed="' + on + '" aria-label="' + label[k] + '">' + ic + (n ? '<i class="inv">' + n + '</i>' : '<i>' + FISH() + fmt(priceAt(k)) + '</i>') + '</button>'; }).join('');
     }
     function onChip(e) {
       const b = e.target.closest('[data-zbp]');
@@ -413,14 +624,16 @@
       if (!game || game.tutorial || game.online) return;
       const s = game.state, o = { tier: ctx.tier, mode: ctx.mode, n: s.n, rules: s.rules };
       const zb = {};
-      const buy = (k, why) => { const p = PRICES[k](o); if (bal() < p) return false; book(-p, why); return true; };
+      // 先用存货，没有就按当天价当场买（买的也算进当天件数）
+      const buy = (k) => { if (inv(k) > 0) { d.inv[k]--; save(); return true; } if (bal() < priceAt(k)) return false; takeBuy(k, 1, ITEM_NAME[k] + '（开局买）'); return true; };
+      const can = (k) => inv(k) > 0 || bal() >= priceAt(k);
       if (counterDayOn()) zb.counter = true;
-      else if (d.pick.counter && buy('counter', '记牌器（一局）')) zb.counter = true;
+      else if (d.pick.counter && buy('counter')) zb.counter = true;
       if (o.mode !== 'team') {
-        if (d.pick.x2 && buy('x2', '加倍')) zb.x2 = true;
-        if (o.mode === 'roles' && d.pick.role && s.roles && buy('role', '挑角色')) { s.roles[0] = d.pick.role; zb.role = d.pick.role; }
-        if (d.pick.nope && bal() >= PRICES.nope(o) && guarantee(s, R().NOPE)) { book(-PRICES.nope(o), '开局拿作废'); zb.nope = true; }
-        if (d.pick.swap && s.rules.swap && bal() >= PRICES.swap(o) && guarantee(s, R().SWAP, zb.nope ? [R().NOPE] : [])) { book(-PRICES.swap(o), '开局拿交换'); zb.swap = true; }
+        if (d.pick.x2 && buy('x2')) zb.x2 = true;
+        if (o.mode === 'roles' && d.pick.role && s.roles && buy('role')) { s.roles[0] = d.pick.role; zb.role = d.pick.role; }
+        if (d.pick.nope && can('nope') && guarantee(s, R().NOPE)) { buy('nope'); zb.nope = true; }
+        if (d.pick.swap && s.rules.swap && can('swap') && guarantee(s, R().SWAP, zb.nope ? [R().NOPE] : [])) { buy('swap'); zb.swap = true; }
         if ((zb.nope || zb.swap) && R().sortHand) s.hands[0] = R().sortHand(s.hands[0]);
       }
       if (zb.role || zb.nope || zb.swap) game.hl = null;   // 改过发牌：这局的录像按种子重放会对不上，不收
@@ -493,28 +706,27 @@
       const s = g.state;
       if (!s || !s.hands || !s.discard) return;
       const now = { g, h: s.hands[0] ? s.hands[0].length : 0, dc: s.discard.length };
-      if (fxLast && fxLast.g === g && now.dc > fxLast.dc && now.h < fxLast.h && d.use.fx !== 'none') setTimeout(() => burst(d.use.fx), 260);
+      if (fxLast && fxLast.g === g && now.dc > fxLast.dc && now.h < fxLast.h && d.use.fx !== 'none') setTimeout(() => burst(d.use.fx, $('zmDiscard')), 260);
       fxLast = now;
     }
-    function burst(kind) {
-      const dc = $('zmDiscard');
+    function burst(kind, dc) {
       if (!dc || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       const r = dc.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-      const N = kind === 'fish' ? 5 : 12;
+      const N = kind === 'fish' ? 6 : 16;
       for (let i = 0; i < N; i++) {
         const p = document.createElement('div');
         p.className = 'zb-fxp';
-        const a = (i / N) * Math.PI * 2 + Math.random() * 0.5, dist = r.width * (0.7 + Math.random() * 0.6);
+        const a = (i / N) * Math.PI * 2 + Math.random() * 0.5, dist = Math.max(60, r.width) * (0.9 + Math.random() * 0.8);
         let html, size;
-        if (kind === 'petals') { size = 12 + Math.random() * 6; html = '<svg viewBox="0 0 20 20" width="' + size + '"><path d="M10 2c3 3 4 7 0 16C6 9 7 5 10 2Z" fill="#f2a7b5" opacity=".9"/></svg>'; }
-        else if (kind === 'sparks') { size = 6 + Math.random() * 6; html = '<svg viewBox="0 0 10 10" width="' + size + '"><path d="M5 0l1.2 3.8L10 5 6.2 6.2 5 10 3.8 6.2 0 5l3.8-1.2z" fill="#e3b64a"/></svg>'; }
-        else { size = 26; html = '<span style="display:inline-flex;width:' + size + 'px">' + FISH() + '</span>'; }
+        if (kind === 'petals') { size = 16 + Math.random() * 10; html = '<svg viewBox="0 0 20 20" width="' + size + '"><path d="M10 1.5c3.4 3 4.6 7.6 0 17C5.4 9.1 6.6 4.5 10 1.5Z" fill="' + (i % 3 ? '#ec97aa' : '#f6c1cc') + '"/><path d="M10 4v11" stroke="#d9768d" stroke-width=".7" opacity=".6"/></svg>'; }
+        else if (kind === 'sparks') { size = 10 + Math.random() * 10; html = '<svg viewBox="0 0 10 10" width="' + size + '"><path d="M5 0l1.2 3.8L10 5 6.2 6.2 5 10 3.8 6.2 0 5l3.8-1.2z" fill="#e3b64a"/></svg>'; }
+        else { size = 30; html = '<span style="display:inline-flex;width:' + size + 'px">' + FISH() + '</span>'; }
         p.innerHTML = html;
         document.body.appendChild(p);
         const x0 = cx - size / 2, y0 = cy - size / 2, x1 = x0 + Math.cos(a) * dist, y1 = y0 + Math.sin(a) * dist + (kind === 'petals' ? 30 : 0);
         const rot = (Math.random() - 0.5) * 360;
-        p.animate([{ transform: 'translate(' + x0 + 'px,' + y0 + 'px) scale(.4) rotate(0deg)', opacity: 0 }, { opacity: 1, offset: 0.15 }, { transform: 'translate(' + x1 + 'px,' + y1 + 'px) scale(1) rotate(' + rot + 'deg)', opacity: 0 }],
-          { duration: kind === 'fish' ? 900 : 760 + Math.random() * 300, easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'both' }).finished.then(() => p.remove(), () => p.remove());
+        p.animate([{ transform: 'translate(' + x0 + 'px,' + y0 + 'px) scale(.4) rotate(0deg)', opacity: 0 }, { opacity: 1, offset: 0.12 }, { opacity: 1, offset: 0.6 }, { transform: 'translate(' + x1 + 'px,' + y1 + 'px) scale(1) rotate(' + rot + 'deg)', opacity: 0 }],
+          { duration: kind === 'fish' ? 1300 : 1100 + Math.random() * 400, easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'both' }).finished.then(() => p.remove(), () => p.remove());
       }
     }
     setInterval(() => {
@@ -527,7 +739,7 @@
     applyLook();
 
     // ── 档案里的「内测」卡：广告翻倍、额外救济、每日任务 ──
-    const TASKS = [['games', '打 3 局', 3, 300], ['win', '赢 1 局', 1, 500], ['online', '联机打 1 局', 1, 500]];
+    const TASKS = [['games', '对战 3 局', 3, 300], ['win', '拿 1 次第一名', 1, 500], ['online', '联机对战 1 局', 1, 500]];   // 2026-11-27 用户：措辞要严谨（「赢一局」有歧义）
     const RELIEF = 2000, EXTRA_MAX = 2;
     /* 2026-11-27 用户第 9 条：任务和签到合成一栏——先签到七格，下面一行行任务。内测这几行直接沿用签到卡里「今日首胜」那种 .zmp-task 行，
      * 插在今日首胜下面（没有就接在七格下面），不再单独开一张卡 */
@@ -542,8 +754,9 @@
       h += line('签到再领一份', ckAmt || 500, '', ck && !r.ck, r.ck ? '<em>已领</em>' : ck ? ad('ck', true) : '<em>先签到</em>');
       TASKS.forEach(([k, name, goal, amt]) => {
         const v = Math.min(goal, r[k] || 0), got = r.got[k] || 0;
-        const right = got === 2 ? '<em>已领</em>' : got === 1 ? ad('t2:' + k, true) : v >= goal ? '<button type="button" data-zbt="' + k + '">领取</button>' : '<em>' + v + ' / ' + goal + '</em>';
-        h += line(name, amt, got === 1 ? '看广告再领一份' : '', v >= goal && got < 2, right);
+        // 没做完：「去完成」（同今日首胜，点了关档案、打开单机 / 联机设置单），进度写在名字底下
+        const right = got === 2 ? '<em>已领</em>' : got === 1 ? ad('t2:' + k, true) : v >= goal ? '<button type="button" data-zbt="' + k + '">领取</button>' : '<button type="button" class="go" data-zbgo="' + (k === 'online' ? 'online' : 'solo') + '">去完成</button>';
+        h += line(name, amt, got === 1 ? '看广告再领一份' : v < goal && goal > 1 ? v + ' / ' + goal : '', v >= goal && got < 2, right);
       });
       if (used > r.rAd) h += line('救济翻倍', RELIEF, '今天领过 ' + used + ' 次救济', true, ad('relief', true));
       if (rl.left === 0) h += line('额外救济', RELIEF, '今天 ' + r.extra + ' / ' + EXTRA_MAX, r.extra < EXTRA_MAX, r.extra < EXTRA_MAX ? ad('extra', true) : '<em>明天再来</em>');
@@ -560,6 +773,8 @@
       else { const fw = cardEl.querySelector('.zmp-task'), after = fw || week; after.parentNode.insertBefore(card, after.nextSibling); }
       grabBal(card);
       card.addEventListener('click', (e) => {
+        const go = e.target.closest('[data-zbgo]');
+        if (go) { if (root.ZhamaoProfile) root.ZhamaoProfile.close(); const k = go.dataset.zbgo; setTimeout(() => { const b = document.querySelector('.zm-cover:not([hidden]) [data-cover="' + k + '"]'); if (b) b.click(); }, 350); return; }
         const a = e.target.closest('[data-zbad]'), t = e.target.closest('[data-zbt]');
         const r = dayRec();
         if (t && !t.disabled) { const k = t.dataset.zbt, row = TASKS.find((x) => x[0] === k); r.got[k] = 1; save(); book(row[3], '每日任务「' + row[1] + '」'); mountCard(bodyEl); return; }
@@ -574,6 +789,7 @@
     // 档案每次重画 body：看到签到卡就把内测卡插在前面
     new MutationObserver(() => {
       const b = document.querySelector('.zmp .zmp-body');
+      if (b) mountProfileShop(b);
       if (b && b.querySelector('.zmp-week') && !b.querySelector('[data-zbcard]')) {
         // 签到额：今天这格（已签的最后一格 / 正要签的那格）的数，看广告再领同样一份
         const days = [...b.querySelectorAll('.zmp-day')], cur = days.filter((x) => x.classList.contains('is-done')).pop();
