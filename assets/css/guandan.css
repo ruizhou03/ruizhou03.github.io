@@ -443,7 +443,8 @@
   .gd-card.joker-small { color: var(--gd-joker-grey); }
   .gd-card.is-joker .q-tl { font-family: "Apple Symbols", "Segoe UI Symbol", 'Cormorant Garamond', serif; font-size: calc(var(--gd-card-w, 50px) * 0.37); }  /* 左上 ★ */
   /* 右上：竖排时星星右边的 JOKER（横排被隐） */
-  .gd-card.is-joker .q-tr { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; letter-spacing: 0; font-size: calc(var(--gd-card-w, 50px) * 0.18); }
+  /* 2026-11-27 用户：JOKER 太贴右边，选中加内框后 R 被盖住 → 右边让出一截、字略小，离边留出和选中框同宽以上的空 */
+  .gd-card.is-joker .q-tr { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; letter-spacing: 0; font-size: calc(var(--gd-card-w, 50px) * 0.165); left: calc(var(--gd-card-w, 50px) * 0.36); right: calc(var(--gd-card-w, 50px) * 0.09); }
   /* 左下：横排时星星下方竖排 JOKER（默认/竖排被隐，仅横排出牌区露）；靠上、贴稳左下不越界 */
   .gd-card.is-joker .q-bl { flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 0; font-family: var(--font-body); font-weight: 800; letter-spacing: 1px; line-height: 1.01; font-size: calc(var(--gd-card-w, 50px) * 0.185); }
   /* 右下：皇冠（竖排/单卡版面：大皇冠） */
