@@ -4,7 +4,7 @@
   // 掼蛋声音（规格 4.3）：音效 / 报牌语音 / 背景音乐三条轨道，各自独立开关，记在本机。
   // - 音效：Web Audio 现场合成（落牌、叩桌、洗牌、炸弹分档、轮到我、倒计时、结算），无素材文件；
   // - 语音：一张语音精灵图 /assets/audio/guandan-voice.mp3（周睿本人录音，逐条挑选），首次需要时才加载；
-  // - 音乐：三版民乐编曲（茶馆 / 开打 / 炸场，见 guandan-music.js），跟着牌桌在哪一页、有没有人出炸弹换版；默认关闭（D1）。
+  // - 音乐：三版编曲（等桌 / 开打 / 炸场，见 guandan-music.js），跟着牌桌在哪一页、有没有人出炸弹换版；默认打开（2026-11-27 改，原 D1 为关）。
   // 语音播放时音乐自动压低一半，同一时刻只播一条语音，新的打断旧的。
   const contract = window.GuandanContract;
   const storage = window.GuandanStorage;
@@ -17,7 +17,10 @@
   const prefs = {
     sfx: stored ? stored.sfx !== false : !legacyMuted,
     voice: stored ? stored.voice !== false : !legacyMuted,
-    music: stored ? stored.music === true : false,
+    // 2026-11-27 用户：音乐像百变小咪一样默认开。以前存下的 music:false 多半是旧的默认值，不算数；
+    // 只有自己动过音乐开关（musicSet）才按存下的来
+    music: stored && stored.musicSet ? stored.music === true : true,
+    musicSet: !!(stored && stored.musicSet),
     musicHinted: !!(stored && stored.musicHinted),
   };
   function savePrefs() { storage.writeJson(prefsKey, prefs); }
@@ -223,7 +226,7 @@
   }
 
   // ---------- 背景音乐：交给 guandan-music.js（三版编曲 + 什么时候换哪版）；这里只管开关、总线和场景 ----------
-  // 场景照牌桌当前页面（body[data-guandan-view]，由 GuandanEngine 的导航写）：开始页 / 房间 / 结算放「茶馆」，一局里放「开打」
+  // 场景照牌桌当前页面（body[data-guandan-view]，由 GuandanEngine 的导航写）：开始页 / 房间 / 结算放「等桌」，一局里放「开打」
   const MUSIC = () => window.GuandanMusic || null;
   let musicAttached = false;
   const sceneOf = view => (view === 'playing' || view === 'tribute' ? 'game' : 'menu');
@@ -303,7 +306,7 @@
   }
   function setTrack(key, on) {
     prefs[key] = !!on;
-    if (key === 'music') prefs.musicHinted = true;
+    if (key === 'music') { prefs.musicHinted = true; prefs.musicSet = true; }
     savePrefs();
     storage.writeText(mutedKey, allOff() ? '1' : '0');
     if (key === 'music') { if (on) startMusic(); else stopMusic(); }

@@ -99,8 +99,8 @@ assert.match(css, /prefers-reduced-motion:\s*reduce\)[\s\S]*gd-quake-[\s\S]*anim
   '减弱动态效果时不得震屏（规格 3.3）');
 assert.match(js, /700 \+ Math\.random\(\) \* 400/,
   'AI 每手思考 700–1100ms（规格 4.1）');
-assert.match(audioModule, /sfx:[\s\S]*voice:[\s\S]*music: stored \? stored\.music === true : false/,
-  '声音分音效 / 语音 / 音乐三轨，背景音乐默认关闭（规格 4.3、D1）');
+assert.match(audioModule, /sfx:[\s\S]*voice:[\s\S]*music: stored && stored\.musicSet \? stored\.music === true : true/,
+  '声音分音效 / 语音 / 音乐三轨，背景音乐默认打开、自己关过才记住（规格 4.3，D1 于 2026-11-27 改为开）');
 assert.match(audioModule, /VOICE_MAP_START \*\/ \{"b-10"/,
   '报牌语音精灵图的时间表必须已生成（scripts/build-guandan-voice.mjs）');
 assert.match(html, /id="gdOrderBtn"[^>]*aria-expanded="false"/,
