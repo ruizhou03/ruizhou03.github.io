@@ -1580,7 +1580,39 @@
       }
       slot.appendChild(row);
       if (seat === 1 || seat === 3) fitSideRow(seat, row);
+      if (!trib && state.phase === PHASE.PLAYING) spreadPlayedRow(seat, row);
     }
+  }
+  // 2026-11-27 用户：联机卡的时候出牌「啪」一下就换了，看不出局面在走。新出的一手先从出牌人那边
+  // 收成一叠飞进来，再像扇子一样摊开到各自位置（先快后慢），张数越多摊得越明显。
+  function spreadPlayedRow(seat, row) {
+    if (REDUCED_MOTION && REDUCED_MOTION.matches) return;
+    const cards = [...row.querySelectorAll('.gd-card')];
+    if (!cards.length || !cards[0].animate) return;
+    const rr = row.getBoundingClientRect();
+    if (!rr.width) return;
+    const cx = rr.left + rr.width / 2, cy = rr.top + rr.height / 2;
+    // 从出牌人那边进来：我自己从手牌（下方）、对家从上、两侧从各自头像方向，只挪一小段
+    const se = seatEls[seat];
+    const ar = se && se.av ? se.av.getBoundingClientRect() : null;
+    let ox = 0, oy = 0;
+    if (seat === 0) oy = 46;
+    else if (ar && ar.width) {
+      const vx = ar.left + ar.width / 2 - cx, vy = ar.top + ar.height / 2 - cy, vl = Math.hypot(vx, vy) || 1;
+      const reach = Math.min(54, vl * 0.5);
+      ox = vx / vl * reach; oy = vy / vl * reach;
+    }
+    const n = cards.length;
+    cards.forEach((el, i) => {
+      const r = el.getBoundingClientRect();
+      const dx = cx - (r.left + r.width / 2) + ox;
+      const rot = n > 1 ? (i - (n - 1) / 2) * -3 : 0;
+      el.animate([
+        { transform: `translate(${dx.toFixed(1)}px, ${oy.toFixed(1)}px) rotate(${rot}deg) scale(0.92)`, opacity: 0.4 },
+        { transform: `translate(${(dx * 0.08).toFixed(1)}px, 0px) rotate(0deg) scale(1.02)`, opacity: 1, offset: 0.62 },
+        { transform: 'none', opacity: 1 },
+      ], { duration: 300 + Math.min(n, 10) * 14, easing: 'cubic-bezier(0.22, 0.9, 0.3, 1)' });
+    });
   }
   // 2026-11-27 模拟极端情况：上家 / 下家打出 9~10 张的大炸弹时，那一排会伸到中间「不出 / 提示 / 出牌」
   // 按钮下面。这里量一下：这一排最多只能伸到按钮行外沿再空 10px，超了就把这一排的牌叠紧一点（不缩牌）。
@@ -2079,7 +2111,7 @@
       if (rankPos >= 0) {
         // 出完牌：名次标签（头游/二游/三游/末游）直接取代张数，不再「0 | 头游」两个并排。
         se.rk.hidden = false;
-        se.rk.className = 'gd-rank-badge r' + (rankPos + 1) + (se.rk.classList.contains('gd-rk-land') ? ' gd-rk-land' : '');
+        se.rk.className = 'gd-rank-badge r' + (rankPos + 1) + (se.rk.classList.contains('gd-rk-land') ? ' gd-rk-land' : '') + (finishFx.wait.has(s) ? ' gd-rk-wait' : '');
         // 2026-11-27 用户：「头游 / 二游」胶囊标签丑 → 和手牌数同一张小牌，写 #1 / #2 / #3 / #4，读屏照读全称
         se.rk.textContent = '#' + (rankPos + 1);
         se.rk.setAttribute('aria-label', ['头游','二游','三游','末游'][rankPos]);
@@ -2112,7 +2144,8 @@
       }
     }
     // 局终摊牌时我自己没出完的牌：底下那手也跟别家一样，从左往右「展开」一次
-    if (state.revealHands && !dealFx.revealShown) { dealFx.revealShown = true; fanOwnHand(); }
+    // 2026-11-27 用户：我自己末游时，自己这边不用再「摊开」一遍（牌本来就在我眼前）；别人那边照常摊
+    if (state.revealHands && !dealFx.revealShown) { dealFx.revealShown = true; if (viewSeat() !== 0) fanOwnHand(); }
     else if (!state.revealHands) dealFx.revealShown = false;
     renderRevealGallery();
     updateActions();
@@ -3883,6 +3916,24 @@
     if (cur && cur.until > Date.now() && cur.priority > o.priority) { fxBanner.next = o; return; }
     renderBanner(o);
   }
+  // 横幅别压在某家刚出的那手牌上（头游：最后一手要让人看清）。上下挪开，挪不开就算了。
+  function keepBannerOffPlay(ban, main, seat) {
+    const se = seatEls[seat];
+    const row = se && se.play ? se.play.querySelector('.gd-played-row') : null;
+    if (!row || !els.table) return;
+    const rr = row.getBoundingClientRect(), mr = main.getBoundingClientRect(), tr = els.table.getBoundingClientRect();
+    if (!rr.width || !mr.width) return;
+    const pad = 8;
+    // 横向按落定位置算（进场时字是从一侧滑进来的，量到的 left/right 还没到位）
+    const bl = tr.left + tr.width / 2 - mr.width / 2, br = tr.left + tr.width / 2 + mr.width / 2;
+    const hit = !(br < rr.left - pad || bl > rr.right + pad || mr.bottom < rr.top - pad || mr.top > rr.bottom + pad);
+    if (!hit) return;
+    const half = mr.height / 2;
+    const below = rr.bottom + pad + half, above = rr.top - pad - half;
+    const lim = tr.top + tr.height * 0.6;   // 再往下就碰到按钮 / 手牌了
+    const y = below <= lim ? below : (above - half >= tr.top ? above : null);
+    if (y != null) ban.style.top = Math.round(y - tr.top) + 'px';
+  }
   function renderBanner(o) {
     clearTimeout(fxBanner.timer);
     els.table.querySelectorAll('.gd-fx-banner').forEach(node => node.remove());
@@ -3907,6 +3958,7 @@
     }
     if (window.ZirconIcons) ZirconIcons.hydrate(ban);
     els.table.appendChild(ban);
+    if (o.avoidSeat != null) keepBannerOffPlay(ban, main, o.avoidSeat);
     announce(o.text + (o.sub ? '，' + o.sub : ''));
     fxBanner.cur = { priority: o.priority, until: Date.now() + o.duration };
     if (o.holdAi) state._fxHoldUntil = Math.max(state._fxHoldUntil || 0, Date.now() + Math.round(o.duration * 0.7));
@@ -3929,23 +3981,42 @@
   // 不写字，只用画面：出完那家的头像上炸开一圈光环 + 光芒 + 彩纸，一枚大号名次小牌（#1 / #2 / #3，
   // 和头像角上的名次牌同一个样子）在头像上方弹出，停一下再缩小飞进头像右下角，落定的名次牌再弹一下。
   // 头游加金色、更大更久，并沿用中央「头游」横幅。触发统一看 state.out 的增长（单机、联机、逐帧回放都走 renderAll）。
-  const finishFx = { seen: null };
+  const finishFx = { seen: null, wait: new Set() };   // wait：名次已定、动画还没放到的座位，角上名次牌先藏着
   function checkFinishFx() {
     const out = state.out || [];
     const prev = finishFx.seen;
     finishFx.seen = out.slice();
-    if (!prev || out.length <= prev.length || prev.some((s, i) => out[i] !== s)) return;   // 首帧 / 新一局 / 视角切换：只记不放
+    if (!prev || out.length < prev.length || prev.some((s, i) => out[i] !== s)) { finishFx.wait.clear(); return; }   // 首帧 / 新一局 / 视角切换：只记不放
+    if (out.length === prev.length) return;
+    let played2 = false;
     for (let i = prev.length; i < out.length && i < 3; i++) {
       const s = out[i];
       const lp = state.lastPlay && state.lastPlay[s];
       if (!lp || lp === 'pass') continue;   // 只在「刚把最后一手打出来」时放（重连进来已出完的不放）
+      if (i >= 2 && TEAM(out[0]) === TEAM(out[1])) continue;   // 双下时补进名次的两家没出完，下面单独放
       playFinishFx(s, i + 1);
+      if (i === 1) played2 = true;
+    }
+    // 2026-11-27 用户：一方拿了头游二游（双下），另外两家的三游 / 末游也补一段结算动画——
+    // 等二游那段放得差不多了，两家一起亮名次（末游素一点：不撒彩纸）。
+    if (played2 && out.length >= 4 && TEAM(out[0]) === TEAM(out[1])) {
+      const gen = roundVisualGeneration;
+      for (const k of [2, 3]) {
+        finishFx.wait.add(out[k]);
+        const rk = seatEls[out[k]] && seatEls[out[k]].rk;
+        if (rk) rk.classList.add('gd-rk-wait');
+      }
+      setTimeout(() => {
+        if (gen !== roundVisualGeneration) return;
+        playFinishFx(out[2], 3);
+        playFinishFx(out[3], 4);
+      }, 1450);
     }
   }
-  const FINISH_FX_MS = { 1: 2100, 2: 1700, 3: 1700 };
+  const FINISH_FX_MS = { 1: 2100, 2: 1700, 3: 1700, 4: 1700 };
   function playFinishFx(seat, rank) {
     const se = seatEls[seat];
-    if (rank === 1) showBanner({ kind: 'info', text: '头游', sub: seatName(seat), priority: 4, duration: 1300, extraClass: 'gd-first-banner' });
+    if (rank === 1) showBanner({ kind: 'info', text: '头游', sub: seatName(seat), priority: 4, duration: 1300, extraClass: 'gd-first-banner', avoidSeat: seat });
     _gaSfxFinish(rank);
     if (rank === 1) setTimeout(() => AUDIO.voice('e-first', { queue: true }), 650);   // 接在这手牌型的报牌后面
     if (!se || !se.av || !els.table) return;
@@ -3973,7 +4044,7 @@
         ray.style.setProperty('--a', (i * 360 / rays) + 'deg');
         fx.append(ray);
       }
-      const bits = rank === 1 ? 22 : 14;
+      const bits = rank === 1 ? 22 : rank === 4 ? 0 : 14;
       for (let i = 0; i < bits; i++) {
         const bit = document.createElement('span');
         bit.className = 'gd-ff-bit c' + (i % 4);
@@ -3992,8 +4063,10 @@
       const tx = rr && rr.width ? rr.left + rr.width / 2 - (ar.left + ar.width / 2) : ar.width * 0.45;
       const ty = rr && rr.width ? rr.top + rr.height / 2 - (ar.top + ar.height / 2) : ar.width * 0.4;
       // 弹出方向：从头像朝桌心（对家往下、两侧往里、自己往右上），别飞出屏幕
-      const vx = (tr.left + tr.width / 2) - (ar.left + ar.width / 2), vy = (tr.top + tr.height * 0.45) - (ar.top + ar.height / 2);
-      const vl = Math.hypot(vx, vy) || 1, reach = ar.width * 1.25;
+      // 2026-11-27 用户：头游动画把最后出的那手牌盖住了——出牌区就在头像朝桌心那一侧，
+      // 所以名次牌改往「不挡出牌区」的方向弹：对家往左、两侧和自己往上。
+      const vx = seat === 2 ? -1 : 0, vy = seat === 2 ? 0 : -1;
+      const vl = 1, reach = ar.width * 1.25;
       medal.style.setProperty('--mx', Math.round(vx / vl * reach) + 'px');
       medal.style.setProperty('--my', Math.round(vy / vl * reach) + 'px');
       medal.style.setProperty('--tx', Math.round(tx) + 'px');
@@ -4002,13 +4075,14 @@
       els.table.appendChild(fx);
       setTimeout(() => fx.remove(), dur + 80);
     }
-    const glow = ['gd-finish-glow', 'gd-ff-r1', 'gd-ff-r2', 'gd-ff-r3'];
+    const glow = ['gd-finish-glow', 'gd-ff-r1', 'gd-ff-r2', 'gd-ff-r3', 'gd-ff-r4'];
     se.av.classList.remove(...glow);
     void se.av.offsetWidth;
     se.av.classList.add('gd-finish-glow', 'gd-ff-r' + rank);
     setTimeout(() => se.av.classList.remove(...glow), dur);
+    finishFx.wait.delete(seat);
     if (se.rk) {
-      se.rk.classList.remove('gd-rk-land');
+      se.rk.classList.remove('gd-rk-land', 'gd-rk-wait');
       void se.rk.offsetWidth;
       se.rk.classList.add('gd-rk-land');
       setTimeout(() => se.rk && se.rk.classList.remove('gd-rk-land'), dur);

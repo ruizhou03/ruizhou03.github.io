@@ -982,6 +982,11 @@ body.gd-game-fullscreen .guandan-wrap #gdSeat2 .gd-seat-meta { margin-left: 10px
   86%  { opacity: 1; transform: translate(var(--tx), var(--ty)) scale(0.5) rotate(0deg); }
   100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.5); }
 }
+body .guandan-wrap .gd-seat .gd-av-cnt .gd-rank-badge.gd-rk-wait { visibility: hidden; }
+/* 末游（双下补的结算）：素一点，灰墨名次牌 */
+.guandan-wrap .gd-finish-fx.r4 { --gd-ff-tone: #8d867b; }
+.guandan-wrap .gd-finish-fx.r4 .gd-ff-ray { background: linear-gradient(to top, transparent, #8d867b); }
+.guandan-wrap .gd-finish-fx.r4 .gd-ff-medal { background: #6f695f; }
 /* 头像本身：弹一下 + 外圈一阵光 */
 body .guandan-wrap .gd-seat .gd-avatar.gd-finish-glow { animation: gd-ff-av 900ms cubic-bezier(.2,.9,.3,1.3) both; }
 body .guandan-wrap .gd-seat .gd-avatar.gd-finish-glow.gd-ff-r1 { animation: gd-ff-av-1 1300ms cubic-bezier(.2,.9,.3,1.3) both; }
