@@ -287,6 +287,11 @@
 .zb-pshop svg{width:18px;height:18px}
 .zb-pshop:active{transform:translateY(2px);box-shadow:none}
 
+.zb-ckpop{position:fixed;z-index:90}
+.zb-ck-fish svg{width:64px;height:40px}
+.zb-ck-amt{font:700 26px/1.2 'ZM Num',Georgia,serif;color:#b4392c;margin-top:2px}
+.zb-ck-btns{display:flex;gap:10px;justify-content:center;margin-top:14px}
+.zb-ck-btns .zb-btn{height:40px;font-size:15px;padding:0 16px}
 .zb-tline{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
 .zb-tline .zb-seal{margin:0}
 .zb-tline .zb-bal{font-size:14px}
@@ -884,18 +889,17 @@
      * 插在今日首胜下面（没有就接在七格下面），不再单独开一张卡 */
     function betaCard() {
       const r = dayRec(), ws = W() && W().state ? W().state() || {} : {}, ck = ws.ck === today(), rl = ws.relief || {};
-      const ckAmt = ws.ckAmt || 0;
       const used = rl.left != null ? Math.max(0, 2 - rl.left) : 0;
       const fishAmt = (amt) => '<b>' + FISH() + '+' + fmt(amt) + '</b>';
       const line = (name, amt, sub, ready, right) => '<div class="zmp-task' + (ready ? ' is-ready' : '') + '"><span>' + name + fishAmt(amt) + (sub ? '<small class="zb-sub">' + sub + '</small>' : '') + '</span>' + right + '</div>';
       const ad = (k, ok) => (ok ? '<button type="button" data-zbad="' + k + '">▶ 看广告</button>' : '');
       let h = '<div data-zbcard><div class="zb-tline"><span class="zb-seal">内测</span><span class="zb-bal">' + FISH() + '<b data-zbbal>' + fmt(bal()) + '</b></span></div>';
-      h += line('签到再领一份', ckAmt || 500, '', ck && !r.ck, r.ck ? '<em>已领</em>' : ck ? ad('ck', true) : '<em>先签到</em>');
       TASKS.forEach(([k, name, goal, amt]) => {
         const v = Math.min(goal, r[k] || 0), got = r.got[k] || 0;
         // 没做完：「去完成」（同今日首胜，点了关档案、打开单机 / 联机设置单），进度写在名字底下
         const right = got === 2 ? '<em>已领</em>' : got === 1 ? ad('t2:' + k, true) : v >= goal ? '<button type="button" data-zbt="' + k + '">领取</button>' : '<button type="button" class="go" data-zbgo="' + (k === 'online' ? 'online' : 'solo') + '">去完成</button>';
-        h += line(name, amt, got === 1 ? '看广告再领一份' : v < goal ? v + ' / ' + goal : '', v >= goal && got < 2, right);
+        // 2026-11-27 用户：一局没做只写名字；做了一部分名字后面加（1/3）；做完不写 3/3，按钮直接变「领取」
+        h += line(name + (v > 0 && v < goal ? '（' + v + '/' + goal + '）' : ''), amt, got === 1 ? '看广告再领一份' : '', v >= goal && got < 2, right);
       });
       if (used > r.rAd) h += line('救济翻倍', RELIEF, '今天领过 ' + used + ' 次救济', true, ad('relief', true));
       if (rl.left === 0) h += line('额外救济', RELIEF, '今天 ' + r.extra + ' / ' + EXTRA_MAX, r.extra < EXTRA_MAX, r.extra < EXTRA_MAX ? ad('extra', true) : '<em>明天再来</em>');
@@ -919,12 +923,32 @@
         if (t && !t.disabled) { const k = t.dataset.zbt, row = TASKS.find((x) => x[0] === k); r.got[k] = 1; save(); book(row[3], '每日任务「' + row[1] + '」'); mountCard(bodyEl); return; }
         if (!a || a.disabled) return;
         const k = a.dataset.zbad;
-        if (k === 'ck') adThen('checkin', () => { const ws = W().state() || {}; r.ck = true; save(); book(ws.ckAmt || 500, '签到·看广告'); mountCard(bodyEl); });
         if (k === 'relief') adThen('relief', () => { r.rAd++; save(); book(RELIEF, '救济·看广告翻倍'); mountCard(bodyEl); });
         if (k === 'extra') adThen('relief-extra', () => { r.extra++; save(); book(RELIEF, '额外救济·看广告'); mountCard(bodyEl); });
         if (k.startsWith('t2:')) { const kk = k.slice(3), row = TASKS.find((x) => x[0] === kk); adThen('task', () => { r.got[kk] = 2; save(); book(row[3], '每日任务·看广告'); mountCard(bodyEl); }); }
       });
     }
+    /* 签到成功弹窗（2026-11-27 用户）：「签到成功 +N」，两个键「知道了」/「看广告领翻倍」；关掉就当天没有第二次机会。
+     * 档案那边签成功、鱼游完会调 ZhamaoAfterCheckin(amt) */
+    root.ZhamaoAfterCheckin = (amt) => {
+      const r = dayRec(), host = document.querySelector('.zmp');
+      if (!host || r.ck) return;
+      r.ck = 'seen'; save();   // 弹过一次就算：关了不再给
+      const m = document.createElement('div');
+      m.className = 'zmp-bmask zb-ckpop';
+      m.innerHTML = '<div class="zmp-bcard" role="dialog" aria-label="签到成功"><div class="zb-ck-fish">' + FISH() + '</div><h3>签到成功</h3><div class="zb-ck-amt">+' + fmt(amt) + '</div>' +
+        '<div class="zb-ck-btns"><button type="button" class="zb-btn" data-ck="no">知道了</button><button type="button" class="zb-btn is-red" data-ck="ad">▶ 看广告领翻倍</button></div></div>';
+      host.appendChild(m);
+      const close = () => m.remove();
+      m.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const b = e.target.closest('[data-ck]');
+        if (!b) { if (e.target === m) close(); return; }
+        close();
+        if (b.dataset.ck === 'ad') adThen('checkin', () => { book(amt, '签到·看广告翻倍'); dayRec().ck = true; save(); });
+      });
+    };
+
     // 档案每次重画 body：看到签到卡就把内测卡插在前面
     new MutationObserver(() => {
       const b = document.querySelector('.zmp .zmp-body');
