@@ -388,19 +388,22 @@
   // 手里这张换成现在该有的牌面（拉幕）
   function flipFace(c, t, delay) { return curtainFace(c, cardHtml(+c.dataset.id, '', '', handWild()), delay, t); }
   // 牌原地换牌面（百搭变身 / 变回本身 / 摸底⇄抽顶都走这一个）。c 是 .zm-card 本身，html 是新的完整 cardHtml，t 可以是 null
-  function curtainFace(c, html, delay, t, slow) {   // slow：这一下要让人看清（摸进手里的猫变万能猫），拉得慢些
+  function curtainFace(c, html, delay, t, slow, from) {   // slow：这一下要让人看清（摸进手里的猫变万能猫），拉得慢些
+    // from = { node, at }：旧牌面从 node 那儿抄（手牌重画后接着演被打断的那一下），at = 已经演了多少毫秒；这时 html 传 null（c 已经是新牌面）
     /* 拉幕（2026-11-26 用户：不要翻面，像幕布拉过去换牌面；要快一点、线要斜着）：
      * 旧牌面复制一层盖在上面（.zm-curtain），底下立刻换成新牌面；旧那层从下往上斜着收走，收口那道斜边跟一条亮线 */
     if (fx.reduce() || !c.isConnected) { setFace(c, html); return Promise.resolve(); }
     const go = () => {
       if ((t != null && t !== token) || !c.isConnected) return null;
       c.querySelectorAll('.zm-curtain, .zm-curtain-edge').forEach((x) => x.remove());
-      const old = document.createElement('div');
+      const old = document.createElement('div'), src = from ? from.node : c;
       old.className = 'zm-curtain';
-      if (c.dataset.v) old.dataset.v = c.dataset.v;
-      ['--bg', '--band', '--ink'].forEach((p) => old.style.setProperty(p, c.style.getPropertyValue(p)));
-      old.innerHTML = c.innerHTML;
-      setFace(c, html);
+      if (slow) old.dataset.slow = '1';
+      if (src.dataset.v) old.dataset.v = src.dataset.v;
+      ['--bg', '--band', '--ink'].forEach((p) => old.style.setProperty(p, src.style.getPropertyValue(p)));
+      old.innerHTML = src.innerHTML;
+      old.querySelectorAll('.zm-curtain, .zm-curtain-edge').forEach((x) => x.remove());
+      if (html) setFace(c, html);
       c.appendChild(old);
       const edge = document.createElement('i');
       edge.className = 'zm-curtain-edge';
@@ -408,8 +411,10 @@
       // 斜边：左低右高，左右两端差牌高的 18%；收口从牌底下一点一路扫到牌顶上一点
       const dur = ms(slow ? 620 : 380), easing = slow ? 'cubic-bezier(.4,.1,.35,1)' : 'cubic-bezier(.45,.05,.3,1)';
       const poly = (y) => 'polygon(0% 0%, 100% 0%, 100% ' + (y - 9) + '%, 0% ' + (y + 9) + '%)';
-      edge.animate([{ top: '109%', opacity: 0 }, { top: '95%', opacity: 1, offset: 0.12 }, { top: '5%', opacity: 1, offset: 0.88 }, { top: '-9%', opacity: 0 }], { duration: dur, easing, fill: 'forwards' });
-      return old.animate([{ clipPath: poly(109) }, { clipPath: poly(-9) }], { duration: dur, easing, fill: 'forwards' }).finished.catch(() => {}).then(() => { old.remove(); edge.remove(); });
+      const ea = edge.animate([{ top: '109%', opacity: 0 }, { top: '95%', opacity: 1, offset: 0.12 }, { top: '5%', opacity: 1, offset: 0.88 }, { top: '-9%', opacity: 0 }], { duration: dur, easing, fill: 'forwards' });
+      const oa = old.animate([{ clipPath: poly(109) }, { clipPath: poly(-9) }], { duration: dur, easing, fill: 'forwards' });
+      if (from && from.at > 0) { ea.currentTime = Math.min(from.at, dur); oa.currentTime = Math.min(from.at, dur); }
+      return oa.finished.catch(() => {}).then(() => { old.remove(); edge.remove(); });
     };
     return delay ? new Promise((r) => setTimeout(r, delay / turboK())).then(go) : Promise.resolve().then(go);
   }
@@ -1923,7 +1928,7 @@
     o = o || {};
     const tone = ART.ROLE_TONE[role] || ART.ROLE_TONE.fat;
     snd('ding');
-    if (rimFxOn()) rimRipple(seat, tone.band, 1100, 3);
+    if (rimFxOn() && !o.noRim) rimRipple(seat, tone.band, 1100, 3);
     rb.style.setProperty('--glow', tone.band);
     rb.style.visibility = '';
     rb.classList.remove('is-fire');
@@ -2316,6 +2321,10 @@
     }
     const prev = new Map();
     if (o.flip !== false) els.hand.querySelectorAll('.zm-card').forEach((c) => prev.set(c.dataset.id, c.getBoundingClientRect()));
+    // 重画前的旧牌节点（百搭 / 百搭猫：猫在万能猫 ⇄ 本身之间换脸时，重画不能一下跳过去——见下面 keepMorph）
+    const oldNodes = new Map();
+    if (handGame === game) els.hand.querySelectorAll('.zm-card[data-id]').forEach((c) => oldNodes.set(c.dataset.id, c));
+    handGame = game;
     const saving = mode === 'save', okSave = saving ? saveCandidates(hand) : null;
     const combo = selected.length && (saving ? selected.length === 2 && R.savePairOk(hand, selected) : classifyMine(selected) && mode !== 'give');
     const note = !hand.length ? watchNote() : '';
@@ -2335,6 +2344,7 @@
     els.hand.classList.toggle('is-myturn', myTurnToAct() && !mode);
     layoutHand();
     if (LOUPE) { bindLoupe(); els.hand.classList.toggle('is-crowded', handCrowded()); }
+    keepMorph(oldNodes);
     if (prev.size && !fx.reduce()) {
       els.hand.querySelectorAll('.zm-card').forEach((c) => {
         const p = prev.get(c.dataset.id);
@@ -2346,6 +2356,30 @@
           { duration: 300, easing: 'cubic-bezier(.3,.75,.3,1)', composite: 'add' });
       });
     }
+  }
+  /* 手牌重画时猫的牌面变了（万能猫 ⇄ 本身）：不一下跳过去，原地拉幕换（2026-11-27 用户：我是百搭猫时别人抽我牌，
+   * 偷完 / 给完手里的猫瞬间变回万能猫，或者瞬间变成本身——以前 refaceHand 刚起的拉幕被紧接着的整手重画冲掉了）。
+   * 旧节点上正拉到一半的幕：接着它演到的地方往下演；还没换过脸的：从旧牌面拉到新牌面 */
+  let handGame = null;
+  function keepMorph(oldNodes) {
+    if (!oldNodes.size || fx.reduce()) return;
+    const t = token;
+    let k = 0;
+    els.hand.querySelectorAll('.zm-card[data-id]').forEach((c) => {
+      const old = oldNodes.get(c.dataset.id);
+      if (!old || c.classList.contains('is-incoming') || R.CATS.indexOf(R.KIND_OF[+c.dataset.id]) < 0) return;
+      const cur = old.querySelector(':scope > .zm-curtain');
+      const src = cur || old, vNew = c.dataset.v || '';
+      if ((src.dataset.v || '') === vNew) return;
+      if (cur) {
+        const a = cur.getAnimations()[0];
+        if (a && a.playState === 'finished') return;
+        curtainFace(c, null, 0, t, !!cur.dataset.slow, { node: cur, at: a ? a.currentTime || 0 : 0 });
+      } else {
+        curtainFace(c, null, (k++) * ms(40), t, false, { node: old.cloneNode(true), at: 0 });
+      }
+    });
+    if (k) snd('flip');
   }
   function layoutHand() {
     const cards = els.hand.querySelectorAll('.zm-card');
@@ -3240,7 +3274,8 @@
       game.rimLk = rimLink(p.by, tg, p.type === R.ATTACK || p.type === R.TATTACK, cardHue(p));   // 甩锅 / 自由甩锅一律顺着出牌方向连（2026-11-14 用户）；桌沿连线单独记着：等牌真的拿到 / 给到 / 换完才收（不跟准星一起收）；甩锅给下家也连
     }
     if (s.roles && R.roleOf(s, e.seat) === 'calico' && e.cards && !R.classify(e.cards)) {   // 百搭猫：杂猫凑的一对 / 三张——亮牌，告诉大家为什么算数
-      const fl = await flashRole(e.seat, t, 520);
+      // 2026-11-27 用户：这时就是朴素地打出两张万能猫，桌沿灯带不要再跟着漾角色色（乱、看不出重心）——只留猫章亮一下
+      const fl = await flashRole(e.seat, t, 520, { noRim: true });
       await fl.back();
       if (t !== token) return;
     }
