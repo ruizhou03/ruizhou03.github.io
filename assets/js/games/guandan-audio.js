@@ -160,6 +160,17 @@
       const t = a.currentTime;
       [0, 1, 2, 3, 4].forEach((n, i) => tone(a, t + i * 0.07, { freq: PENTA[n], dur: 0.35, gain: 0.08, type: 'triangle' }));
     },
+    // 有人出完：一串往上走的亮音 + 一点碎光；头游多两级、更亮更长
+    finish(rank = 1) {
+      const a = sfxReady(); if (!a) return;
+      const t = a.currentTime;
+      const seq = rank === 1 ? [2, 4, 5, 7] : [2, 4];
+      seq.forEach((n, i) => tone(a, t + i * 0.08, { freq: PENTA[n], dur: 0.42, gain: rank === 1 ? 0.1 : 0.08, type: 'triangle' }));
+      const sparkleAt = t + seq.length * 0.08;
+      for (let i = 0; i < (rank === 1 ? 6 : 3); i++) {
+        tone(a, sparkleAt + i * 0.05, { freq: 2093 + Math.random() * 1400, dur: 0.16, gain: 0.025, type: 'sine' });
+      }
+    },
     matchEnd(win) {
       if (musicOn()) MUSIC().onMatchEnd();
       const a = sfxReady(); if (!a) return;

@@ -488,6 +488,7 @@
   const _gaSfxLose = AUDIO.effects.lose;
   const _gaSfxTick = AUDIO.effects.tick;
   const _gaSfxMatchEnd = AUDIO.effects.matchEnd;
+  const _gaSfxFinish = AUDIO.effects.finish || (() => {});
 
   function shuffle(a) {
     for (let i = a.length - 1; i > 0; i--) {
@@ -2057,7 +2058,7 @@
       if (rankPos >= 0) {
         // 出完牌：名次标签（头游/二游/三游/末游）直接取代张数，不再「0 | 头游」两个并排。
         se.rk.hidden = false;
-        se.rk.className = 'gd-rank-badge r' + (rankPos + 1);
+        se.rk.className = 'gd-rank-badge r' + (rankPos + 1) + (se.rk.classList.contains('gd-rk-land') ? ' gd-rk-land' : '');
         // 2026-11-27 用户：「头游 / 二游」胶囊标签丑 → 和手牌数同一张小牌，写 #1 / #2 / #3 / #4，读屏照读全称
         se.rk.textContent = '#' + (rankPos + 1);
         se.rk.setAttribute('aria-label', ['头游','二游','三游','末游'][rankPos]);
@@ -2098,6 +2099,7 @@
     document.body.classList.toggle('gd-online-table', !!state.isNetworked);
     if (state.isNetworked) renderRoomBadges();
     else if (document.querySelector('.gd-room-badge')) document.querySelectorAll('.gd-room-badge').forEach(b => b.remove());
+    checkFinishFx();
   }
 
   // 在 chip 上显示本难度累计分；变化时按正/负闪一下
@@ -3844,6 +3846,96 @@
     AUDIO.voice('e-kanggong');
   }
 
+  // ── 有人出完（2026-11-27 用户：别人打完没任何反馈，好几次头游走了都没意识到）──
+  // 不写字，只用画面：出完那家的头像上炸开一圈光环 + 光芒 + 彩纸，一枚大号名次小牌（#1 / #2 / #3，
+  // 和头像角上的名次牌同一个样子）在头像上方弹出，停一下再缩小飞进头像右下角，落定的名次牌再弹一下。
+  // 头游加金色、更大更久，并沿用中央「头游」横幅。触发统一看 state.out 的增长（单机、联机、逐帧回放都走 renderAll）。
+  const finishFx = { seen: null };
+  function checkFinishFx() {
+    const out = state.out || [];
+    const prev = finishFx.seen;
+    finishFx.seen = out.slice();
+    if (!prev || out.length <= prev.length || prev.some((s, i) => out[i] !== s)) return;   // 首帧 / 新一局 / 视角切换：只记不放
+    for (let i = prev.length; i < out.length && i < 3; i++) {
+      const s = out[i];
+      const lp = state.lastPlay && state.lastPlay[s];
+      if (!lp || lp === 'pass') continue;   // 只在「刚把最后一手打出来」时放（重连进来已出完的不放）
+      playFinishFx(s, i + 1);
+    }
+  }
+  const FINISH_FX_MS = { 1: 2100, 2: 1700, 3: 1700 };
+  function playFinishFx(seat, rank) {
+    const se = seatEls[seat];
+    if (rank === 1) showBanner({ kind: 'info', text: '头游', sub: seatName(seat), priority: 4, duration: 1300, extraClass: 'gd-first-banner' });
+    _gaSfxFinish(rank);
+    if (rank === 1) setTimeout(() => AUDIO.voice('e-first', { queue: true }), 650);   // 接在这手牌型的报牌后面
+    if (!se || !se.av || !els.table) return;
+    const dur = FINISH_FX_MS[rank] || 1700;
+    const reduce = REDUCED_MOTION && REDUCED_MOTION.matches;
+    const tr = els.table.getBoundingClientRect();
+    const ar = se.av.getBoundingClientRect();
+    if (!reduce && ar.width) {
+      const fx = document.createElement('div');
+      fx.className = 'gd-finish-fx r' + rank;
+      fx.style.left = (ar.left + ar.width / 2 - tr.left) + 'px';
+      fx.style.top = (ar.top + ar.height / 2 - tr.top) + 'px';
+      fx.style.setProperty('--gd-ff-av', ar.width + 'px');
+      fx.style.setProperty('--gd-ff-dur', dur + 'ms');
+      for (let i = 0; i < 2; i++) {
+        const ring = document.createElement('span');
+        ring.className = 'gd-ff-ring';
+        ring.style.setProperty('--i', i);
+        fx.append(ring);
+      }
+      const rays = rank === 1 ? 12 : 8;
+      for (let i = 0; i < rays; i++) {
+        const ray = document.createElement('span');
+        ray.className = 'gd-ff-ray';
+        ray.style.setProperty('--a', (i * 360 / rays) + 'deg');
+        fx.append(ray);
+      }
+      const bits = rank === 1 ? 22 : 14;
+      for (let i = 0; i < bits; i++) {
+        const bit = document.createElement('span');
+        bit.className = 'gd-ff-bit c' + (i % 4);
+        bit.style.setProperty('--a', (i * 360 / bits + Math.random() * 14 - 7) + 'deg');
+        bit.style.setProperty('--d', Math.round(ar.width * (0.95 + Math.random() * 0.75)) + 'px');
+        bit.style.setProperty('--r', Math.round(Math.random() * 540 - 270) + 'deg');
+        bit.style.setProperty('--dl', Math.round(Math.random() * 90) + 'ms');
+        fx.append(bit);
+      }
+      // 大号名次牌：弹出后飞向头像右下角那张名次小牌
+      const medal = document.createElement('span');
+      medal.className = 'gd-ff-medal';
+      medal.textContent = '#' + rank;
+      medal.setAttribute('aria-hidden', 'true');
+      const rr = se.rk && !se.rk.hidden ? se.rk.getBoundingClientRect() : null;
+      const tx = rr && rr.width ? rr.left + rr.width / 2 - (ar.left + ar.width / 2) : ar.width * 0.45;
+      const ty = rr && rr.width ? rr.top + rr.height / 2 - (ar.top + ar.height / 2) : ar.width * 0.4;
+      // 弹出方向：从头像朝桌心（对家往下、两侧往里、自己往右上），别飞出屏幕
+      const vx = (tr.left + tr.width / 2) - (ar.left + ar.width / 2), vy = (tr.top + tr.height * 0.45) - (ar.top + ar.height / 2);
+      const vl = Math.hypot(vx, vy) || 1, reach = ar.width * 1.25;
+      medal.style.setProperty('--mx', Math.round(vx / vl * reach) + 'px');
+      medal.style.setProperty('--my', Math.round(vy / vl * reach) + 'px');
+      medal.style.setProperty('--tx', Math.round(tx) + 'px');
+      medal.style.setProperty('--ty', Math.round(ty) + 'px');
+      fx.append(medal);
+      els.table.appendChild(fx);
+      setTimeout(() => fx.remove(), dur + 80);
+    }
+    const glow = ['gd-finish-glow', 'gd-ff-r1', 'gd-ff-r2', 'gd-ff-r3'];
+    se.av.classList.remove(...glow);
+    void se.av.offsetWidth;
+    se.av.classList.add('gd-finish-glow', 'gd-ff-r' + rank);
+    setTimeout(() => se.av.classList.remove(...glow), dur);
+    if (se.rk) {
+      se.rk.classList.remove('gd-rk-land');
+      void se.rk.offsetWidth;
+      se.rk.classList.add('gd-rk-land');
+      setTimeout(() => se.rk && se.rk.classList.remove('gd-rk-land'), dur);
+    }
+  }
+
   // 接风（规格 3.2）：横幅「接风」+ 出完的人与队友头像先后各闪一次
   function showJiefengFx(fromSeat, toSeat) {
     showBanner({ kind: 'info', icon: '[[zi:transfer]]', text: '接风', priority: 5, duration: 1200,
@@ -3984,13 +4076,8 @@
     state.trick.best = combo;
     state.trick.bestSeat = seat;
     state.trick.passes = 0;
-    if (afterLen === 0 && !state.out.includes(seat)) {
-      state.out.push(seat);
-      // 头游（规格 3.2）：只给第一个出完的人放横幅；二游、三游只换座位标签
-      if (state.out.length === 1) {
-        showBanner({ kind: 'info', text: '头游', sub: seatName(seat), priority: 4, duration: 1200 });
-      }
-    }
+    // 出完：名次特效（头游横幅 + 头像迸彩）由 renderAll 里的 checkFinishFx 按 state.out 的增长统一放，单机 / 联机同一条路
+    if (afterLen === 0 && !state.out.includes(seat)) state.out.push(seat);
     renderAll();
     // 报牌：首次跨过 10 张时，给该家的余牌徽弹动一次。徽本身一直红色警示
     // 直至清零；不再弹 toast，避免重复打扰
@@ -4010,7 +4097,6 @@
     // 报牌语音接在这手牌型后面：剩牌跨过 10 / 5 / 2 张报一次（一手跨过几档只报最少那档），出完报头游
     const warn = afterLen > 0 ? [2, 5, 10].find(n => beforeLen > n && afterLen <= n) : null;
     if (warn) AUDIO.voice('left-' + warn, { queue: true });
-    else if (afterLen === 0 && state.out.length === 1 && state.out[0] === seat) AUDIO.voice('e-first', { queue: true });
     // 玩家刚出牌后立即藏掉操作按钮，否则 renderAll 内的 updateActions 会因为
     // state.turn 仍是 0 而把按钮再渲一遍（直到 afterMove 把 turn 推走）
     if (seat === 0) hidePlayActionsImmediate();
@@ -7080,6 +7166,7 @@
     state.firstLeader = snap.firstLeader | 0;
     state.hands = Array.isArray(snap.hands) ? snap.hands.map(h => h.slice()) : [[],[],[],[]];
     state.out = Array.isArray(snap.out) ? snap.out.slice() : [];
+    finishFx.seen = null;   // 续局：已出完的人不重放出完特效
     state.turn = snap.turn | 0;
     state.trick = snap.trick ? { lead: snap.trick.lead | 0, best: snap.trick.best || null, bestSeat: snap.trick.bestSeat | 0, passes: snap.trick.passes | 0 } : null;
     state.handOrder = Array.isArray(snap.handOrder) ? snap.handOrder.slice() : null;

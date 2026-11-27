@@ -909,3 +909,103 @@ body.gd-game-fullscreen .guandan-wrap .gd-hand.is-spectating { padding-bottom: 2
 }
 @keyframes gd-spectate-glow { from { opacity: 0.65; } to { opacity: 1; } }
 body.gd-game-fullscreen .guandan-wrap #gdSeat2 .gd-seat-meta { margin-left: 10px; }
+
+/* ===== 有人出完（2026-11-27 用户：别人打完没反馈，头游走了都没注意到）=====
+   出完那家头像上：两圈光环外扩 + 一圈光芒 + 彩纸迸开；一枚大号名次牌（和头像角上 #1~#3 同款）
+   在头像上方弹出、停一下，再缩小飞进右下角；落定的名次牌再弹一下。头游金色、更大更久。不写任何说明字。 */
+.guandan-wrap .gd-finish-fx {
+  position: absolute; width: 0; height: 0; z-index: 45; pointer-events: none; overflow: visible;
+  --gd-ff-gold: #e7c46a; --gd-ff-tone: var(--gd-ink, #1d1b18);
+}
+.guandan-wrap .gd-finish-fx.r1 { --gd-ff-tone: var(--gd-ff-gold); }
+.guandan-wrap .gd-ff-ring {
+  position: absolute; left: 0; top: 0; width: var(--gd-ff-av); height: var(--gd-ff-av);
+  margin: calc(var(--gd-ff-av) / -2) 0 0 calc(var(--gd-ff-av) / -2);
+  border-radius: 50%; border: 3px solid var(--gd-ff-tone); box-sizing: border-box; opacity: 0;
+  animation: gd-ff-ring 900ms cubic-bezier(.15,.7,.35,1) calc(var(--i) * 170ms) forwards;
+}
+.guandan-wrap .gd-finish-fx.r1 .gd-ff-ring { border-width: 4px; box-shadow: 0 0 10px rgba(231, 196, 106, 0.7); }
+@keyframes gd-ff-ring {
+  0% { transform: scale(0.9); opacity: 0.95; }
+  100% { transform: scale(2.9); opacity: 0; }
+}
+.guandan-wrap .gd-finish-fx.r1 .gd-ff-ring { animation-name: gd-ff-ring-1; }
+@keyframes gd-ff-ring-1 {
+  0% { transform: scale(0.9); opacity: 1; }
+  100% { transform: scale(3.6); opacity: 0; }
+}
+.guandan-wrap .gd-ff-ray {
+  position: absolute; left: -2px; top: 0; width: 4px; height: calc(var(--gd-ff-av) * 0.42);
+  border-radius: 2px; background: linear-gradient(to top, transparent, var(--gd-ff-tone));
+  transform-origin: 50% 0; opacity: 0;
+  animation: gd-ff-ray 760ms ease-out 60ms forwards;
+}
+.guandan-wrap .gd-finish-fx:not(.r1) .gd-ff-ray { width: 3px; left: -1.5px; background: linear-gradient(to top, transparent, var(--gd-seal, #b4392c)); }
+@keyframes gd-ff-ray {
+  0%   { opacity: 0; transform: rotate(var(--a)) translateY(calc(var(--gd-ff-av) * 0.45)) scaleY(0.2); }
+  30%  { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(var(--gd-ff-av) * 1.2)) scaleY(1); }
+}
+.guandan-wrap .gd-finish-fx.r1 .gd-ff-ray { animation-duration: 1000ms; }
+.guandan-wrap .gd-ff-bit {
+  position: absolute; left: -3px; top: -5px; width: 6px; height: 10px; border-radius: 1px; opacity: 0;
+  animation: gd-ff-bit 1100ms cubic-bezier(.2,.75,.4,1) var(--dl) forwards;
+}
+.guandan-wrap .gd-ff-bit.c0 { background: var(--gd-seal, #b4392c); }
+.guandan-wrap .gd-ff-bit.c1 { background: #e7c46a; }
+.guandan-wrap .gd-ff-bit.c2 { background: var(--gd-ink, #1d1b18); width: 5px; height: 5px; border-radius: 50%; }
+.guandan-wrap .gd-ff-bit.c3 { background: #fbf6ec; box-shadow: 0 0 0 1px rgba(29, 27, 24, 0.55); }
+@keyframes gd-ff-bit {
+  0%   { opacity: 1; transform: rotate(var(--a)) translateY(calc(var(--gd-ff-av) * -0.35)) rotate(0deg); }
+  70%  { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(var(--d) * -1)) rotate(var(--r)) translateY(14px); }
+}
+.guandan-wrap .gd-finish-fx.r1 .gd-ff-bit { animation-duration: 1400ms; }
+.guandan-wrap .gd-ff-medal {
+  position: absolute; left: 0; top: 0; width: 36px; height: 48px; margin: -24px 0 0 -18px;
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box; border-radius: 6px;
+  background: var(--gd-ink, #1d1b18); color: var(--gd-paper, #fbf6ec);
+  font: 700 21px/1 var(--gd-num); letter-spacing: -0.02em;
+  box-shadow: 0 0 0 2px var(--gd-paper, #fbf6ec), 3px 3px 0 2px rgba(29, 27, 24, 0.28);
+  opacity: 0; animation: gd-ff-medal var(--gd-ff-dur, 1700ms) cubic-bezier(.3,.7,.3,1) forwards;
+}
+.guandan-wrap .gd-finish-fx.r1 .gd-ff-medal {
+  width: 44px; height: 58px; margin: -29px 0 0 -22px; font-size: 26px;
+  background: var(--gd-seal, #b4392c); color: #fff6e0;
+  box-shadow: inset 0 0 0 1.5px rgba(231, 196, 106, 0.95), 0 0 0 2px var(--gd-paper, #fbf6ec), 3px 3px 0 2px rgba(29, 27, 24, 0.28), 0 0 18px 4px rgba(231, 196, 106, 0.65);
+}
+@keyframes gd-ff-medal {
+  0%   { opacity: 0; transform: translate(0, 0) scale(0.2) rotate(-25deg); }
+  12%  { opacity: 1; transform: translate(calc(var(--mx) * 1.1), calc(var(--my) * 1.1)) scale(1.3) rotate(6deg); }
+  20%  { transform: translate(var(--mx), var(--my)) scale(1) rotate(0deg); }
+  60%  { opacity: 1; transform: translate(var(--mx), var(--my)) scale(1) rotate(0deg); }
+  86%  { opacity: 1; transform: translate(var(--tx), var(--ty)) scale(0.5) rotate(0deg); }
+  100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.5); }
+}
+/* 头像本身：弹一下 + 外圈一阵光 */
+body .guandan-wrap .gd-seat .gd-avatar.gd-finish-glow { animation: gd-ff-av 900ms cubic-bezier(.2,.9,.3,1.3) both; }
+body .guandan-wrap .gd-seat .gd-avatar.gd-finish-glow.gd-ff-r1 { animation: gd-ff-av-1 1300ms cubic-bezier(.2,.9,.3,1.3) both; }
+@keyframes gd-ff-av {
+  0%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(29, 27, 24, 0.45); }
+  25%  { transform: scale(1.18); }
+  100% { transform: scale(1); box-shadow: 0 0 0 14px rgba(29, 27, 24, 0); }
+}
+@keyframes gd-ff-av-1 {
+  0%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(231, 196, 106, 0.95); }
+  22%  { transform: scale(1.24); box-shadow: 0 0 0 5px rgba(231, 196, 106, 0.9), 0 0 22px 6px rgba(231, 196, 106, 0.7); }
+  100% { transform: scale(1); box-shadow: 0 0 0 18px rgba(231, 196, 106, 0), 0 0 0 0 rgba(231, 196, 106, 0); }
+}
+/* 名次小牌：等大号那张飞到了再出现，落地弹一下 */
+body .guandan-wrap .gd-seat .gd-av-cnt .gd-rank-badge.gd-rk-land:not([hidden]) {
+  animation: gd-ff-land var(--gd-ff-dur, 1700ms) linear both;
+}
+body .guandan-wrap .gd-seat .gd-av-cnt .gd-rank-badge.gd-rk-land.r1:not([hidden]) { --gd-ff-dur: 2100ms; }
+@keyframes gd-ff-land {
+  0%, 82% { transform: scale(0); }
+  90%     { transform: scale(1.45); }
+  100%    { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body .guandan-wrap .gd-seat .gd-av-cnt .gd-rank-badge.gd-rk-land:not([hidden]),
+  body .guandan-wrap .gd-seat .gd-avatar.gd-finish-glow { animation: none; }
+}
