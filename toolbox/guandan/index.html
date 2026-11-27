@@ -8,14 +8,14 @@ apple_touch_icon: /assets/icons/guandan-apple-touch-icon.png
 app_title: 掼蛋
 theme_color: "#f3eee3"
 theme_color_dark: "#f3eee3"
-asset_version: "20261127ui23"
+asset_version: "20261127ui24"
 minimal_app_shell: true
 # 服务端就给 <body> 带上全屏类：进页面首帧即全屏，杜绝"先停在非全屏再跳全屏"的闪烁。
 # （JS 启动时也会再加一次，幂等兜底。）
 body_class: gd-game-fullscreen
 ---
 
-<link rel="stylesheet" href="/assets/css/games-shell.css?v=20261127ui23">
+<link rel="stylesheet" href="/assets/css/games-shell.css?v=20261127ui24">
 
 <script>
   /* 游戏仍须遵守浏览器缩放与系统辅助功能。只覆盖 viewport-fit，不限制 200%+
@@ -85,8 +85,8 @@ body_class: gd-game-fullscreen
 <!-- 和百变小咪同一套自带宋体（思源宋体子集 + 数字字体）：按钮、菜单、标题的字跟着游戏走，不随系统字体变 -->
 <link rel="preload" href="/assets/fonts/guandan/gd-serif-700.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/guandan/gd-serif-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/css/guandan.css?v=20261127ui23">
-<link rel="stylesheet" href="/assets/css/guandan-shell.css?v=20261127ui23">
+<link rel="stylesheet" href="/assets/css/guandan.css?v=20261127ui24">
+<link rel="stylesheet" href="/assets/css/guandan-shell.css?v=20261127ui24">
 
 <div class="guandan-wrap gd-view-setup">
   <!-- 手机竖屏引导：仅触屏竖屏显示（CSS 控制），盖住整屏提示转横屏 -->
@@ -98,6 +98,7 @@ body_class: gd-game-fullscreen
   <header>
     <!-- 右上角工具（2026-11-26 照百变小咪）：只留「声音」和「☰ 菜单」两颗圆钮；设置 / 规则 / 回到主页面都收进菜单。2026-11-27 用户：排序两项（右下角那颗钮已经管了）、战绩榜（先拿掉）、离线都去掉 -->
     <div class="gd-tools" id="gdTools">
+      <button type="button" class="gd-tool gd-chat-btn" id="gdChatBtn" aria-label="聊天" aria-haspopup="dialog" aria-expanded="false" hidden></button>
       <button type="button" class="gd-tool gd-mute-btn" id="gdMuteBtn" title="声音" aria-label="声音"></button>
       <button type="button" class="gd-tool" id="gdMenuBtn" aria-label="菜单" aria-haspopup="menu" aria-expanded="false" aria-controls="gdMenu">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg>
@@ -105,6 +106,7 @@ body_class: gd-game-fullscreen
     </div>
     <div class="gd-menu" id="gdMenu" role="menu" aria-label="菜单" hidden>
       <button type="button" role="menuitem" id="gdMenuNew"><svg class="gd-menu-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4.5v4h-4"/></svg><b>新的一局</b></button>
+      <button type="button" role="menuitem" id="gdMenuRecord" hidden><svg class="gd-menu-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10M10 20V5M15 20v-7M20 20V8"/></svg><b>战绩</b></button>
       <button type="button" role="menuitem" id="gdMenuAuto"><svg class="gd-menu-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 8V5M9.5 13h0M14.5 13h0"/><circle cx="12" cy="4" r="1"/></svg><b>托管</b></button>
       <hr>
       <button type="button" role="menuitem" id="gdSettingsBtn"><svg class="gd-menu-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><b>设置</b></button>
@@ -343,6 +345,7 @@ body_class: gd-game-fullscreen
           <div class="gd-lobby-share">
             <button class="gd-pill" id="gdCopyLinkBtn" type="button">复制链接</button>
             <button class="gd-pill" id="gdQrBtn" type="button">二维码</button>
+            <button class="gd-pill" id="gdRecordBtn" type="button" hidden>战绩</button>
           </div>
         </div>
         <div class="gd-lobby-rules" id="gdLobbyRules"></div>
@@ -384,7 +387,10 @@ body_class: gd-game-fullscreen
           </div>
         </div>
         <div class="gd-result-score" id="gdRoundScore"></div>
-        <button class="gd-btn primary" id="gdRoundNext" type="button">继续 [[zi:play]]</button>
+        <div class="gd-result-actions">
+          <button class="gd-btn" id="gdRoundBack" type="button" hidden>回房间</button>
+          <button class="gd-btn primary" id="gdRoundNext" type="button">继续 [[zi:play]]</button>
+        </div>
       </div>
     </div>
 
@@ -411,6 +417,7 @@ body_class: gd-game-fullscreen
         </div>
         <div class="gd-result-level-cards" id="gdMatchLevelCards"></div>
         <div class="gd-result-score" id="gdMatchScore"></div>
+        <div class="gd-room-record" id="gdMatchRecord" hidden></div>
         <div class="gd-result-actions">
           <button class="gd-btn primary" id="gdMatchAgain" type="button">再来一局</button>
           <button class="gd-btn" id="gdMatchSetup" type="button">返回开始页</button>
@@ -487,6 +494,7 @@ body_class: gd-game-fullscreen
           </div>
         </div>
       </div>
+      </div><!-- /.gd-set-cols（少了这个收尾，后面的二维码弹窗和提示条都被关进了设置卡里，显示不出来） -->
       <div class="gd-set-foot" id="gdSettingsVersion"></div>
     </div>
   </div>
@@ -502,23 +510,32 @@ body_class: gd-game-fullscreen
     </div>
   </div>
 
+  <!-- 本房间战绩（房间页「战绩」、牌桌 ☰「战绩」） -->
+  <div class="gd-confirm-modal" id="gdRecordDlg" hidden role="dialog" aria-modal="true" aria-label="本房间战绩">
+    <div class="gd-confirm-backdrop" data-close="record"></div>
+    <div class="gd-confirm-panel gd-record-panel">
+      <div class="gd-room-record" id="gdRecordBox"></div>
+      <div class="gd-confirm-actions"><button class="gd-btn" id="gdRecordClose" type="button">好</button></div>
+    </div>
+  </div>
+
   <div class="gd-toast" id="gdToast" role="status" aria-live="polite" aria-atomic="true"></div>
   <div class="gd-sr-only" id="gdLiveRegion" role="status" aria-live="polite" aria-atomic="true"></div>
   <output id="gdPerfProbe" hidden aria-hidden="true"></output>
 </div>
 
-<script src="/assets/js/games-shell/identity.js?v=20261127ui23" defer></script>
-<script src="/assets/js/games-shell/qrcode.js?v=20261127ui23" defer></script>
+<script src="/assets/js/games-shell/identity.js?v=20261127ui24" defer></script>
+<script src="/assets/js/games-shell/qrcode.js?v=20261127ui24" defer></script>
 
-<script src="/assets/js/games/guandan-contract.js?v=20261127ui23" defer></script>
-<script src="/assets/js/games/guandan-storage.js?v=20261127ui23" defer></script>
-<script src="/assets/js/games/guandan-net.js?v=20261127ui23" defer></script>
-<script src="/assets/js/games/guandan-music.js?v=20261127ui23" defer></script>
-<script src="/assets/js/games/guandan-audio.js?v=20261127ui23" defer></script>
-<script src="/assets/js/games/guandan-rules.js?v=20261127ui23" defer></script>
-<script src="/assets/js/games/guandan-engine.js?v=20261127ui23" defer></script>
-<script src="/assets/js/games/guandan-ui.js?v=20261127ui23" defer></script>
-<script src="/assets/js/games/guandan-debug.js?v=20261127ui23" defer></script>
+<script src="/assets/js/games/guandan-contract.js?v=20261127ui24" defer></script>
+<script src="/assets/js/games/guandan-storage.js?v=20261127ui24" defer></script>
+<script src="/assets/js/games/guandan-net.js?v=20261127ui24" defer></script>
+<script src="/assets/js/games/guandan-music.js?v=20261127ui24" defer></script>
+<script src="/assets/js/games/guandan-audio.js?v=20261127ui24" defer></script>
+<script src="/assets/js/games/guandan-rules.js?v=20261127ui24" defer></script>
+<script src="/assets/js/games/guandan-engine.js?v=20261127ui24" defer></script>
+<script src="/assets/js/games/guandan-ui.js?v=20261127ui24" defer></script>
+<script src="/assets/js/games/guandan-debug.js?v=20261127ui24" defer></script>
 <script src="/assets/js/games/guandan-ai-contract.js?v=20260727ai5" defer></script>
-<script src="/assets/js/games/gongzhu-avatars.js?v=20261127ui23" defer></script>
-<script src="/assets/js/games/guandan.min.js?v=20261127ui23" defer></script>
+<script src="/assets/js/games/gongzhu-avatars.js?v=20261127ui24" defer></script>
+<script src="/assets/js/games/guandan.min.js?v=20261127ui24" defer></script>

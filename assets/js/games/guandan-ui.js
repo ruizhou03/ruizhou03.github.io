@@ -36,6 +36,7 @@
         : document.activeElement;
       activeDialog = dialog;
       activeClose = close || null;
+      dialog.inert = false;   // 上一个面板没交还就被换掉时，自己可能还被标着 inert
       inerted = new Map();
       let node = dialog;
       while (node && node.parentElement) {
