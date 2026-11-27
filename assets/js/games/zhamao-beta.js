@@ -193,6 +193,11 @@
 .zb-card .zb-row{margin-bottom:6px;padding:8px 10px}
 .zb-tk{height:6px;border-radius:3px;background:#ebe5d8;margin-top:5px;overflow:hidden}
 .zb-tk i{display:block;height:100%;background:#3f7a52}
+.zb-tline{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+.zb-tline .zb-seal{margin:0}
+.zb-tline .zb-bal{font-size:14px}
+.zb-tline .zb-bal svg{width:22px;height:14px}
+.zb-sub{display:block;margin-top:3px;font-size:11.5px;font-weight:400;color:#8a8275}
 ` + Object.keys(BACK_FILL).filter((k) => k !== 'navy').map((k) => `.zb-back-${k} .zm-card.is-back svg>rect:first-child{fill:${BACK_FILL[k]}}`).join('\n') + '\n' +
       `.zb-back-gilt .zm-card.is-back svg>rect:nth-child(2){stroke:#f3d58a}\n` +
       Object.keys(FELT).filter((k) => FELT[k]).map((k) => `.zb-felt-${k} .zm-table,.zb-felt-${k}.zm-app{background-color:${FELT[k]}}` + (FELT_PAT[k] ? `\n.zb-felt-${k} .zm-table{background-image:${FELT_PAT[k]}}` : '')).join('\n');
@@ -524,31 +529,35 @@
     // ── 档案里的「内测」卡：广告翻倍、额外救济、每日任务 ──
     const TASKS = [['games', '打 3 局', 3, 300], ['win', '赢 1 局', 1, 500], ['online', '联机打 1 局', 1, 500]];
     const RELIEF = 2000, EXTRA_MAX = 2;
+    /* 2026-11-27 用户第 9 条：任务和签到合成一栏——先签到七格，下面一行行任务。内测这几行直接沿用签到卡里「今日首胜」那种 .zmp-task 行，
+     * 插在今日首胜下面（没有就接在七格下面），不再单独开一张卡 */
     function betaCard() {
       const r = dayRec(), ws = W() && W().state ? W().state() || {} : {}, ck = ws.ck === today(), rl = ws.relief || {};
       const ckAmt = ws.ckAmt || 0;
       const used = rl.left != null ? Math.max(0, 2 - rl.left) : 0;
-      const row = (t, btn) => '<div class="zb-row"><span class="t">' + t + '</span>' + btn + '</div>';
-      const adBtn = (k, amt, ok) => '<button type="button" class="zb-btn is-red" data-zbad="' + k + '"' + (ok ? '' : ' disabled') + '>▶ ' + FISH() + '+' + fmt(amt) + '</button>';
-      let h = '<div class="zb-card" data-zbcard><div class="h"><span class="zb-seal" style="margin:0">内测</span><span class="zb-bal">' + FISH() + '<b data-zbbal>' + fmt(bal()) + '</b></span></div>';
-      h += row('签到看广告，再领一份<small>' + (ck ? '今天已签到' : '先签到') + '</small>', r.ck ? '<span class="zb-btn">已领</span>' : adBtn('ck', ckAmt || 500, ck));
-      h += row('救济看广告翻倍<small>今天领了 ' + used + ' 次救济，已翻倍 ' + r.rAd + ' 次</small>', adBtn('relief', RELIEF, used > r.rAd));
-      h += row('救济用完了，看广告再领<small>每天最多 ' + EXTRA_MAX + ' 次，今天 ' + r.extra + ' 次</small>', adBtn('extra', RELIEF, rl.left === 0 && r.extra < EXTRA_MAX));
-      h += '<div class="zb-sec" style="margin-top:10px">每日任务</div>';
+      const fishAmt = (amt) => '<b>' + FISH() + '+' + fmt(amt) + '</b>';
+      const line = (name, amt, sub, ready, right) => '<div class="zmp-task' + (ready ? ' is-ready' : '') + '"><span>' + name + fishAmt(amt) + (sub ? '<small class="zb-sub">' + sub + '</small>' : '') + '</span>' + right + '</div>';
+      const ad = (k, ok) => (ok ? '<button type="button" data-zbad="' + k + '">▶ 看广告</button>' : '');
+      let h = '<div data-zbcard><div class="zb-tline"><span class="zb-seal">内测</span><span class="zb-bal">' + FISH() + '<b data-zbbal>' + fmt(bal()) + '</b></span></div>';
+      h += line('签到再领一份', ckAmt || 500, '', ck && !r.ck, r.ck ? '<em>已领</em>' : ck ? ad('ck', true) : '<em>先签到</em>');
       TASKS.forEach(([k, name, goal, amt]) => {
         const v = Math.min(goal, r[k] || 0), got = r.got[k] || 0;
-        const btn = got === 2 ? '<span class="zb-btn">已领</span>' : got === 1 ? adBtn('t2:' + k, amt, true) : '<button type="button" class="zb-btn' + (v >= goal ? ' is-red' : '') + '" data-zbt="' + k + '"' + (v >= goal ? '' : ' disabled') + '>' + FISH() + '+' + fmt(amt) + '</button>';
-        h += '<div class="zb-row"><span class="t">' + name + '<small>' + v + ' / ' + goal + (got === 1 ? '，看广告再领一份' : '') + '</small><span class="zb-tk"><i style="width:' + (v / goal * 100) + '%"></i></span></span>' + btn + '</div>';
+        const right = got === 2 ? '<em>已领</em>' : got === 1 ? ad('t2:' + k, true) : v >= goal ? '<button type="button" data-zbt="' + k + '">领取</button>' : '<em>' + v + ' / ' + goal + '</em>';
+        h += line(name, amt, got === 1 ? '看广告再领一份' : '', v >= goal && got < 2, right);
       });
+      if (used > r.rAd) h += line('救济翻倍', RELIEF, '今天领过 ' + used + ' 次救济', true, ad('relief', true));
+      if (rl.left === 0) h += line('额外救济', RELIEF, '今天 ' + r.extra + ' / ' + EXTRA_MAX, r.extra < EXTRA_MAX, r.extra < EXTRA_MAX ? ad('extra', true) : '<em>明天再来</em>');
       return h + '</div>';
     }
     function mountCard(bodyEl) {
-      const grid = bodyEl.querySelector('.zmp-grid');
-      if (!grid) return;
+      const week = bodyEl.querySelector('.zmp-week');
+      const cardEl = week && week.closest('.zmp-card');
+      if (!cardEl) return;
       const old = bodyEl.querySelector('[data-zbcard]');
       const wrap = document.createElement('div'); wrap.innerHTML = betaCard();
       const card = wrap.firstChild;
-      if (old) old.replaceWith(card); else grid.parentNode.insertBefore(card, grid);
+      if (old) old.replaceWith(card);
+      else { const fw = cardEl.querySelector('.zmp-task'), after = fw || week; after.parentNode.insertBefore(card, after.nextSibling); }
       grabBal(card);
       card.addEventListener('click', (e) => {
         const a = e.target.closest('[data-zbad]'), t = e.target.closest('[data-zbt]');
@@ -565,7 +574,7 @@
     // 档案每次重画 body：看到签到卡就把内测卡插在前面
     new MutationObserver(() => {
       const b = document.querySelector('.zmp .zmp-body');
-      if (b && b.querySelector('.zmp-grid') && !b.querySelector('[data-zbcard]')) {
+      if (b && b.querySelector('.zmp-week') && !b.querySelector('[data-zbcard]')) {
         // 签到额：今天这格（已签的最后一格 / 正要签的那格）的数，看广告再领同样一份
         const days = [...b.querySelectorAll('.zmp-day')], cur = days.filter((x) => x.classList.contains('is-done')).pop();
         const ws = W() && W().state ? W().state() : null;
