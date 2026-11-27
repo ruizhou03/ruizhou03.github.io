@@ -131,7 +131,7 @@ test('iron rule: never draws a certain kitten without a defuse while holding a d
   assert.ok(seen > 5, 'too few doomed spots to test: ' + seen);
 });
 
-test('iron rule: never swaps a much bigger hand for a small one (self-play, roles, hard)', () => {
+test('iron rule: never swaps a bigger hand for a smaller one (self-play, roles, hard)', () => {
   // 改之前：角色猫模式高手约 15% 的交换是「我换出去的比换过来的多 4 张以上」（例：11 张换 2 张）
   const rules = Object.assign({}, R.DEFAULT_RULES, { mode: 'roles', swap: true, swapDefuse: true });
   let swaps = 0;
@@ -152,7 +152,9 @@ test('iron rule: never swaps a much bigger hand for a small one (self-play, role
         swaps++;
         const v = R.view(s, seat), mine = s.hands[seat].length - 1, theirs = s.hands[d.target].length;
         const myDef = s.hands[seat].filter((id) => R.KIND_OF[id] === R.DEFUSE).length, thDef = v.handKnown[d.target].filter((id) => R.KIND_OF[id] === R.DEFUSE).length;
-        if (thDef <= myDef) assert.ok(mine < theirs + 3, `swapped ${mine} cards for ${theirs}`);
+        // 2026-11-27 门槛收紧到「换出去不比换回来多」；必死局面（顶上确定是炸弹猫、没逗猫棒）换牌碰运气找逗猫棒不算（guardDoom 放行）
+        const doomed = !myDef && v.known.some((k) => k.pos === 0 && R.KIND_OF[k.id] === R.BOOM);
+        if (thDef <= myDef && !doomed) assert.ok(mine <= theirs, `swapped ${mine} cards for ${theirs}`);
       }
       apply(s, seat, d);
     }

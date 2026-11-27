@@ -1098,7 +1098,9 @@
   /* 铁律「不拿大手换小手」（用户 2026-11-25 反馈：手里 10 张去换只有 2 张的人）：交换时我换出去的牌比对方换过来的
    * 多 3 张以上，就把这一步拿掉，在剩下的动作里挑（有网络按网络打分，没有就摸牌）。例外：连逗猫棒一起换、
    * 对方身上看得见的逗猫棒比我多（换过来能救命）。实测高手在角色猫模式里约 15% 的交换是这种，经典 / 百变 / 组队几乎没有。 */
-  const SWAP_GAP = 3;
+  /* 2026-11-27 用户：自己 3 张换给 0 张的人，纯亏。门槛 3 → 1：换出去的比换回来的多就挡（连逗猫棒换、对方逗猫棒更多时仍放行）。
+   * 角色猫模式的网络（r）没练过交换，原来四成交换是「多换少」、3.7% 换给没牌的人；挡掉后角色局名次分 0.498 → 0.524，经典 / 百变持平（各 1600 局） */
+  const SWAP_GAP = 1;
   function swapMovable(v, t, sid) {   // [我换出去几张, 对方换过来几张]（逗猫棒不跟着换时各自留下）
     const all = !!(v.rules && v.rules.swapDefuse);
     const mine = v.hand.filter((id) => id !== sid && (all || K[id] !== R.DEFUSE)).length;
@@ -1117,6 +1119,13 @@
   }
   /* 2026-11-26 用户：机器猫有时连着打两张洗牌，中间没看牌，第二张没有任何用。
    * 弃牌堆最上面是洗牌 = 上一张打出的就是洗牌、之后没人看过 / 塞过牌，牌堆对谁都还是乱的，再洗一次白费一张牌 */
+  /* 2026-11-27 用户：洗完牌紧接着打抽底，没有任何期望收益——洗过之后底牌和顶牌一样是乱的，抽底只是白扔一张牌（等于直接摸）。
+   * 弃牌堆最上面是洗牌 = 之后没人看过 / 塞过牌。百变「摸底」时本来就摸底，不管 */
+  function badBottom(v, m) {
+    if (!m || m.type !== 'play' || m.cards.length !== 1 || K[m.cards[0]] !== R.BOTTOM || v.flux === 'bottom') return false;
+    const top = v.discard.length ? v.discard[v.discard.length - 1] : null;
+    return top != null && K[top] === R.SHUFFLE;
+  }
   function badShuffle(v, m) {
     if (!m || m.type !== 'play' || m.cards.length !== 1 || K[m.cards[0]] !== R.SHUFFLE) return false;
     const top = v.discard.length ? v.discard[v.discard.length - 1] : null;
@@ -1132,7 +1141,7 @@
     return !!k0 && K[k0.id] !== R.BOOM;
   }
   function guardSwap(state, seat, v, d) {
-    const bad = (m) => badSwap(v, m) || badShuffle(v, m) || badSafeEscape(v, m);
+    const bad = (m) => badSwap(v, m) || badShuffle(v, m) || badBottom(v, m) || badSafeEscape(v, m);
     if (!bad(d)) return d;
     const legal = (m) => m.type !== 'play' || !!R.checkPlay(state, seat, m.cards, m);
     const pool = actCandidates(v).filter((m) => legal(m) && !bad(m));
