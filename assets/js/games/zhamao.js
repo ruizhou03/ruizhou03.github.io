@@ -10068,6 +10068,39 @@
    *  ④「观战者能看我的手牌」挪进右上角菜单的「设置」，房间页只留这一局的事
    *  ⑤ 邀请直接：房间号旁「复制链接」「二维码」，二维码就地展开给旁边的人扫 */
   let lobbyQr = false, lobbyRdySeen = new Set();
+  /* 房间页只改变了的地方（2026-11-27 用户：加个机器猫整页闪一下——以前每次状态一变整页 innerHTML 重写：
+   * 插画动画从头来、商店的道具格被冲掉 150ms 后才补回来、图标全重画）。现在新旧逐层比：标签 / 子节点个数对得上就往里比、只改不一样的字和属性，
+   * 对不上才整块换。别的模块插进来的节点（道具格 .zb-*）原地不动；二维码画好了就不再清 */
+  const morphForeign = (n) => n.nodeType === 1 && /(^|\s)zb-/.test(n.className || '');
+  function morphInto(root, html) {
+    const t = document.createElement('div');
+    t.innerHTML = html;
+    if (!root.firstChild) { root.innerHTML = html; return; }
+    morphKids(root, t);
+  }
+  function morphKids(a, b) {
+    const ak = Array.from(a.childNodes).filter((n) => !morphForeign(n)), bk = Array.from(b.childNodes);
+    if (ak.length !== bk.length) {
+      // 个数变了：自己的全换掉，外来的节点留着（放回原来那个邻居前面）
+      const keep = Array.from(a.childNodes).filter(morphForeign).map((n) => [n, n.nextSibling && !morphForeign(n.nextSibling) ? n.nextSibling.className : null]);
+      ak.forEach((n) => n.remove());
+      bk.forEach((n) => a.appendChild(n));
+      keep.forEach(([n, cls]) => { const nb = cls ? Array.from(a.children).find((x) => x.className === cls && !morphForeign(x)) : null; a.insertBefore(n, nb || null); });
+      return;
+    }
+    ak.forEach((x, i) => morphNode(x, bk[i]));
+  }
+  function morphNode(a, b) {
+    if (a.nodeType !== b.nodeType || a.nodeName !== b.nodeName) { a.replaceWith(b); return; }
+    if (a.nodeType === 3 || a.nodeType === 8) { if (a.nodeValue !== b.nodeValue) a.nodeValue = b.nodeValue; return; }
+    if (a.nodeType !== 1) return;
+    if (a.isEqualNode(b)) return;
+    for (const at of Array.from(a.attributes)) if (!b.hasAttribute(at.name)) a.removeAttribute(at.name);
+    for (const at of Array.from(b.attributes)) if (a.getAttribute(at.name) !== at.value) a.setAttribute(at.name, at.value);
+    if (a.hasAttribute('data-qr') && a.firstChild) return;   // 二维码画好了别清
+    if (a.nodeName === 'svg') { if (a.innerHTML !== b.innerHTML) a.innerHTML = b.innerHTML; return; }
+    morphKids(a, b);
+  }
   function renderLobbyV2(st, o) {
     const { host, me, rules, seated, shownSeats, row, sw, ts } = o;
     const order = seated.slice().sort((a, b) => a.seat - b.seat).map((p) => p.seat);
@@ -10092,7 +10125,7 @@
     const url = NET.inviteUrl(st.code);
     const tools = '<div class="zm-lobby-tools">' + ($('zmChatBtn') && social && socialOk() ? '<button type="button" class="zm-tool" data-l="chat" aria-label="' + T('ui.chat', '聊天') + '">' + $('zmChatBtn').innerHTML + '</button>' : '') +
       '<button type="button" class="zm-tool" data-l="menu" aria-label="' + T('ui.menu', '菜单') + '">' + $('zmMenuBtn').innerHTML + '</button></div>';
-    lobbyEl.innerHTML = tools + '<div class="zm-lobby-inner is-v2">' +
+    morphInto(lobbyEl, tools + '<div class="zm-lobby-inner is-v2">' +
       '<div class="zm-lobby-brand"><div class="art">' + ART.hero() + '</div><b>' + T('game.name', '百变小咪') + '</b></div>' +
       '<div class="zm-lobby-code"><div><small>' + T('ui.roomCode', '房间号') + '</small><b>' + esc(st.code) + '</b></div>' +
         '<div class="acts"><button type="button" class="zm-pill" data-l="copy">' + T('ui.invite.copy', '复制链接') + '</button><button type="button" class="zm-pill' + (lobbyQr ? ' is-on' : '') + '" data-l="qr">' + T('lobby.qr', '二维码') + '</button></div></div>' +
@@ -10117,9 +10150,9 @@
         const lack = teamOn ? teamN - seated.filter((p) => p.seat < teamN).length : Math.max(0, 2 - seated.length), extra = teamOn ? seated.filter((p) => p.seat >= teamN).length : 0;
         if (!lack && !extra) return readyBtnHtml(st);
         return '<button type="button" class="zm-btn zm-btn-primary zm-ready" data-l="hold" disabled>' + (lack ? T('lobby.lack', '还差 {n} 人', { n: lack }) : T('lobby.moveExtra', '先把多出来的人挪进队里')) + '</button>';
-      })()) + '</div></div>';
+      })()) + '</div></div>');
     const qr = lobbyEl.querySelector('[data-qr]');
-    if (qr) { if (window.GamesShell && GamesShell.QR) { try { GamesShell.QR.render(qr, url, { scale: 4, margin: 2, dark: '#1d1b18', light: '#fbf8f1' }); } catch (_) { qr.remove(); } } else qr.remove(); }
+    if (qr && !qr.firstChild) { if (window.GamesShell && GamesShell.QR) { try { GamesShell.QR.render(qr, url, { scale: 4, margin: 2, dark: '#1d1b18', light: '#fbf8f1' }); } catch (_) { qr.remove(); } } else qr.remove(); }
   }
   /* 房间页的规则页（2026-11-26）：弹出来，房主改了马上发给服务器（照旧走 config）；别人点开同一页、控件灰着只能看 */
   function lobbyRules() {
