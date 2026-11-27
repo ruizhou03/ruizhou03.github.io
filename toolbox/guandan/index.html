@@ -468,12 +468,13 @@ body_class: gd-game-fullscreen
         <div class="gd-set-h">牌桌</div>
         <div class="gd-set-row"><span>手牌大小</span>
           <div class="gd-seg" id="gdPgoCardSize" role="group" aria-label="手牌大小">
-            <button class="gs-pgo-mode-tab" data-value="0.85" type="button" aria-pressed="false">小</button>
+            <button class="gs-pgo-mode-tab" data-value="0.88" type="button" aria-pressed="false">小</button>
             <button class="gs-pgo-mode-tab selected" data-value="1" type="button" aria-pressed="true">中</button>
-            <button class="gs-pgo-mode-tab" data-value="1.25" type="button" aria-pressed="false">大</button>
-            <button class="gs-pgo-mode-tab" data-value="1.5" type="button" aria-pressed="false">特大</button>
+            <button class="gs-pgo-mode-tab" data-value="1.12" type="button" aria-pressed="false">大</button>
           </div>
         </div>
+        <!-- 2026-11-27 照炸弹猫：按真打时的实际大小预览（小 / 中 / 大三格虚线框 + 一小把手牌） -->
+        <div class="gd-size-pv" id="gdCardSizePv" aria-hidden="true"></div>
         <div class="gd-set-row"><span>机器人出牌</span>
           <div class="gd-seg" id="gdPgoAiSpeed" role="group" aria-label="机器人出牌速度">
             <button class="gs-pgo-mode-tab" data-value="1.4" type="button" aria-pressed="false">慢</button>

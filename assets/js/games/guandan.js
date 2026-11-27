@@ -884,7 +884,10 @@
     };
   }
 
-  const CARD_SIZE_OPTS = [0.85, 1, 1.25, 1.5];
+  // 2026-11-27 用户：手牌大小照炸弹猫——小 / 中 / 大三档 + 实际尺寸预览。原来的「特大」在微信横屏放不下，
+  // 老存档里的 0.85 / 1.25 / 1.5 就近折到新三档。
+  const CARD_SIZE_OPTS = [0.88, 1, 1.12];
+  const migrateCardSize = v => (v === 0.85 ? 0.88 : (v === 1.25 || v === 1.5) ? 1.12 : v);
   const AI_SPEED_OPTS = [1.4, 1, 0.5];   // AI 出牌速度：慢 / 标准 / 快（规格 4.1）
   const state = {
     aiLevel: ['easy','normal','hard'].includes(stored.lastDiff) ? stored.lastDiff : 'normal',
@@ -892,7 +895,7 @@
     options: normalizeOptions(stored.options),       // PGO 里可编辑的「下一盘」玩法设置
     matchOptions: normalizeOptions(stored.options),  // 当前这盘冻结的玩法设置（startMatch 时从 options 拷贝）
     openMult: [1, 2, 3].includes(stored.lastMult) ? stored.lastMult : 1,
-    cardSizeMult: CARD_SIZE_OPTS.includes(stored.cardSizeMult) ? stored.cardSizeMult : 1,
+    cardSizeMult: CARD_SIZE_OPTS.includes(migrateCardSize(stored.cardSizeMult)) ? migrateCardSize(stored.cardSizeMult) : 1,
     aiSpeedMult: AI_SPEED_OPTS.includes(stored.aiSpeedMult) ? stored.aiSpeedMult : 1,
     stats: normalizeStats(stored.stats),
     phase: PHASE.IDLE,
@@ -1372,7 +1375,7 @@
     if (!vw || !vh || !table.clientWidth) return;
     const W = Math.max(vw, vh), H = Math.min(vw, vh);
     const wide = H >= 500;
-    const handW = W - (14 + 56) - (wide ? 32 : 22);   // 左右让出理牌键与牌桌内边距（2026-11-26 左下不再放头像）
+    const handW = W - (74 + 70) - (wide ? 32 : 22);   // 左右让出头像 / 理牌键与牌桌内边距（2026-11-27 头像回到左下角，两边都离屏幕角远一点，同 CSS --gd-hand-l / -r）
     const byW = handW / (wide ? 15.5 : 12) - 1;   // -1：列间 1px 缝
     const byH = wide ? (H * 0.62 - 72) / 4.06 : (H - 150) / 5;   // 手牌贴底后多出约 10px
     const u = Math.max(36, Math.min(72, Math.floor(Math.min(byW, byH))));
@@ -1410,11 +1413,28 @@
     hand.style.setProperty('--gd-card-w', cardW + 'px');
     hand.style.setProperty('--gd-card-h', cardH + 'px');
     hand.style.setProperty('--gd-stack-step', step + 'px');
+    // 2026-11-27 用户：同点数摞得很高（掼蛋两副牌，一列能到 8~10 张）会顶到「不出 / 出牌」按钮。
+    // 一列最多占「5 张深」的高度（和按钮行的锚点一致）：超过 5 张就把这一列的错位压紧，
+    // 但至少留出点数那一角（0.24W）看得清。这样任何一列都碰不到按钮。
+    const maxSpan = 4 * step, minStep = Math.round(cardW * 0.24);
     cols.forEach(col => {
       const cards = col.querySelectorAll('.gd-card');
-      col.style.height = ((cards.length - 1) * step + cardH) + 'px';
-      cards.forEach((c, i) => { c.style.top = (i * step) + 'px'; });
+      const n = cards.length;
+      const colStep = n > 5 ? Math.max(minStep, Math.floor(maxSpan / (n - 1))) : step;
+      col.style.height = ((n - 1) * colStep + cardH) + 'px';
+      col.classList.toggle('is-tight', colStep < step);
+      cards.forEach((c, i) => { c.style.top = (i * colStep) + 'px'; });
     });
+    // 2026-11-27 用户：列太多一行放不下怎么办——先让列和列叠起来（每列至少露出 0.72W，点数和花色都看得见），
+    // 实在还放不下，才交给 .gd-hand 横向滑动看牌。
+    const colArr = [...cols];
+    colArr.forEach(col => { col.style.marginLeft = ''; });
+    const natural = colArr.length * cardW + (colArr.length - 1) * gap;
+    if (colArr.length > 1 && natural > availW) {
+      const pitch = Math.max(cardW * 0.72, (availW - cardW) / (colArr.length - 1));
+      const ml = pitch - cardW - gap;
+      colArr.forEach((col, i) => { if (i) col.style.marginLeft = ml.toFixed(1) + 'px'; });
+    }
     // 出牌决策带锚到「~6 张深」的高度：随卡片大小自适应，不再死留过多空白。
     // = 桌底+手牌底距 + 6 张摞高(1 张 cardH + 5 个错位 step)，再整体下移 20px(用户两次要按钮更低一点)；CSS 叠加 env(safe-bottom)。
     // 2026-11-26：微信横屏太矮，按钮行改锚到「5 张深」，给左右两家的出牌和我的闹钟腾出一行
@@ -2348,10 +2368,19 @@
     btn.disabled = !!(o.disabled || o.empty);
     if (o.empty) btn.setAttribute('aria-hidden', 'true'); else btn.removeAttribute('aria-hidden');
   }
+  // 2026-11-27 用户：按钮只在轮到我做决定时出现；出现时我上一手打出的牌已经过时，
+  // 收起来，别让牌和按钮叠在一起（以前是按钮压在牌上）。
+  function syncBandDeciding() {
+    const band = els.playBtn && els.playBtn.closest('.gd-play-band');
+    if (!band) return;
+    const deciding = [els.passBtn, els.hintBtn, els.autoCancelBtn, els.playBtn].some(b => b && !b.hidden);
+    band.classList.toggle('is-deciding', deciding);
+  }
   function hideSlots() {
     for (const btn of [els.passBtn, els.hintBtn, els.autoCancelBtn, els.playBtn]) {
       if (btn) btn.hidden = true;
     }
+    syncBandDeciding();
   }
   // 提示行（规格 2.1 / 3.1 通道 D）。flashBandError 的红字优先显示一小会儿。
   let bandErr = null;
@@ -2413,6 +2442,7 @@
       if (els.hintBtn) els.hintBtn.hidden = true;
       if (els.autoCancelBtn) els.autoCancelBtn.hidden = true;
       setSlot(els.playBtn, { primary: true, disabled: !(sel.length === 1 && tributeGive.validCards.includes(sel[0])) });
+      syncBandDeciding();
       const to = tributePartnerName('give');
       setBandHint(errActive ? bandErr.msg : '选一张最大的牌进贡' + (to ? '给' + to : ''), errActive && !bandErr.note);
       updateRestoreBtn();
@@ -2428,6 +2458,7 @@
       if (els.hintBtn) els.hintBtn.hidden = true;
       if (els.autoCancelBtn) els.autoCancelBtn.hidden = true;
       setSlot(els.playBtn, { primary: true, disabled: !(sel.length === 1 && isValidReturnCard(sel[0])) });
+      syncBandDeciding();
       const to = tributePartnerName('return');
       setBandHint(errActive ? bandErr.msg : '选一张 10 以下的牌还' + (to ? '给' + to : ''), errActive && !bandErr.note);
       updateRestoreBtn();
@@ -2479,6 +2510,7 @@
     } else {
       hideSlots();
     }
+    syncBandDeciding();
     setBandHint(errActive ? bandErr.msg : hint, errActive && !bandErr.note);
     // 智能选牌：每次轮到我（开局先出 / 收圈领出 / AI 们都过完）首次进入时，
     // 自动勾选一手"最经济的能压牌"。键由 trick 状态 + 手牌张数构成，状态变 → 重新自动选；
@@ -5836,10 +5868,62 @@
   });
   if (els.pgoCardSize) els.pgoCardSize.addEventListener('click', e => {
     const t = e.target.closest('.gs-pgo-mode-tab'); if (!t) return;
+    const prevW = cardSizePreviewWidth();
     state.cardSizeMult = parseFloat(t.dataset.value) || 1;
     selectSeg(els.pgoCardSize, t.dataset.value);
     persist(); renderHand();
+    renderCardSizePreview(prevW);
   });
+  // 手牌大小预览（照炸弹猫）：按真打时的实际像素摆——左边小 / 中 / 大三张虚线框叠在一起、当前这档放一张真牌，
+  // 右边一小把手牌（四列，竖着叠）。点小 / 中 / 大当场从旧尺寸长到新尺寸。
+  function cardSizePreviewWidth() {
+    const c = document.querySelector('#gdCardSizePv .gd-pv-ruler > .gd-card');
+    return c ? c.offsetWidth : 0;
+  }
+  function renderCardSizePreview(fromW) {
+    const pv = $('gdCardSizePv');
+    if (!pv) return;
+    solveTableSize();
+    const u = parseFloat(getComputedStyle(els.table || document.documentElement).getPropertyValue('--u')) || 46;
+    const level = currentLevelLabel();
+    const dims = CARD_SIZE_OPTS.map(m => Math.round(u * m));
+    const w = Math.round(u * (state.cardSizeMult || 1)), h = Math.round(w * 1.44), step = Math.round(w * GD_S_RATIO);
+    const big = dims[dims.length - 1];
+    const cardId = (r, suit, deck) => deck * 54 + suit * 13 + r;   // r: 0=2 … 12=A；suit: 0♠ 1♥ 2♦ 3♣
+    const card = (cid, extra) => {
+      const el = buildCardEl(cid, 'size-full', level, {});
+      el.style.cssText += ';--gd-card-w:' + w + 'px;--gd-card-h:' + h + 'px;width:' + w + 'px;height:' + h + 'px;' + (extra || '');
+      return el;
+    };
+    pv.replaceChildren();
+    const ruler = document.createElement('div');
+    ruler.className = 'gd-pv-ruler';
+    ruler.style.cssText = 'width:' + big + 'px;height:' + Math.round(big * 1.44) + 'px';
+    CARD_SIZE_OPTS.forEach((m, i) => {
+      const box = document.createElement('i');
+      box.style.cssText = 'width:' + dims[i] + 'px;height:' + Math.round(dims[i] * 1.44) + 'px';
+      if (m === state.cardSizeMult) box.className = 'on';
+      ruler.appendChild(box);
+    });
+    ruler.appendChild(card(cardId(12, 1, 0), 'position:absolute;left:0;bottom:0'));   // 红桃 A
+    const hand = document.createElement('div');
+    hand.className = 'gd-pv-hand';
+    hand.style.height = Math.round(big * 1.44 + 2 * big * GD_S_RATIO) + 'px';
+    // 四列：K K / Q / 10 10 10 / 7 —— 和牌桌上一样竖着叠
+    [[cardId(11, 1, 0), cardId(11, 3, 1)], [cardId(10, 2, 0)], [cardId(8, 0, 0), cardId(8, 1, 1), cardId(8, 3, 0)], [cardId(5, 2, 1)]].forEach(cids => {
+      const col = document.createElement('div');
+      col.className = 'gd-pv-col';
+      col.style.cssText = 'width:' + w + 'px;height:' + ((cids.length - 1) * step + h) + 'px';
+      cids.forEach((cid, i) => col.appendChild(card(cid, 'position:absolute;left:0;top:' + (i * step) + 'px;z-index:' + (i + 1))));
+      hand.appendChild(col);
+    });
+    pv.append(ruler, hand);
+    if (fromW && w && fromW !== w && typeof Element.prototype.animate === 'function' &&
+        !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+      pv.querySelectorAll('.gd-pv-ruler > .gd-card, .gd-pv-col').forEach(el =>
+        el.animate([{ transform: 'scale(' + (fromW / w).toFixed(3) + ')' }, { transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2,.8,.25,1)' }));
+    }
+  }
   // 玩法设置折叠/展开
   if (els.gameOptsToggle) els.gameOptsToggle.addEventListener('click', () => {
     const open = els.gameOptsBody.hidden;          // 当前收起 → 要展开
@@ -6463,6 +6547,7 @@
     AUDIO.refreshButton();
     updateBuildBadge();
     settingsDlg.hidden = false;
+    renderCardSizePreview();
     activateDialog(settingsDlg, closeSettings, '#gdSettingsClose', returnTarget);
   }
   function closeSettings() {

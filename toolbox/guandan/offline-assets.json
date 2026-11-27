@@ -13,15 +13,15 @@
     },
     {
       "url": "/assets/css/guandan-shell.css?v=20261127ui18",
-      "sha256": "e202b752b023e8ee35e0f88e20353a0f142b5d97b5d445ecf6db371040def753"
+      "sha256": "391aafd09de79f2e79ff70dcb15d6bde755896eb1b6ca5da20c41c9dc66e8912"
     },
     {
       "url": "/assets/fonts/guandan/gd-serif-400.woff2",
-      "sha256": "227db053b399926318e260f40f8f2043fc9dbdccd35a403b41dba821f665f998"
+      "sha256": "546ac7d8da0375a313b9d32dad81c3fdef5d5c4f9a9991d1ea122adf8f899435"
     },
     {
       "url": "/assets/fonts/guandan/gd-serif-700.woff2",
-      "sha256": "e17b338a51549b1f85b565961ca54bce48d65eb6addaf9a5e54a1434d45f77de"
+      "sha256": "68b399ff58ee8e15afeedd4023efd989c0ea37617c1e3180d9183a08f4ef3767"
     },
     {
       "url": "/assets/fonts/zhamao/zm-num-700.woff2",
@@ -109,7 +109,7 @@
     },
     {
       "url": "/assets/js/games/guandan.min.js?v=20261127ui18",
-      "sha256": "d35aa9acc9a898aabc5360f855cae1934b06ea23b349b6a7e2a7299bc99a491b"
+      "sha256": "61fbba31974d9cfd57219f37d86b5a30074ea41fc3db1946ffac9c53639373bb"
     },
     {
       "url": "/toolbox/guandan/manifest.json",

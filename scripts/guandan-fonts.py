@@ -57,6 +57,22 @@ def find_src(src, weight, name):
     sys.exit('找不到 %s 粗细的思源宋体（%s）' % (weight, src))
 
 
+def recenter(path):
+    """2026-11-27 用户：按钮里的字整体偏下。思源宋体的行框是上 1.151 / 下 0.286 em，
+    汉字字身却在 -0.08 ~ 0.84 em，字的中心比行框中心低约 0.05 em。把行框改成上 0.98 / 下 0.22
+    （总高 1.2），字身正好落在正中。iOS 微信（WebKit）不认 CSS 的 ascent-override，只能改字体文件本身。"""
+    from fontTools.ttLib import TTFont
+    f = TTFont(path)
+    asc, desc = 980, -220
+    f['hhea'].ascent, f['hhea'].descent, f['hhea'].lineGap = asc, desc, 0
+    o = f['OS/2']
+    o.sTypoAscender, o.sTypoDescender, o.sTypoLineGap = asc, desc, 0
+    o.usWinAscent, o.usWinDescent = asc, -desc
+    o.fsSelection |= 1 << 7   # USE_TYPO_METRICS
+    f.flavor = 'woff2'
+    f.save(path)
+
+
 def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
@@ -70,6 +86,7 @@ def main():
     for w, name in (('400', 'Regular'), ('700', 'Bold')):
         subprocess.check_call([sys.executable, '-m', 'fontTools.subset', find_src(src, w, name),
                                '--text-file=' + cs_path, '--layout-features=', '--output-file=' + os.path.join(OUT, 'gd-serif-%s.woff2' % w)] + common)
+        recenter(os.path.join(OUT, 'gd-serif-%s.woff2' % w))
     sizes = ', '.join('%s %d KB' % (f, os.path.getsize(os.path.join(OUT, f)) // 1024) for f in sorted(os.listdir(OUT)) if f.endswith('.woff2'))
     print('✓ 字表 %d 个字符；%s' % (len(text), sizes))
 

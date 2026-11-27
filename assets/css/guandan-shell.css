@@ -577,6 +577,8 @@ body.gd-game-fullscreen .guandan-wrap .gd-self-bar { bottom: calc(6px + env(safe
 body.gd-game-fullscreen .guandan-wrap #gdSortMoreBtn { display: none; }
 body.gd-game-fullscreen .guandan-wrap .gd-sort-actions { bottom: calc(6px + env(safe-area-inset-bottom, 0px)); }
 
+/* 2026-11-27 用户：按钮里的字整体偏下。Noto Serif 的行框上 1.151 下 0.286，汉字字身却在 -0.08~0.84，
+   中心比行框中心低约 0.05em——scripts/guandan-fonts.py 直接把字体文件的行框改成上 0.98 下 0.22，字身正好居中（iOS 不认 ascent-override）。 */
 /* 9. 手牌往下贴：去掉底下那条空白，牌离屏幕底只留一点 */
 body.gd-game-fullscreen .guandan-wrap .gd-table { --gd-hand-l: 62px; --gd-hand-r: 56px; }
 body.gd-game-fullscreen .guandan-wrap .gd-hand { padding-bottom: 2px; }
@@ -770,3 +772,36 @@ body.gd-game-fullscreen .guandan-wrap .gd-band-hint { display: none !important; 
 .guandan-wrap .gd-level-now .val { font-family: var(--gd-num); font-size: 17px; font-weight: 700; line-height: 1; color: var(--gd-seal); letter-spacing: -0.04em; }
 .guandan-wrap .gd-level-now::after { content: '♥'; font-size: 13px; line-height: 1; color: var(--gd-seal); font-family: system-ui, sans-serif; }
 .guandan-wrap .gd-levelbar-corner { grid-template-columns: 30px auto; align-items: center; }
+
+/* ============ 第三轮补充（2026-11-27 用户看预览图后） ============ */
+/* R3b-1. 轮到我决定时，上一手打出的牌已经过时——收起来，牌和按钮不再叠在一起 */
+.guandan-wrap .gd-play-band.is-deciding > .gd-myplay-row { visibility: hidden; }
+
+/* R3b-2. 头像和右下角按钮别贴着屏幕角 */
+body.gd-game-fullscreen .guandan-wrap .gd-self-bar { left: calc(18px + env(safe-area-inset-left, 0px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+body.gd-game-fullscreen .guandan-wrap .gd-sort-actions { right: calc(18px + env(safe-area-inset-right, 0px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+body.gd-game-fullscreen .guandan-wrap .gd-table { --gd-hand-l: 74px; --gd-hand-r: 70px; }
+
+/* R3b-3. ☰ 菜单只剩 5 项，横屏也放得下一列 */
+@media (max-height: 500px) {
+  .guandan-wrap .gd-menu:not([hidden]) { display: block; width: 200px; }
+  .guandan-wrap .gd-menu > button { min-height: 40px; }
+}
+
+/* R3b-4. 手牌大小预览（照炸弹猫）：三档虚线框叠在一起，当前这档放一张真牌；右边一小把竖着叠的手牌 */
+.gd-size-pv { display: flex; align-items: flex-end; justify-content: center; gap: 22px; padding: 4px 0 8px; pointer-events: none; overflow: hidden; }
+.gd-size-pv .gd-pv-ruler { position: relative; flex: none; }
+.gd-size-pv .gd-pv-ruler > i { position: absolute; left: 0; bottom: 0; border: 1.5px dashed rgba(29, 27, 24, 0.28); border-radius: 6px; box-sizing: border-box; }
+.gd-size-pv .gd-pv-ruler > i.on { border-color: transparent; }
+.gd-size-pv .gd-pv-ruler > .gd-card { transform-origin: 0 100%; }
+.gd-size-pv .gd-pv-hand { display: flex; align-items: flex-end; gap: 1px; flex: none; }
+.gd-size-pv .gd-pv-col { position: relative; flex: none; transform-origin: 50% 100%; }
+.gd-size-pv .gd-card { box-shadow: 0 1px 4px rgba(29, 27, 24, 0.16); }
+
+/* R3b-5. 按钮字垂直居中：以前是 block + 上下 padding 8px，34px 高的按钮内容区只剩 16px，
+          18px 的行框往下溢出 2px，字就偏下。改成 flex 居中、不靠 padding 撑。 */
+body.gd-game-fullscreen .guandan-wrap .gd-btn:not([hidden]),
+.guandan-wrap .gd-overlay .gd-btn:not([hidden]),
+.guandan-wrap .gd-confirm-panel .gd-btn:not([hidden]) {
+  display: inline-flex; align-items: center; justify-content: center; padding-top: 0; padding-bottom: 0; line-height: 1.2;
+}
