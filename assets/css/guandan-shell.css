@@ -805,10 +805,6 @@ body.gd-game-fullscreen .guandan-wrap .gd-btn:not([hidden]),
 .guandan-wrap .gd-confirm-panel .gd-btn:not([hidden]) {
   display: inline-flex; align-items: center; justify-content: center; padding-top: 0; padding-bottom: 0; line-height: 1.2;
 }
-.gd-size-pv .gd-pv-ruler > i > b { position: absolute; right: 4px; top: 3px; z-index: 2; font: 400 10px/1 var(--gd-serif); color: rgba(29, 27, 24, 0.45); }
-/* 同炸弹猫：三档只差几像素，字都放框内会叠——「大」写在大框外头顶；被真牌盖住的框不标字 */
-.gd-size-pv .gd-pv-ruler > i:last-of-type > b { top: auto; bottom: calc(100% + 3px); right: 2px; }
-.gd-size-pv .gd-pv-ruler > i.on > b, .gd-size-pv .gd-pv-ruler > i.under > b { display: none; }
 /* 设置面板：左栏 声音 + 机器人，右栏只放手牌大小和预览（2026-11-27 用户：机器人出牌挂在右下角怪） */
 @media (orientation: landscape) and (max-height: 600px) {
   .gd-set-cols > .gd-set-group:nth-child(3) { border-top: 1px solid rgba(29, 27, 24, 0.12); }

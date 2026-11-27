@@ -5944,11 +5944,7 @@
     CARD_SIZE_OPTS.forEach((m, i) => {
       const box = document.createElement('i');
       box.style.cssText = 'width:' + dims[i] + 'px;height:' + Math.round(dims[i] * 1.44) + 'px';
-      const lab = document.createElement('b');   // 2026-11-27 用户：虚线框上标出小 / 中 / 大
-      lab.textContent = ['小', '中', '大'][i];
-      box.appendChild(lab);
       if (m === state.cardSizeMult) box.className = 'on';
-      else if (m < state.cardSizeMult) box.className = 'under';   // 被真牌盖住的小框不标字（同炸弹猫）
       ruler.appendChild(box);
     });
     ruler.appendChild(card(cardId(12, 1, 0), 'position:absolute;left:0;bottom:0'));   // 红桃 A

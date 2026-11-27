@@ -13,7 +13,7 @@
     },
     {
       "url": "/assets/css/guandan-shell.css?v=20261127ui19",
-      "sha256": "215bfc3f5559e758b5e9c486dccf9e359eefbb4f318ecfe6fef5aa3bb572b8f3"
+      "sha256": "fea2cb9183fa884dfcc00c2c81982bf844dffd85bad9cca279068cce7888a334"
     },
     {
       "url": "/assets/fonts/guandan/gd-serif-400.woff2",
@@ -109,7 +109,7 @@
     },
     {
       "url": "/assets/js/games/guandan.min.js?v=20261127ui19",
-      "sha256": "a04c5b04071d55eb94647281373f349be039fbcd5bd313ce58dc78870e5fefae"
+      "sha256": "0c61525f0ea8e3895e6b6cf19a52a10bf5154a75692e9cf7484534541896e848"
     },
     {
       "url": "/toolbox/guandan/manifest.json",
