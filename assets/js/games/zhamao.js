@@ -393,9 +393,7 @@
     /* 拉幕（2026-11-26 用户：不要翻面，像幕布拉过去换牌面；要快一点、线要斜着）：
      * 旧牌面复制一层盖在上面（.zm-curtain），底下立刻换成新牌面；旧那层从下往上斜着收走，收口那道斜边跟一条亮线 */
     if (fx.reduce() || !c.isConnected) { setFace(c, html); return Promise.resolve(); }
-    const go = () => {
-      if ((t != null && t !== token) || !c.isConnected) return null;
-      c.querySelectorAll('.zm-curtain, .zm-curtain-edge').forEach((x) => x.remove());
+    const cover = () => {
       const old = document.createElement('div'), src = from ? from.node : c;
       old.className = 'zm-curtain';
       if (slow) old.dataset.slow = '1';
@@ -403,8 +401,18 @@
       ['--bg', '--band', '--ink'].forEach((p) => old.style.setProperty(p, src.style.getPropertyValue(p)));
       old.innerHTML = src.innerHTML;
       old.querySelectorAll('.zm-curtain, .zm-curtain-edge').forEach((x) => x.remove());
+      return old;
+    };
+    /* from（手牌重画后补拉幕）：c 已经是新牌面了——旧牌面那层马上盖上去，不能等到 delay 到点才盖
+     * （2026-11-27 用户：错开等的那几十毫秒里先闪一下新牌面、再跳回旧的、再拉幕） */
+    const pre = from ? cover() : null;
+    if (pre) { c.querySelectorAll('.zm-curtain, .zm-curtain-edge').forEach((x) => x.remove()); c.appendChild(pre); }
+    const go = () => {
+      if ((t != null && t !== token) || !c.isConnected) { if (pre) pre.remove(); return null; }
+      c.querySelectorAll('.zm-curtain, .zm-curtain-edge').forEach((x) => { if (x !== pre) x.remove(); });
+      const old = pre || cover();
       if (html) setFace(c, html);
-      c.appendChild(old);
+      if (!pre) c.appendChild(old);
       const edge = document.createElement('i');
       edge.className = 'zm-curtain-edge';
       c.appendChild(edge);
