@@ -1017,7 +1017,12 @@
     resumeContinue: $('gdResumeContinue'), resumeDiscard: $('gdResumeDiscard'),
     toast: $('gdToast'),
   };
-  const seatEls = [0,1,2,3].map(i => ({
+  // 2026-11-27 用户（选「坐到队友的位置」）：我打完以后整桌转半圈，队友坐到底下、我到对面。
+  // 座位 DOM 按「屏幕方位」固定（0 底 / 1 右 / 2 顶 / 3 左），seatEls[逻辑座] 经 viewRot 映射到方位，
+  // 所以渲染代码照旧按逻辑座写，转桌只改 viewRot。
+  let viewRot = 0;
+  const screenPos = (s) => (s - viewRot + 4) % 4;
+  const seatDom = [0,1,2,3].map(i => ({
     seat: $('gdSeat' + i),
     av: $('gdAv' + i),
     clk: $('gdClk' + i),
@@ -1025,6 +1030,9 @@
     rk: $('gdRk' + i),
     play: i === 0 ? $('gdPlay0Center') : $('gdPlay' + i),
   }));
+  const seatEls = new Proxy(seatDom, {
+    get(t, k) { return (typeof k === 'string' && k.length === 1 && k >= '0' && k <= '3') ? t[(+k - viewRot + 4) % 4] : Reflect.get(t, k); },
+  });
   // 2026-11-27 用户：手牌数照百变小咪挂到头像右下角，画成一张小牌、上面写数字。
   // 把张数 / 名次两个角标挪进头像里（.gd-keep：换头像时不被清掉）；右上角留给联机的状态点。
   for (const se of seatEls) {
@@ -1261,10 +1269,9 @@
   }
 
   // 视角座位：通常 0（我）；我已出完且对家(座 2)还在场 → 切换看对家手牌
-  function viewSeat() {
-    if (state.out.includes(0) && !state.out.includes(2)) return 2;
-    return 0;
-  }
+  function viewSeat() { return viewRot ? 2 : 0; }
+  // 该不该坐到队友那边：我出完、队友还在打
+  function wantPartnerView() { return state.phase === PHASE.PLAYING && state.out.includes(0) && !state.out.includes(2); }
   function isSpectating() { return viewSeat() !== 0; }
 
   // 把手牌按 columnKey 分组（每个 key 一列）。红桃级牌（逢人配）独占一列，
@@ -1530,7 +1537,7 @@
     // 局终摊牌：没出完的家把整手剩牌平铺到出牌区。座 0 是我、手牌已在底部展示，不重复摊；
     // 对手手牌在联机里可能是 -1 占位（服务端未下发真牌），那种情况也跳过（不摊占位牌）。
     if (state.revealHands && seatEls[seat].seat) seatEls[seat].seat.classList.remove('is-passed');
-    if (state.revealHands && seat !== 0 && state.hands[seat] && state.hands[seat].length > 0 && state.hands[seat][0] !== -1) {
+    if (state.revealHands && seat !== viewSeat() && state.hands[seat] && state.hands[seat].length > 0 && state.hands[seat][0] !== -1) {
       renderRevealedHand(seat);
       return;
     }
@@ -1550,7 +1557,7 @@
     if (slot.dataset.lpKey === key) return;
     slot.dataset.lpKey = key;
     slot.innerHTML = '';
-    if (seat === 0) {
+    if (screenPos(seat) === 0) {
       const bar = document.querySelector('.gd-self-bar');
       if (bar) bar.classList.toggle('is-pass', lp === 'pass');
     }
@@ -1596,7 +1603,7 @@
     const se = seatEls[seat];
     const ar = se && se.av ? se.av.getBoundingClientRect() : null;
     let ox = 0, oy = 0;
-    if (seat === 0) oy = 46;
+    if (screenPos(seat) === 0) oy = 46;
     else if (ar && ar.width) {
       const vx = ar.left + ar.width / 2 - cx, vy = ar.top + ar.height / 2 - cy, vl = Math.hypot(vx, vy) || 1;
       const reach = Math.min(54, vl * 0.5);
@@ -1721,10 +1728,10 @@
     // 2026-11-26 用户：局终不另开一幕，像欢乐斗地主那样在牌桌上把各家剩牌摊开（小一号的牌、逐张滑入）
     // 2026-11-27 用户：摊开的牌要和正常出牌一样大 → 牌不缩，改成按张数分行：左右两家一行最多 12 张、对家 16 张
     const n = state.hands[seat].length;
-    const perRow = seat === 2 ? 16 : 12;
+    const perRow = screenPos(seat) === 2 ? 16 : 12;
     const rowCount = Math.min(3, Math.ceil(n / perRow));
     const sideMax = Math.max(160, Math.min(300, (window.innerWidth - 260) / 2));
-    const maxWidth = seat === 2 ? Math.min(400, window.innerWidth * 0.46) : sideMax;
+    const maxWidth = screenPos(seat) === 2 ? Math.min(400, window.innerWidth * 0.46) : sideMax;
     fillRevealedHand(seatEls[seat].play, seat, rowCount, maxWidth);
   }
 
@@ -2019,13 +2026,10 @@
       ], { duration: 1050, delay: 250 + i * 55, easing: 'cubic-bezier(0.22, 0.75, 0.2, 1)', fill: 'backwards' });
     });
   }
-  let lastViewSeat = 0;
-  function flyPartnerHandIn() {
+  function flyPartnerHandIn(ar) {
     if (!els.hand || typeof Element.prototype.animate !== 'function') return;
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const av = seatEls[2] && seatEls[2].av;
-    if (!av) return;
-    const ar = av.getBoundingClientRect();
+    if (!ar || !ar.width) return;
     const ax = ar.left + ar.width / 2, ay = ar.top + ar.height / 2;
     const cols = [...els.hand.querySelectorAll('.gd-rank-col')];
     cols.forEach((col, i) => {
@@ -2159,23 +2163,14 @@
       }
       // 座 1/2/3 的头像/昵称：联机时填真实玩家（真人 👤+昵称、AI 🤖+其名），
       // 单机或联机信息暂缺时退回 🤖 + 方位称呼——保证回到单机局不残留上一把的联机昵称。
-      if (s !== 0) {
-        setSeatAvatarIcon(se, seatAvatarFor(s));
-        setSeatNameText(se.seat, seatName(s));
-      }
+      // 底下那个头像（座 0 的 DOM）原本写死「我」；转桌后放队友，转回来再还原
+      if (screenPos(s) !== 0 || s !== 0 || se.av.dataset.avatarMarker) setSeatAvatarIcon(se, seatAvatarFor(s));
+      if (screenPos(s) !== 0) setSeatNameText(se.seat, seatName(s));
       renderPlayArea(s);
     }
     refreshAutopilotBtn();
     renderHand();
     if (dealFx.pending) runDealFx();
-    // 2026-11-27 用户：我打完、切到看对家手牌时太突兀 → 对家的牌从对家头像那儿一列列「递」下来
-    {
-      const vs = viewSeat();
-      if (vs !== lastViewSeat) {
-        if (vs === 2 && lastViewSeat === 0 && state.phase === PHASE.PLAYING) flyPartnerHandIn();
-        lastViewSeat = vs;
-      }
-    }
     // 局终摊牌时我自己没出完的牌：底下那手也跟别家一样，从左往右「展开」一次
     // 2026-11-27 用户：我自己末游时，自己这边不用再「摊开」一遍（牌本来就在我眼前）；别人那边照常摊
     if (state.revealHands && !dealFx.revealShown) { dealFx.revealShown = true; if (viewSeat() !== 0) fanOwnHand(); }
@@ -2187,6 +2182,45 @@
     if (state.isNetworked) renderRoomBadges();
     else if (document.querySelector('.gd-room-badge')) document.querySelectorAll('.gd-room-badge').forEach(b => b.remove());
     checkFinishFx();
+    syncPartnerView();
+  }
+  // 转桌：要坐过去时，先等我那段名次动画（头游 / 二游）放完，再整桌转半圈；一局打完立刻转回来。
+  const partnerView = { timer: null };
+  function syncPartnerView() {
+    const want = wantPartnerView() ? 2 : 0;
+    if (want === viewRot) { clearTimeout(partnerView.timer); partnerView.timer = null; return; }
+    if (!want) { clearTimeout(partnerView.timer); partnerView.timer = null; rotateView(0, false); return; }
+    if (partnerView.timer) return;
+    const wait = Math.max(0, (finishFx.endAt[0] || 0) - Date.now()) + 150;
+    partnerView.timer = setTimeout(() => {
+      partnerView.timer = null;
+      if (wantPartnerView() && viewRot !== 2) rotateView(2, true);
+    }, wait);
+  }
+  function rotateView(rot, animate) {
+    const motion = animate && typeof Element.prototype.animate === 'function' && !(REDUCED_MOTION && REDUCED_MOTION.matches);
+    const before = motion ? [0, 1, 2, 3].map(s => { const av = seatEls[s].av; return av ? av.getBoundingClientRect() : null; }) : null;
+    viewRot = rot;
+    state.selected.clear();
+    for (const se of seatDom) if (se.play) se.play.dataset.lpKey = '';
+    clearAvatarRings();
+    seatDom.forEach(se => { const r = se.av && se.av.querySelector('.gd-ring'); if (r) r.remove(); });
+    renderAll();
+    if (turnClockSeat >= 0 && turnClockEndAt > Date.now()) startTurnClock(turnClockSeat, turnClockOnTimeout, turnClockEndAt - Date.now());
+    if (!motion) return;
+    // 头像绕桌走到新位置（FLIP），底下的手牌从队友原来坐的地方（顶上）一列列递下来
+    [0, 1, 2, 3].forEach(s => {
+      const av = seatEls[s].av, a = before[s];
+      if (!av || !a) return;
+      const b = av.getBoundingClientRect();
+      const dx = (a.left + a.width / 2) - (b.left + b.width / 2), dy = (a.top + a.height / 2) - (b.top + b.height / 2);
+      av.animate([
+        { transform: `translate(${dx}px, ${dy}px) scale(${(a.width / (b.width || 1)).toFixed(3)})` },
+        { transform: 'none' },
+      ], { duration: 720, easing: 'cubic-bezier(0.65, 0, 0.35, 1)' });
+    });
+    document.querySelectorAll('.gd-seat-meta, .gd-played').forEach(el => el.animate([{ opacity: 0 }, { opacity: 0 , offset: 0.45 }, { opacity: 1 }], { duration: 760, easing: 'ease-out' }));
+    flyPartnerHandIn(before[2]);
   }
 
   // 在 chip 上显示本难度累计分；变化时按正/负闪一下
@@ -4014,7 +4048,7 @@
   // 不写字，只用画面：出完那家的头像上炸开一圈光环 + 光芒 + 彩纸，一枚大号名次小牌（#1 / #2 / #3，
   // 和头像角上的名次牌同一个样子）在头像上方弹出，停一下再缩小飞进头像右下角，落定的名次牌再弹一下。
   // 头游加金色、更大更久，并沿用中央「头游」横幅。触发统一看 state.out 的增长（单机、联机、逐帧回放都走 renderAll）。
-  const finishFx = { seen: null, wait: new Set() };   // wait：名次已定、动画还没放到的座位，角上名次牌先藏着
+  const finishFx = { seen: null, wait: new Set(), endAt: [0, 0, 0, 0] };   // wait：名次已定、动画还没放到的座位，角上名次牌先藏着
   function checkFinishFx() {
     const out = state.out || [];
     const prev = finishFx.seen;
@@ -4054,6 +4088,7 @@
     if (rank === 1) setTimeout(() => AUDIO.voice('e-first', { queue: true }), 650);   // 接在这手牌型的报牌后面
     if (!se || !se.av || !els.table) return;
     const dur = FINISH_FX_MS[rank] || 1700;
+    finishFx.endAt[seat] = Date.now() + dur;
     const reduce = REDUCED_MOTION && REDUCED_MOTION.matches;
     const tr = els.table.getBoundingClientRect();
     const ar = se.av.getBoundingClientRect();
@@ -4098,7 +4133,8 @@
       // 弹出方向：从头像朝桌心（对家往下、两侧往里、自己往右上），别飞出屏幕
       // 2026-11-27 用户：头游动画把最后出的那手牌盖住了——出牌区就在头像朝桌心那一侧，
       // 所以名次牌改往「不挡出牌区」的方向弹：对家往左、两侧和自己往上。
-      const vx = seat === 2 ? -1 : 0, vy = seat === 2 ? 0 : -1;
+      const top = screenPos(seat) === 2;
+      const vx = top ? -1 : 0, vy = top ? 0 : -1;
       const vl = 1, reach = ar.width * 1.25;
       medal.style.setProperty('--mx', Math.round(vx / vl * reach) + 'px');
       medal.style.setProperty('--my', Math.round(vy / vl * reach) + 'px');
@@ -4877,7 +4913,7 @@
   };
 
   function clockEl(seat) {
-    if (seat === 0) return els.selfClock || null;
+    if (screenPos(seat) === 0) return els.selfClock || null;
     const playedEl = seatEls[seat] && seatEls[seat].play;
     if (!playedEl) return null;
     let clock = playedEl.querySelector('.gd-played-clock');
@@ -9521,11 +9557,13 @@
   }
   document.addEventListener('click', (e) => { if (roomPop && !roomPop.contains(e.target)) closeRoomPop(); }, true);
   // 牌桌上点别家头像
-  for (let s = 1; s < 4; s++) {
-    const av = seatEls[s] && seatEls[s].av;
+  for (let pos = 1; pos < 4; pos++) {
+    const av = seatDom[pos] && seatDom[pos].av;
     if (!av) continue;
     av.addEventListener('click', (e) => {
       if (!state.isNetworked || !onlineState) return;
+      const s = (pos + viewRot) % 4;   // 转桌后这个方位坐的是谁
+      if (s === 0) return;
       e.stopPropagation();
       openSeatPop(av, roomSrvSeat(s));
     });
