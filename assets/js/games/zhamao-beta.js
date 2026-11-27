@@ -293,10 +293,6 @@
 .zb-ck-amt{font:700 26px/1.2 'ZM Num',Georgia,serif;color:#b4392c;margin-top:2px}
 .zb-ck-btns{display:flex;gap:10px;justify-content:center;margin-top:14px}
 .zb-ck-btns .zb-btn{height:40px;font-size:15px;padding:0 16px}
-.zb-tline{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
-.zb-tline .zb-seal{margin:0}
-.zb-tline .zb-bal{font-size:14px}
-.zb-tline .zb-bal svg{width:22px;height:14px}
 .zb-sub{display:block;margin-top:3px;font-size:11.5px;font-weight:400;color:#8a8275}
 .zb-shop{display:flex;flex-direction:column}
 .zb-shop .zb-scene-wrap{padding:10px 12px 0;flex:1;min-height:0;display:flex}
@@ -336,6 +332,23 @@
 .zb-ih em{font-style:normal;color:#8a8274;display:inline-flex;align-items:center;gap:2px}
 .zb-ih em.on{color:#b4392c;font-family:'ZM Num','ZM Serif',serif}
 .zb-ih em svg{width:15px;height:9px}
+.zb-mt{--zm-ink:#1d1b18;--zm-card:#fffdf8;--u:30px;position:relative;height:156px;margin:0 0 10px;border-radius:10px;border:1px solid #1d1b18;outline:1px solid rgba(29,27,24,.3);outline-offset:-4px;overflow:hidden;transition:background-color .3s}
+.zb-mt-rim{position:absolute;left:12%;right:12%;top:20px;bottom:50px;border:1.5px solid rgba(201,162,74,.38);border-radius:16px}
+.zb-mt-av{position:absolute;width:26px;height:26px;border-radius:50%;background:#ebe5d8;box-shadow:0 0 0 1.2px #1d1b18}
+.zb-mt-av .zb-face,.zb-mt-av .zb-face svg{display:block;width:100%;height:100%;border-radius:50%;overflow:hidden}
+.zb-mt-av>svg{position:absolute;inset:-11%;width:122%;height:122%;overflow:visible}
+.zb-mt-av.o0{left:38%;top:7px;transform:translateX(-50%)}.zb-mt-av.o1{left:62%;top:7px;transform:translateX(-50%)}
+.zb-mt-av.me{width:32px;height:32px;left:calc(12% - 12px);bottom:40px}
+.zb-mt-deck{position:absolute;left:calc(50% - 34px);top:44px;width:28px;height:39px}
+.zb-mt-deck>i{position:absolute;inset:0;display:block}
+.zb-mt-deck>i:first-child{transform:translate(1.5px,2px)}
+.zb-mt-deck .zm-card,.zb-mt-dc .zm-card{width:100%!important;position:relative}
+.zb-mt-hand .zm-card{width:34px!important;flex:none;position:relative}
+.zb-mt-deck svg{width:100%;height:auto;display:block}
+.zb-mt-dc{position:absolute;left:calc(50% + 8px);top:44px;width:28px;transform:rotate(6deg)}
+.zb-mt-hand{position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);display:flex}
+.zb-mt-hand>*{width:34px;flex:none}
+.zb-mt-hand>*+*{margin-left:-6px}
 .zb-dress{padding:9px 10px 11px!important}
 .zb-dr-h{font-size:14px;margin:0 2px 8px}
 .zb-dr-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
@@ -787,7 +800,8 @@
     function paintCounter(g) {
       const s = g.state;
       const zb = zbOf(g);
-      if (!zb || !zb.counter || g.spectator || s.phase === 'over') { if (ctrEl) { ctrEl.remove(); ctrEl = null; } closeCtr(); return; }
+      const on = (zb && zb.counter) || (g.online && ctrShared());   // 联机：桌上有人买了，全桌（含观战）都亮
+      if (!on || s.phase === 'over') { if (ctrEl) { ctrEl.remove(); ctrEl = null; } closeCtr(); return; }
       const c = {}, add = (id) => { const k = kindOf(id); c[k] = (c[k] || 0) + 1; };
       s.deck.forEach(add);
       for (let k = 1; k < s.n; k++) if (s.alive[k]) s.hands[k].forEach(add);
@@ -837,6 +851,7 @@
     const zbOf = (g) => g.zb || (g.state && g.state.zb) || null;
     /* 联机开局（2026-11-27 用户同意：联机只开记牌器和加倍，作废 / 交换 / 挑角色不开——会改发牌、影响别人）：
      * 房间页底下一格开局道具，开局那一刻当场买。刷新 / 断线回来同一局不重复扣：按「这局刚发的手牌」认是不是新的一局 */
+    const ctrShared = () => { const st = TB() && TB().onlineSt ? TB().onlineSt() : null; return !!(st && st.counter); };
     function onlineStart(g) {
       if (!g.online || g.spectator || g.zb !== undefined) return;
       const s = g.state;
@@ -845,8 +860,13 @@
       if (!fresh) { g.zb = d.onl && d.onl.m === g.matchNo && Date.now() - d.onl.at < 3 * 3600e3 && !d.onl.done ? d.onl.zb : null; return; }
       if (d.onl && d.onl.key === key) { g.zb = d.onl.done ? null : d.onl.zb; return; }
       const zb = {};
-      if (counterDayOn()) zb.counter = true;
-      else if (d.opick && d.opick.counter && bal() >= priceAt('counter')) { takeBuy('counter', '记牌器（联机）'); zb.counter = true; }
+      /* 记牌器（11-27 用户：联机里一人买、全桌都能用）：桌上已经有人开了就不再扣我的；我买了就报给服务器，这局全桌都亮 */
+      const want = counterDayOn() || (d.opick && d.opick.counter);
+      if (want && !ctrShared()) {
+        if (counterDayOn()) zb.counter = true;
+        else if (bal() >= priceAt('counter')) { takeBuy('counter', '记牌器（联机·全桌）'); zb.counter = true; }
+        if (zb.counter && TB() && TB().act) TB().act('counter', {});
+      }
       const team = s.teams && s.teams.length;
       if (!team && d.opick && d.opick.x2 && bal() >= priceAt('x2')) { takeBuy('x2', '加倍（联机）'); zb.x2 = true; }
       g.zb = Object.keys(zb).length ? zb : null;
@@ -929,8 +949,20 @@
     /* 设置里的「装扮」卡（11-27 用户：装扮不只在商店里能换，常规设置里也要能改；对局里也允许，只列已有的款、不放去商店）：
      * 插在「作废」开关那张卡下面。一排四格是正在用的那一身；点一格展开这一类已有的款式，点一下当场换上 */
     let dressCat = null;
+    /* 小牌桌预览（11-27 用户：装扮卡要像牌面大小那样有个和牌桌一样的预览）：桌布、桌沿线、两只机器猫、牌堆（牌背）、
+     * 弃牌堆、我的头像（头像框）、一手牌；换哪样当场换，换出牌特效在弃牌堆上放一下 */
+    function miniTable() {
+      const a = AVS(), bots = a && a.ROBOT ? [a.ROBOT[3], a.ROBOT[1]] : [{ svg: '' }, { svg: '' }];
+      const card = (k) => (TB() && TB().cardHtml ? TB().cardHtml(k) : '');
+      const av = (svg, cls, frame) => '<span class="zb-mt-av ' + cls + '"><span class="zb-face">' + svg + '</span>' + (frame && FRAME_SVG[frame] ? FRAME_SVG[frame] : '') + '</span>';
+      return '<div class="zb-mt" style="' + feltStyle(d.use.felt).replace(/"/g, '&quot;') + '"><i class="zb-mt-rim"></i>' +
+        av(bots[0].svg, 'o0') + av(bots[1].svg, 'o1') +
+        '<span class="zb-mt-deck"><i>' + backOf(d.use.back) + '</i><i>' + backOf(d.use.back) + '</i></span><span class="zb-mt-dc">' + card('skip') + '</span>' +
+        av(myFace().replace(/^<span class="zb-face">|<\/span>$/g, ''), 'me', d.use.frame !== 'none' ? d.use.frame : '') +
+        '<span class="zb-mt-hand">' + ['defuse', 'attack', 'orange', 'nope'].map(card).join('') + '</span></div>';
+    }
     function dressHtml(inGame) {
-      const head = '<div class="zb-dr-h"><b>装扮</b></div><div class="zb-dr-row">' + CATS_ORDER.map((c) => '<button type="button" class="zb-dr-c" data-drc="' + c + '" aria-pressed="' + (dressCat === c) + '"><span class="zb-dr-pv">' + previewHtml(c, d.use[c]) + '</span><small>' + CAT_NAME[c] + '</small></button>').join('') + '</div>';
+      const head = '<div class="zb-dr-h"><b>装扮</b></div>' + miniTable() + '<div class="zb-dr-row">' + CATS_ORDER.map((c) => '<button type="button" class="zb-dr-c" data-drc="' + c + '" aria-pressed="' + (dressCat === c) + '"><span class="zb-dr-pv">' + previewHtml(c, d.use[c]) + '</span><small>' + CAT_NAME[c] + '</small></button>').join('') + '</div>';
       if (!dressCat) return head;
       const c = dressCat;
       const opts = CAT[c].filter(([id]) => owns(c, id)).map(([id, name]) => '<button type="button" class="zb-dr-o" data-dro="' + id + '" aria-pressed="' + (d.use[c] === id) + '">' + (d.use[c] === id ? USE_MARK : '') + '<span class="zb-dr-pv">' + previewHtml(c, id) + '</span><small>' + name + '</small></button>').join('');
@@ -954,7 +986,12 @@
         const c = e.target.closest('[data-drc]');
         if (c) { dressCat = dressCat === c.dataset.drc ? null : c.dataset.drc; paint(); return; }
         const o = e.target.closest('[data-dro]');
-        if (o && dressCat) { d.use[dressCat] = o.dataset.dro; save(); applyLook(); paintFrame(); paint(); return; }
+        if (o && dressCat) {
+          d.use[dressCat] = o.dataset.dro; save(); applyLook(); paintFrame(); paint();
+          const mt = sec.querySelector('.zb-mt');
+          if (dressCat === 'fx' && d.use.fx !== 'none' && mt) setTimeout(() => burst(d.use.fx, mt.querySelector('.zb-mt-dc'), mt), 60);
+          return;
+        }
         if (e.target.closest('[data-drshop]')) openShop();
       });
       after.after(sec);

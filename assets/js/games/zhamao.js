@@ -10790,5 +10790,5 @@
   // 联机的「这步不对」：机器猫的动作取自服务器发下来的事件流（不暂停），发事件序号给服务器，由它找回是第几步（2026-11-20）
   const fbOnline = () => (online && online.st && online.st.game && game && game.online ? { log: online.st.game.log || [], me: online.st.mySeat, loc: locOf, over: !!online.st.game.over } : null);
   const fbSend = (n, why) => (online && NET ? NET.act(online.code, online.token, 'fb', { n, why }).catch(() => {}) : null);
-  window.ZhamaoTable = { profile: () => profile, setProfile, cardHtml, backHtml, roleCardHtml, rulesHtml, game: () => game, hold: fbHold, resume: fbResume, canPause: () => canPause(), online: fbOnline, sendFb: fbSend };
+  window.ZhamaoTable = { act: (a, b) => (online && NET ? NET.act(online.code, online.token, a, b || {}).then((r) => { if (r && r.state) onState(r.state, r._rtt); return r; }, () => null) : null), onlineSt: () => (online && online.st) || null, profile: () => profile, setProfile, cardHtml, backHtml, roleCardHtml, rulesHtml, game: () => game, hold: fbHold, resume: fbResume, canPause: () => canPause(), online: fbOnline, sendFb: fbSend };
 })();
