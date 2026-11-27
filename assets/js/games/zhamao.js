@@ -6467,7 +6467,7 @@
       let done = false, timer = 0;
       const cancelBtn = d.querySelector('[data-cancel]');
       const cancel = () => { if (done || !cancelBtn.isConnected) return; done = true; clearTimeout(timer); closeDialog(); if (game.previewSrc) { preview = { cards: Object.keys(game.previewSrc).map(Number) }; endPreview(); } renderBand(); };
-      d.querySelectorAll('[data-k]').forEach((b) => b.addEventListener('click', () => { if (done) return; done = true; clearTimeout(timer); closeDialog(); cb(b.dataset.k); }));
+      d.querySelectorAll('.zm-grid > button[data-k]').forEach((b) => b.addEventListener('click', () => { if (done) return; done = true; clearTimeout(timer); closeDialog(); cb(b.dataset.k); }));
       cancelBtn.addEventListener('click', cancel);
       if (limit) {
         const my = token, bar = d.querySelector('.zm-dlg-timer');
@@ -6736,9 +6736,13 @@
     openStage('<h2>' + T('ui.pick.title', '从弃牌堆捡一张') + '</h2>' +
       '<div class="zm-grid" data-stagger>' + kinds.map((k) => '<button type="button" data-k="' + k + '">' + cardHtml(k) + '</button>').join('') + '</div>', (d) => {
       d.classList.add('is-cards');
-      d.querySelectorAll('[data-k]').forEach((b) => b.addEventListener('click', () => {
+      // 只绑按钮本身（2026-11-27 用户：五猫捡牌冒「这一步现在不能这么走」）——以前 [data-k] 连按钮里那张牌也选中了，点一下发两次，第二次被服务器拒
+      let done = false;
+      d.querySelectorAll('.zm-grid > button[data-k]').forEach((b) => b.addEventListener('click', () => {
+        if (done) return;
         const id = by[b.dataset.k][by[b.dataset.k].length - 1];
         if (tut && tut.allow && !tut.allow({ type: 'pick', card: id })) { shake(b); return; }
+        done = true;
         closeDialog();
         apply(0, { type: 'pick', card: id });
       }));
