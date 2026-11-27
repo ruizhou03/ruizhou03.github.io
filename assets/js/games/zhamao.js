@@ -2543,6 +2543,7 @@
   // 别人出牌后我有「不行」：紫色「喵？不行」顶在「出牌」的位置；点人时「摸牌」换成「取消」；别人索要我的牌时「出牌」换成「给牌」
   function renderBand() {
     const s = game.state;
+    els.playBtn.classList.remove('is-dead');   // 只有「我出牌、凑成了却没人能指」那一支再挂上
     // 只有真的在问我时才露紫色「作废」（2026-11-14：挑着问里不问我的牌，按钮也会闪一下，看着像设置没生效）
     const canNope = s.phase === 'react' && reactOpen && R.canNope(s, 0) && (askMeNope(s) || !!tut);
     const onlinePass = !!(game.online && s.phase === 'react' && reactOpen);   // 联机：每次出牌都有导火索，没「作废」也能点「取消」提前结束
@@ -2612,7 +2613,9 @@
       els.drawBtn.disabled = false;
       els.drawBtn.classList.toggle('is-ready', !selected.length);
       const c = selected.length ? classifyMine(selected) : null;
-      els.playBtn.disabled = !(c && (!c.needsTarget || R.validTargets(s, 0, c.type).length));
+      const dead = !!(c && c.needsTarget && !R.validTargets(s, 0, c.type).length);   // 凑成了但没人能指：留着能点，点了给反馈（onPlay）
+      els.playBtn.disabled = !(c && !dead) && !dead;
+      els.playBtn.classList.toggle('is-dead', dead);
     }
     // 选中一张要指人的牌（还没点出牌）：能指的人头像先亮一圈淡金圈（2026-11-17 定甲）
     aimHint(mode !== 'target' && !busy && myTurnToAct() && selected.length ? (() => { const c = classifyMine(selected); return c && c.needsTarget ? R.validTargets(s, 0, c.type) : []; })() : []);
@@ -5513,6 +5516,7 @@
     const cards = selected.slice();
     const c = classifyMine(cards);
     if (!c) return;
+    if (c.needsTarget && !R.validTargets(s, 0, c.type).length) { shake(els.playBtn); snd('untap'); shadowHint(cards); return; }   // 凑成了但没人能指（只剩影子猫）
     const go = (target, named) => {
       const d = { type: 'play', cards, target, named };
       if (!R.checkPlay(s, 0, cards, d)) { shake(els.playBtn); return; }
@@ -5742,6 +5746,9 @@
         if (preview) preview.tap = seat; else if (mode === 'target') onSeatTap(seat);
         return;
       }
+      // 抬着一对、点的是影子猫（偷不到它）：它亮身份、身子虚一下，不弹互动（2026-11-27 用户：一定要选时要知道不能选）
+      const st = game.state;
+      if (c && c.type === 'pair' && st.roles && R.roleOf(st, seat) === 'shadow' && st.alive[seat] && st.hands[seat].length) { flashRole(seat, token, 0).then((fl) => shadowDodge(seat).then(() => fl.back())); return; }
     }
     if (mode !== 'target') {
       if (social && socialOk() && seat > 0 && els.mask.hidden) { social.openProps(seat); propLabels(); popTail(avEl(seat)); }
