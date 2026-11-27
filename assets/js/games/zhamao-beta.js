@@ -55,6 +55,9 @@
     const D0 = () => ({ delta: 0, log: [], own: { felt: ['paper'], back: ['navy'], frame: ['none'], fx: ['none'] }, use: { felt: 'paper', back: 'navy', frame: 'none', fx: 'none' }, counterDay: '', pick: { counter: false, x2: false, role: null, nope: false, swap: false }, day: null });
     let d = (() => { try { return Object.assign(D0(), JSON.parse(ls.get(DATA)) || {}); } catch (_) { return D0(); } })();
     const save = () => ls.set(DATA, JSON.stringify(d));
+    const FRAMES_NOW = ['none', 'fishbone', 'bell', 'qinghua', 'ears'];   // 下架的头像框：用着的退回「无」
+    if (d.own && d.own.frame) d.own.frame = d.own.frame.filter((x) => FRAMES_NOW.includes(x));
+    if (d.use && !FRAMES_NOW.includes(d.use.frame)) d.use.frame = 'none';
     const realBal = () => { const s = W() && W().state ? W().state() : null; return s && s.bal != null ? s.bal : 0; };
     const bal = () => Math.max(0, realBal() + d.delta);
     function book(amt, why) { d.delta += amt; d.log.unshift({ at: Date.now(), amt, why }); d.log = d.log.slice(0, 60); save(); paintBal(); }
@@ -80,7 +83,7 @@
     const CAT = {
       felt: [['paper', '宣纸', 0], ['celadon', '青瓷', 10000], ['sakura', '樱粉', 10000], ['bamboo', '竹影', 20000], ['indigo', '扎染', 30000]],
       back: [['navy', '藏青', 0], ['cinnabar', '朱砂', 10000], ['jade', '墨绿', 10000], ['wisteria', '紫藤', 20000], ['gilt', '鎏金', 30000]],
-      frame: [['none', '无', 0], ['yarn', '毛线', 5000], ['paw', '爪印', 5000], ['fishbone', '鱼骨', 10000], ['sakura', '樱环', 15000], ['bell', '铃铛', 20000], ['qinghua', '青花', 20000], ['ears', '猫耳', 30000], ['gold', '金边', 30000], ['cloud', '祥云', 40000], ['moon', '星月', 50000]],
+      frame: [['none', '无', 0], ['fishbone', '鱼骨', 10000], ['bell', '铃铛', 20000], ['qinghua', '青花', 20000], ['ears', '猫耳', 30000]],   // 2026-11-27 用户从 10 款里留这 4 款
       fx: [['none', '无', 0], ['petals', '落樱', 30000], ['fish', '鱼群', 40000], ['sparks', '金粉', 50000]],
     };
     const CAT_NAME = { felt: '桌布', back: '牌背', frame: '头像框', fx: '出牌特效' };
@@ -103,30 +106,15 @@
     /* 头像框（2026-11-27 用户：做得粗糙，要更精致、更多款）。viewBox 64，头像圆边大约在半径 26，框画在 26–33 这一圈，猫耳 / 铃铛可以探出去 */
     const P = (deg, r) => [32 + Math.cos((deg * Math.PI) / 180) * r, 32 + Math.sin((deg * Math.PI) / 180) * r].map((v) => +v.toFixed(2));
     const around = (n, r, off, fn) => Array.from({ length: n }, (_, i) => { const a = off + (360 / n) * i, [x, y] = P(a, r); return fn(x, y, a, i); }).join('');
-    const flower = (x, y, s, c1, c2) => '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')">' + [0, 72, 144, 216, 288].map((a) => '<path d="M0 0C-2.2-2-2.2-5 0-6.4C2.2-5 2.2-2 0 0Z" fill="' + c1 + '" transform="rotate(' + a + ')"/>').join('') + '<circle r="1.1" fill="' + c2 + '"/></g>';
-    const paw = (x, y, a) => '<g transform="translate(' + x + ' ' + y + ') rotate(' + (a + 90) + ') scale(.9)" fill="#8a5a3c"><ellipse cx="0" cy="1.2" rx="2.1" ry="1.7"/><circle cx="-2.2" cy="-1.5" r=".9"/><circle cx="0" cy="-2.5" r=".9"/><circle cx="2.2" cy="-1.5" r=".9"/></g>';
     const FRAME_SVG = {
-      yarn: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29.6" fill="none" stroke="#c4618a" stroke-width="3.6"/><circle cx="32" cy="32" r="29.6" fill="none" stroke="#eba9c2" stroke-width="3.6" stroke-dasharray="1.6 2.6" transform="rotate(8 32 32)"/>' +
-        '<path d="M50 52c3 4 7 4 10 1" fill="none" stroke="#c4618a" stroke-width="1.1" stroke-linecap="round"/><circle cx="51.5" cy="50" r="6" fill="#d9779d" stroke="#a84b72" stroke-width="1"/><path d="M46.5 48.5c3-2 7-2 10 1M46 51.5c3.5-1.5 7.5-1 10.5 2M48.5 45c2.5 3 4 6.5 4 11" fill="none" stroke="#f3c3d4" stroke-width=".9" stroke-linecap="round"/>' +
-        '<path d="M44 40l13 14M47 38l11 16" stroke="#b98a52" stroke-width="1.3" stroke-linecap="round"/><circle cx="44" cy="40" r="1.2" fill="#e8c27a"/><circle cx="47" cy="38" r="1.2" fill="#e8c27a"/></svg>',
-      paw: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30.4" fill="none" stroke="#c9a27a" stroke-width="1.2"/><circle cx="32" cy="32" r="27.4" fill="none" stroke="#c9a27a" stroke-width=".7" stroke-dasharray="1 2"/>' + around(8, 30.4, -90, (x, y, a) => '<circle cx="' + x + '" cy="' + y + '" r="3.6" fill="#f7eadb" stroke="#c9a27a" stroke-width=".8"/>' + paw(x, y, a)) + '</svg>',
       fishbone: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29.8" fill="none" stroke="#7d7466" stroke-width="2"/>' + around(26, 0, -90, (_x, _y, a, i) => { if (i < 2 || i > 24) return ''; const [x1, y1] = P(a, 27), [x2, y2] = P(a, 32.8); return '<path d="M' + x1 + ' ' + y1 + 'L' + x2 + ' ' + y2 + '" stroke="#7d7466" stroke-width="1.4" stroke-linecap="round"/>'; }) +
         '<path d="M25 2.2c3.5-2.6 10.5-2.6 14 0l-1.3 4.6c-3.6 1.6-7.8 1.6-11.4 0z" fill="#efe8dc" stroke="#7d7466" stroke-width="1.3" stroke-linejoin="round"/><circle cx="35" cy="4" r="1.2" fill="#1d1b18"/><path d="M29 2.8v3.4" stroke="#7d7466" stroke-width=".9"/></svg>',
-      sakura: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29.8" fill="none" stroke="#8e6a55" stroke-width="1.3"/>' + around(14, 29.8, -70, (x, y, a, i) => (i % 2 ? '<ellipse cx="' + x + '" cy="' + y + '" rx="2.6" ry="1.1" fill="#8fb27a" transform="rotate(' + (a + 40) + ' ' + x + ' ' + y + ')"/>' : '')) +
-        around(7, 29.8, -90, (x, y, a, i) => flower(x, y, i % 3 === 0 ? 0.95 : 0.72, i % 2 ? '#f6c4cf' : '#ec98ab', '#e3b64a')) + '</svg>',
       bell: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29.8" fill="none" stroke="#b4392c" stroke-width="4.2"/><circle cx="32" cy="32" r="29.8" fill="none" stroke="#f0b8a8" stroke-width=".7" stroke-dasharray="2 2"/>' +
         '<g transform="translate(0 -3)"><path d="M28 60.6h8l-1 3h-6z" fill="#8a6a2a"/><circle cx="32" cy="64.5" r="5.2" fill="#e3b64a" stroke="#8a6a2a" stroke-width="1"/><path d="M27.4 63.6h9.2" stroke="#8a6a2a" stroke-width=".9"/><circle cx="32" cy="66.3" r="1.1" fill="#5a4318"/><path d="M32 66.3v2.6" stroke="#5a4318" stroke-width=".9"/><circle cx="30" cy="62.6" r="1" fill="#fff6d8" opacity=".9"/></g></svg>',
       qinghua: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29.6" fill="none" stroke="#fbfaf5" stroke-width="5.6"/><circle cx="32" cy="32" r="32.2" fill="none" stroke="#2b4f8c" stroke-width="1.1"/><circle cx="32" cy="32" r="27" fill="none" stroke="#2b4f8c" stroke-width="1.1"/>' +
         around(12, 29.6, -90, (x, y, a) => '<g transform="translate(' + x + ' ' + y + ') rotate(' + (a + 90) + ')"><path d="M-3.4 .8c0-2.2 1.6-3 2.8-2.2 1 .7.6 2-.4 1.8" fill="none" stroke="#2b4f8c" stroke-width="1" stroke-linecap="round"/><path d="M3.4 .8c0-2.2-1.6-3-2.8-2.2-1 .7-.6 2 .4 1.8" fill="none" stroke="#2b4f8c" stroke-width="1" stroke-linecap="round"/><circle cy="1.2" r=".7" fill="#4a72b0"/></g>') + '</svg>',
       ears: '<svg viewBox="0 0 64 64"><path d="M9.5 14.5 6 -3.5 24 4.5Z" fill="#2b2723" stroke="#2b2723" stroke-width="2" stroke-linejoin="round"/><path d="M10.8 10.8 9.4 1.2 18.6 5.4Z" fill="#f2a7b5"/><path d="M54.5 14.5 58 -3.5 40 4.5Z" fill="#2b2723" stroke="#2b2723" stroke-width="2" stroke-linejoin="round"/><path d="M53.2 10.8 54.6 1.2 45.4 5.4Z" fill="#f2a7b5"/>' +
         '<circle cx="32" cy="32" r="29.8" fill="none" stroke="#2b2723" stroke-width="3.2"/><g stroke="#2b2723" stroke-width="1" stroke-linecap="round"><path d="M-1.5 36l6-1M-1 41l5.6-.2M65.5 36l-6-1M65 41l-5.6-.2"/></g></svg>',
-      gold: '<svg viewBox="0 0 64 64"><defs><linearGradient id="zbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6dc93"/><stop offset=".45" stop-color="#c79a3e"/><stop offset=".7" stop-color="#f3d68a"/><stop offset="1" stop-color="#b8892f"/></linearGradient></defs><circle cx="32" cy="32" r="30" fill="none" stroke="url(#zbg)" stroke-width="3.8"/><circle cx="32" cy="32" r="27.3" fill="none" stroke="#c9a24a" stroke-width=".7" opacity=".8"/>' +
-        around(24, 32.6, 0, (x, y) => '<circle cx="' + x + '" cy="' + y + '" r=".75" fill="#e7c46a"/>') + '<path d="M32 -2.6l3.2 4.4-3.2 3-3.2-3z" fill="url(#zbg)" stroke="#9a7428" stroke-width=".6"/><circle cx="32" cy="1.6" r=".9" fill="#b4392c"/></svg>',
-      cloud: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="none" stroke="#b4392c" stroke-width="2.6"/><circle cx="32" cy="32" r="27.2" fill="none" stroke="#d9a441" stroke-width="1"/>' +
-        around(4, 30.4, -45, (x, y, a) => '<g transform="translate(' + x + ' ' + y + ') rotate(' + (a + 90) + ')"><path d="M-6.4 1.6c-2.2 0-2.8-3.4-.4-3.8.4-2.6 4-3 5 -.8 1-2.4 4.8-2 5 .8 2.4.2 2.2 3.8-.2 3.8z" fill="#fbf3e3" stroke="#d9a441" stroke-width="1.1" stroke-linejoin="round"/><path d="M-3.2-.6c.6-1 2-1 2.4.2M1.6-.6c.6-1 2-1 2.4.2" fill="none" stroke="#d9a441" stroke-width=".8" stroke-linecap="round"/></g>') + '</svg>',
-      moon: '<svg viewBox="0 0 64 64"><defs><linearGradient id="zbm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c3d6b"/><stop offset="1" stop-color="#6b5b95"/></linearGradient></defs><circle cx="32" cy="32" r="29.8" fill="none" stroke="url(#zbm)" stroke-width="4.4"/>' +
-        around(11, 29.8, 10, (x, y, a, i) => (a > 290 && a < 350 ? '' : '<circle cx="' + x + '" cy="' + y + '" r="' + (i % 3 ? 0.55 : 0.9) + '" fill="#fff6d8"/>')) +
-        '<path d="M55.5 1.5a10 10 0 1 0 6.5 15 8 8 0 1 1-6.5-15z" fill="#f3d68a" stroke="#c9a24a" stroke-width=".8"/><path d="M45 3.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" fill="#fff6d8"/></svg>',
     };
 
     // ── 样式 ──
@@ -210,7 +198,8 @@
 
 .zb-x2s{display:inline-flex;align-items:center;justify-content:center;margin-left:6px;font-size:12px;font-weight:700;color:#fbf6ec;background:#b4392c;border-radius:50%;width:24px;height:24px;transform:rotate(-12deg);vertical-align:middle}
 .zb-frame{position:absolute;inset:-6px;pointer-events:none;z-index:2}
-.zb-frame svg{width:100%;height:100%;overflow:visible}
+.zb-frame svg{width:100%;height:100%;overflow:visible!important;border-radius:0!important}
+.zb-pv.av>svg,.zb-ls-av>svg{overflow:visible;border-radius:0}
 .zb-fxp{position:fixed;left:0;top:0;pointer-events:none;z-index:2147483500;will-change:transform,opacity}
 .zb-card{border:1px solid #1d1b18;background:#fffdf8;border-radius:12px;padding:12px;margin-bottom:10px}
 .zb-card .h{display:flex;align-items:center;justify-content:space-between;font-weight:700;margin-bottom:8px}
@@ -299,8 +288,8 @@
 .zb-sub{display:block;margin-top:3px;font-size:11.5px;font-weight:400;color:#8a8275}
 .zb-shop{display:flex;flex-direction:column}
 .zb-shop .zb-scene-wrap{padding:10px 12px 0;flex:1;min-height:0;display:flex}
-.zb-shop .zb-scene{flex:1;height:auto;min-height:300px;max-height:560px;position:relative;border-radius:14px;border:1px solid #1d1b18;outline:none;overflow:hidden;transition:background-color .35s;background-color:#f3eee3}
-.zb-ls-rim{position:absolute;left:9%;right:9%;top:13%;bottom:21%;border:2px solid rgba(201,162,74,.28);border-radius:22px;pointer-events:none}
+.zb-shop .zb-scene{--zm-ink:#1d1b18;--zm-card:#fffdf8;--u:60px;flex:1;height:auto;min-height:300px;max-height:560px;position:relative;border-radius:14px;border:1px solid #1d1b18;outline:none;overflow:hidden;transition:background-color .35s;background-color:#f3eee3}
+.zb-ls-rim{position:absolute;left:9%;right:9%;top:13%;bottom:calc(var(--hh,100px) + 36px);border:2px solid rgba(201,162,74,.28);border-radius:22px;pointer-events:none}
 .zb-ls-opp{position:absolute;top:5%;display:flex;flex-direction:column;align-items:center;gap:3px;transform:translateX(-50%)}
 .zb-ls-opp.o0{left:37%}.zb-ls-opp.o1{left:63%}
 .zb-ls-opp small{font-size:12px;color:#1d1b18}
@@ -310,7 +299,7 @@
 .zb-ls-av svg{position:absolute;inset:-6px;width:calc(100% + 12px);height:calc(100% + 12px);overflow:visible}
 .zb-ls-av .zb-face svg{position:static;width:100%;height:100%}
 .zb-ls-n{position:absolute;right:-9px;top:-7px;min-width:19px;height:21px;border-radius:5px;background:#2f4a6d;color:#fffdf8;font:700 12px/21px 'ZM Num',Georgia,serif;text-align:center;box-shadow:2px 2px 0 rgba(29,27,24,.22);z-index:3}
-.zb-ls-piles{position:absolute;left:50%;top:41%;transform:translate(-50%,-50%);display:flex;gap:26px;align-items:center}
+.zb-ls-piles{position:absolute;left:50%;top:calc((100% - var(--hh,100px)) * .55);transform:translate(-50%,-50%);display:flex;gap:26px;align-items:center}
 .zb-ls-deck{position:relative;width:54px;aspect-ratio:100/140;display:block}
 .zb-ls-deck>i{position:absolute;inset:0;border-radius:6px;background:#ece3cf;border:1px solid rgba(29,27,24,.25)}
 .zb-ls-deck>i:nth-child(1){transform:translate(1px,2px)}.zb-ls-deck>i:nth-child(2){transform:translate(0,0)}.zb-ls-deck>i:nth-child(3){transform:translate(-1px,-2px)}
@@ -319,12 +308,10 @@
 .zb-ls-top svg,.zb-ls-fly>svg{width:100%;height:auto;display:block}
 .zb-ls-disc{width:54px;aspect-ratio:100/140;display:block;border-radius:6px;box-shadow:inset 0 0 0 1.5px rgba(29,27,24,.12)}
 .zb-ls-dc{display:block;width:100%}
-.zb-ls-me{position:absolute;left:11%;bottom:22%}
-.zb-ls-btns{position:absolute;right:10%;bottom:23.5%;display:flex;gap:8px;pointer-events:none}
-.zb-ls-btns span{height:28px;padding:0 13px;border-radius:14px;border:1px solid rgba(29,27,24,.35);font-size:13px;line-height:28px;color:rgba(29,27,24,.45)}
-.zb-ls-btns span:first-child{background:#b4392c;border-color:#b4392c;color:#fffdf8}
-.zb-ls-hand{position:absolute;left:0;right:0;bottom:0;height:20%}
-.zb-ls-hc{position:absolute;left:0;top:10%;display:block;transform-origin:50% 120%;transition:transform .35s cubic-bezier(.2,.8,.25,1)}
+.zb-ls-me{position:absolute;left:calc(9% - 6px);bottom:calc(var(--hh,100px) + 11px)}
+.zb-ls-hand{position:absolute;left:0;right:0;bottom:0;height:var(--hh,100px)}
+.zb-ls-hc{position:absolute;left:0;bottom:4px;display:block;transition:transform .3s cubic-bezier(.3,1.4,.5,1)}
+.zb-ls-hc .zm-card{box-shadow:-2px 0 6px rgba(29,27,24,.08)}
 .zb-ls-fly{position:absolute;left:0;top:0;z-index:6;display:block;pointer-events:none;filter:drop-shadow(0 6px 8px rgba(29,27,24,.25))}
 .zb-shop .zb-tabs{padding:12px 12px 0}
 .zb-shop .zb-tabs button{position:relative;font-size:14px;height:34px;color:#1d1b18}
@@ -333,7 +320,7 @@
 .zb-shop .zb-opts{padding:12px 12px 4px}
 .zb-opt{position:relative;justify-content:flex-start}
 .zb-opt.is-own b{margin-bottom:2px}
-.zb-on{position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:50%;background:#b4392c;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #fffdf8}
+.zb-on{position:absolute;z-index:3;top:6px;right:6px;width:18px;height:18px;border-radius:50%;background:#b4392c;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #fffdf8}
 .zb-on svg{width:13px;height:13px}
 .zb-big.is-idle{visibility:hidden}
 .zb-it2 small{font-size:10.5px!important;letter-spacing:-.02em}
@@ -548,9 +535,11 @@
 
     /* ── 商店顶上那局：照真牌桌的样子摆（两只机器猫、牌堆、弃牌堆、我的头像和手牌），自己一直打下去 ──
      * 一轮：左边机器猫出一张 → 右边机器猫摸一张 → 我出一张（放出牌特效）→ 我摸一张；换款当场换到这张桌上 */
-    const PLAYS = ['skip', 'favor', 'shuffle', 'future', 'attack', 'nope', 'reverse', 'alter', 'bottom', 'swap'];
-    const HAND0 = ['defuse', 'skip', 'favor', 'shuffle', 'orange'];
-    const DRAWS = ['tabby', 'nope', 'future', 'cow', 'attack', 'siamese', 'skip', 'calico', 'reverse', 'favor'];
+    // 只出不用再选人 / 看牌的牌（洗牌、预知这些在真牌桌上有自己的动画，这里做不像，2026-11-27 用户）
+    const PLAYS = ['skip', 'attack', 'nope', 'reverse', 'bottom', 'tattack'];
+    const MINE = ['skip', 'attack', 'reverse', 'bottom', 'tattack'];
+    const HAND0 = ['defuse', 'skip', 'orange', 'attack', 'tabby'];
+    const DRAWS = ['reverse', 'calico', 'skip', 'cow', 'bottom', 'nope', 'attack', 'siamese', 'tattack'];
     function liveScene(el, look0) {
       let look = Object.assign({}, look0), alive = true, t = 0, step = 0, di = 0, pi = 0;
       const card = (k) => (TB() ? TB().cardHtml(k) : '');
@@ -560,7 +549,6 @@
         [0, 1].map((i) => '<div class="zb-ls-opp o' + i + '"><span class="zb-ls-av"><span class="zb-face">' + bots[i].svg + '</span><b class="zb-ls-n">' + cnt[i] + '</b></span><small>' + ['贝塔', '欧米伽'][i] + '</small></div>').join('') +
         '<div class="zb-ls-piles"><span class="zb-ls-deck"><i></i><i></i><i></i><span class="zb-ls-top"></span></span><span class="zb-ls-disc"></span></div>' +
         '<div class="zb-ls-me"><span class="zb-ls-av me"></span></div>' +
-        '<div class="zb-ls-btns"><span>摸牌</span><span>出牌</span></div>' +
         '<div class="zb-ls-hand"></div>';
       const $q = (s) => el.querySelector(s);
       const disc = $q('.zb-ls-disc'), hand = $q('.zb-ls-hand');
@@ -571,13 +559,12 @@
         $q('.zb-ls-top').innerHTML = backOf(look.back);
         $q('.zb-ls-me .zb-ls-av').innerHTML = myFace() + (FRAME_SVG[look.frame] || '') + '<b class="zb-ls-n">' + hk.length + '</b>';
       }
-      function layoutHand() {
-        const n = hk.length, w = el.clientWidth, cw = Math.min(64, w / 5.6), stepX = Math.min(cw * 0.86, (w - cw - 24) / Math.max(1, n - 1));
-        [...hand.children].forEach((c, i) => {
-          const off = i - (n - 1) / 2;
-          c.style.width = cw + 'px';
-          c.style.transform = 'translate(' + (w / 2 - cw / 2 + off * stepX) + 'px,' + (Math.abs(off) * 3) + 'px) rotate(' + (off * 4) + 'deg)';
-        });
+      function layoutHand() {   // 照真牌桌：一排立着、底边对齐，放不下才一张压一张
+        const n = hk.length, w = el.clientWidth, cw = Math.min(66, (w - 12) / 5), room = w - 12;
+        const stepX = n * cw <= room ? cw : (room - cw) / Math.max(1, n - 1), x0 = w / 2 - (stepX * (n - 1) + cw) / 2;
+        el.style.setProperty('--hh', Math.round(cw * 1.4 + 8) + 'px');
+        el.style.setProperty('--u', cw.toFixed(1) + 'px');   // 牌面圆角、描边照真牌桌（.zm-card 读 --u / --zm-ink / --zm-card）
+        [...hand.children].forEach((c, i) => { c.style.width = cw + 'px'; c.style.transform = 'translate(' + (x0 + i * stepX).toFixed(1) + 'px,0)'; });
         const me = $q('.zb-ls-me .zb-ls-n'); if (me) me.textContent = n;
       }
       function paintHand() { hand.innerHTML = hk.map((k) => '<span class="zb-ls-hc">' + card(k) + '</span>').join(''); layoutHand(); }
@@ -610,9 +597,10 @@
             cnt[1] = Math.min(7, cnt[1] + 1); el.querySelectorAll('.zb-ls-opp .zb-ls-n')[1].textContent = cnt[1];
           } else if (s === 2) {   // 我出一张：先抬起来，再飞到弃牌堆、放特效
             acting(2);
-            const idx = 1 + ((Math.random() * (hk.length - 1)) | 0), node = hand.children[idx];
-            if (!node) return;
-            node.style.transform += ' translateY(-18px)';
+            const can = hk.map((k, i) => (MINE.includes(k) ? i : -1)).filter((i) => i >= 0);
+            if (!can.length) { t = setTimeout(tick, 200); return; }
+            const idx = can[(Math.random() * can.length) | 0], node = hand.children[idx];
+            node.style.transform += ' translateY(-20px)';
             await new Promise((r) => setTimeout(r, 380));
             if (!alive) return;
             const k = hk[idx], from = rel(node);
@@ -626,7 +614,7 @@
             const f = await fly(backOf(look.back), rel($q('.zb-ls-top')), rel(last), last.getBoundingClientRect().width, 520, [0, 0]);
             f.remove(); last.style.visibility = '';
             last.animate([{ transform: last.style.transform + ' scaleX(0)' }, { transform: last.style.transform }], { duration: 200, easing: 'ease-out' });
-            if (hk.length > 6) { hk = HAND0.slice(); paintHand(); }
+            if (hk.length > 7) { hk = HAND0.slice(); paintHand(); }
           }
         } catch (_) { /* 预览：出错也别停 */ }
         if (alive) t = setTimeout(tick, s === 2 ? 1300 : 650);
