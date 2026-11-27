@@ -2581,7 +2581,15 @@
     if (game && !game.online) return ts ? Math.min(3000, Math.max(2000, ts * 150)) : 3000;
     return ts ? Math.min(5000, Math.max(3000, ts * 250)) : 5000;
   };
-  const nopeWindowMs = (s) => (nopeAboutMe(s) ? nopeFullMs() : Math.min(1500, nopeFullMs()));
+  /* 换百变（2026-11-27 用户朋友：别人想把现在的百变规则换掉时，问作废的时间太短）：桌上已经有一条百变规则、又有人打百变时，
+   * 「只是问问」的 1.5 秒拉到 3 秒（单机联机一样；冲着我的本来就 ≥ 3 秒的照旧）。第一次打百变（还没有规则）不变。
+   * 联机服务器这一窗至少开 reactMs + 1.5 秒（≥ 4.5 秒），网页晚看到会报到续窗，3 秒兜得住，后端不用改 */
+  const FLUX_SWAP_MS = 3000;
+  const fluxSwap = (s) => !!(s && s.pending && s.pending.type === R.FLUX && s.flux);
+  const nopeWindowMs = (s) => {
+    const full = nopeFullMs(), w = nopeAboutMe(s) ? full : Math.min(1500, full);
+    return fluxSwap(s) ? Math.max(w, FLUX_SWAP_MS) : w;
+  };
   /* 几乎同时作废（2026-11-17 用户：上家刚作废、我也同时点了作废，别把我算成「作废回去」）：
    * 别人刚出了一张作废、又轮到我表态时，先按住一小会儿再收我的作废。
    * 2026-11-26 用户：每次被作废、作废键冒出来都是灰的，要过半秒到一秒才能点，像 bug——以前按住 0.7 秒、还把键和手里的作废牌调灰。
