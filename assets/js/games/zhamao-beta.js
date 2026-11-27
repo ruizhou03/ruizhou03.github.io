@@ -148,6 +148,10 @@
 .zb-chip .x2{font-weight:700;font-size:13px;width:20px;text-align:center;color:#b4392c}
 .zb-chip[aria-pressed=true] .x2{color:#e3c98a}
 .zb-chip .gl{display:inline-flex}
+.zb-chip .rf{width:26px;height:26px;border-radius:50%;overflow:hidden;display:inline-flex;background:#fffdf8;box-shadow:0 0 0 1px rgba(29,27,24,.3)}
+.zb-chip .rf svg{width:100%;height:100%}
+.zb-chip .rb{width:17px;display:inline-flex}
+.zb-chip .rb svg{width:100%;height:auto}
 .zb-pick{position:fixed;inset:0;z-index:2147483001;background:rgba(29,27,24,.55);display:flex;align-items:center;justify-content:center}
 .zb-pick-in{display:grid;grid-template-columns:repeat(3,auto);gap:12px;padding:16px;background:#f3eee3;border-radius:14px;border:1px solid #1d1b18}
 .zb-pick-in button{border:0;background:none;padding:0;border-radius:9px}
@@ -300,7 +304,7 @@
       const chips = [];
       if (!counterDayOn()) chips.push(['counter', icon('future'), PRICES.counter(ctx)]);
       if (!team) chips.push(['x2', '<span class="x2">×2</span>', PRICES.x2(ctx)]);
-      if (ctx.mode === 'roles') chips.push(['role', d.pick.role && ART() ? '<span class="gl">' + ART().roleGlyph(d.pick.role) + '</span>' : (ART() ? '<span class="gl">' + ART().roleGlyph('calico') + '</span>' : ''), PRICES.role(ctx)]);
+      if (ctx.mode === 'roles') chips.push(['role', ART() ? (d.pick.role ? '<span class="rf">' + ART().roleFace(d.pick.role) + '</span>' : '<span class="rb">' + ART().ROLE_BACK + '</span>') : '', PRICES.role(ctx)]);   // 没挑：一张小角色牌背；挑了：那只猫的脸（2026-11-27 用户：技能小图标看不出是什么）
       if (!team) chips.push(['nope', icon('nope'), PRICES.nope(ctx)]);
       if (!team && ctx.rules && ctx.rules.swap) chips.push(['swap', icon('swap'), PRICES.swap(ctx)]);
       const label = { counter: '记牌器', x2: '加倍', role: '挑角色', nope: '作废', swap: '交换' };
