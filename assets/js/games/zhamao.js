@@ -2997,13 +2997,16 @@
         break;
       case 'defuse':
         if (s.defuse.by === H) {
-          if (!s.deck.length && !(tut && tut.allow && !tut.allow({ type: 'insert', pos: 0 }))) { schedule(ms(260), () => apply(0, { type: 'insert', pos: 0 })); break; }
+          // 牌堆空了，或者剩下的全是炸弹猫（N 张 N 只）：塞哪都一样，不问，直接塞（2026-11-27 用户）
+          if (insertMoot(s) && !(tut && tut.allow && !tut.allow({ type: 'insert', pos: 0 }))) { schedule(ms(260), () => apply(0, { type: 'insert', pos: 0 })); break; }
           busy = false; insertDialog();
         }
         else schedule(pace().bot, () => apply(s.defuse.by, decideBot(s.defuse.by)));
         break;
     }
   }
+  // 塞回时放哪都一样：牌堆空了，或者剩下的每一张都是炸弹猫（联机镜像里的牌堆按公开的炸弹猫数补过，数得对）
+  const insertMoot = (s) => R.kittensInDeck(s) === s.deck.length;
   function idle() { if (tut && tut.idle) tut.idle(game.state); }
   // 轮到我：手牌依次轻轻一跳，「摸牌」键亮起来
   let lastCue = '';
@@ -9335,7 +9338,11 @@
       case 'pick': busy = false; renderAll(); pickDialog(); break;
       case 'steal': busy = false; renderAll(); stealPicker(); break;
       case 'alter': busy = false; renderAll(); alterDialog(); break;
-      case 'defuse': busy = false; renderAll(); insertDialog(); break;
+      case 'defuse':   // 牌堆空了 / 剩下的全是炸弹猫：不问，直接塞（同单机；同一步只发一次）
+        busy = false; renderAll();
+        if (insertMoot(s)) { if (game.autoIns !== g.matchNo + ':' + g.seq) { game.autoIns = g.matchNo + ':' + g.seq; onlineMove({ type: 'insert', pos: 0 }); } }
+        else insertDialog();
+        break;
       case 'save': busy = false; saveStart(remain); break;   // 急救：挑一对
       case 'rescue': busy = false; renderAll(); rescueDialog(); break;   // 组队：队友炸毛了，问我救不救
       default: renderAll();
