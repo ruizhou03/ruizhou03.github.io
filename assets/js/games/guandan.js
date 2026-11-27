@@ -5902,6 +5902,9 @@
     CARD_SIZE_OPTS.forEach((m, i) => {
       const box = document.createElement('i');
       box.style.cssText = 'width:' + dims[i] + 'px;height:' + Math.round(dims[i] * 1.44) + 'px';
+      const lab = document.createElement('b');   // 2026-11-27 用户：虚线框上标出小 / 中 / 大
+      lab.textContent = ['小', '中', '大'][i];
+      box.appendChild(lab);
       if (m === state.cardSizeMult) box.className = 'on';
       ruler.appendChild(box);
     });
