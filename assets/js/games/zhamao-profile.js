@@ -153,28 +153,29 @@
 .zmp-wall b{font:700 12.5px/1.2 ZM Serif,Georgia,serif;white-space:nowrap}
 .zmp-wall .off b{color:#a69c8a}
 @media(min-width:621px){.zmp-wall{grid-template-columns:repeat(8,minmax(0,1fr))}}
-.zmp-hero3{display:flex;align-items:center;gap:12px;background:#f8f4ea}
-.zmp-hero3 .l{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:10px}
-.zmp-id{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px;row-gap:5px;max-width:100%}
-.zmp-id>button{border:0;background:none;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.zmp-id .zmp-av{grid-row:1/3;align-self:center;border:2px solid #1d1b18;background:#ebe5d8;transition:transform .12s}
+/* 第一格（2026-11-27 第四版，用户：左半列太空、要想好 8 枚勋章全齐怎么排）：上半「身份」整行——头像在左，右边自上而下 名字 / 勋章（一行排到 8 枚，像一摞硬币微微叠着）/ 余额；
+ * 下半虚线隔开，四个玩法胜率环一排。宽屏（≥620）身份在左、四个环在右 */
+.zmp-hero3{display:flex;flex-direction:column;gap:14px;background:#f8f4ea}
+.zmp-id{display:flex;align-items:center;gap:14px;min-width:0}
+.zmp-id .zmp-av{flex:none;width:84px;height:84px;padding:0;border:2px solid #1d1b18;background:#ebe5d8;cursor:pointer;transition:transform .12s;-webkit-tap-highlight-color:transparent}
 .zmp-id .zmp-av:active{transform:scale(.95)}
-.zmp-id .zmp-nick{align-self:end;display:inline-flex;align-items:center;gap:5px;min-width:0;max-width:100%;white-space:nowrap;font-size:19px;font-weight:900;line-height:1.2}
-.zmp-id.solo .zmp-nick{grid-row:1/3;align-self:center}
+.zmp-id .info{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.zmp-id .zmp-nick{display:inline-flex;align-items:center;gap:5px;max-width:100%;border:0;background:none;padding:0;margin:0;color:inherit;cursor:pointer;white-space:nowrap;font-family:inherit;font-size:20px;font-weight:900;line-height:1.2;-webkit-tap-highlight-color:transparent}
 .zmp-id .zmp-nick span{overflow:hidden;text-overflow:ellipsis}
 .zmp-id .zmp-nick svg{flex:none;width:14px;height:14px;opacity:.45}
-.zmp-hero3 .zmp-bal{text-align:left}
-.zmp-hero3 .zmp-bal .n{font-size:clamp(26px,7.4vw,40px);gap:6px}
+.zmp-tops{display:flex;padding-left:2px}
+.zmp-tops button{position:relative;flex:none;width:30px;height:30px;padding:0;margin-left:-6px;border:0;background:#f8f4ea;cursor:pointer;border-radius:50%;box-shadow:0 0 0 2px #f8f4ea;-webkit-tap-highlight-color:transparent}
+.zmp-tops button:first-child{margin-left:0}
+.zmp-tops svg{width:30px;height:30px;display:block}
+.zmp-hero3 .zmp-bal{text-align:left;margin-top:2px}
+.zmp-hero3 .zmp-bal .n{font-size:clamp(26px,7.6vw,38px);gap:6px}
 .zmp-hero3 .zmp-bal .zmw-fish{width:38px;height:24px}
-.zmp-hero3 .zmp-rings{flex:none;grid-template-columns:repeat(2,74px);gap:10px 6px}
-.zmp-hero3 .zmp-ring svg{width:70px;max-width:none;display:block;margin:0 auto}
+.zmp-hero3 .zmp-rings{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding-top:12px;border-top:1px dashed #d9cfbd}
+.zmp-hero3 .zmp-ring svg{width:min(66px,100%);max-width:none;display:block;margin:0 auto}
 .zmp-hero3 .zmp-ring b{margin-top:3px;font-size:13px;white-space:nowrap}
 .zmp-hero3 .zmp-ring b small{margin-left:2px;font-size:10.5px}
-@media(max-width:374px){.zmp-hero3{gap:8px}.zmp-id{column-gap:8px}.zmp-id .zmp-av{width:52px;height:52px}.zmp-id .zmp-nick{font-size:17px}.zmp-hero3 .zmp-bal .n{font-size:22px;gap:4px}.zmp-hero3 .zmp-bal .zmw-fish{width:30px;height:19px}.zmp-hero3 .zmp-rings{grid-template-columns:repeat(2,58px);gap:8px 4px}.zmp-hero3 .zmp-ring svg{width:54px}.zmp-tops svg,.zmp-tops button{width:24px;height:24px}.zmp-hero3 .zmp-ring b{font-size:11px}.zmp-hero3 .zmp-ring b small{font-size:9.5px;margin-left:1px}}
-@media(min-width:560px){.zmp-hero3 .zmp-rings{grid-template-columns:repeat(4,84px);gap:8px}.zmp-hero3 .zmp-ring svg{width:80px}}
-.zmp-tops{align-self:start;display:flex;gap:3px}
-.zmp-tops button{width:28px;height:28px;padding:0;border:0;background:none;cursor:pointer;border-radius:50%;-webkit-tap-highlight-color:transparent}
-.zmp-tops svg{width:28px;height:28px;display:block}
+@media(max-width:374px){.zmp-id{gap:10px}.zmp-id .zmp-av{width:64px;height:64px}.zmp-id .zmp-nick{font-size:17px}.zmp-tops svg,.zmp-tops button{width:25px;height:25px}.zmp-hero3 .zmp-bal .n{font-size:24px;gap:4px}.zmp-hero3 .zmp-bal .zmw-fish{width:32px;height:20px}.zmp-hero3 .zmp-ring b{font-size:11.5px}.zmp-hero3 .zmp-ring b small{font-size:9.5px;margin-left:1px}}
+@media(min-width:620px){.zmp-hero3{flex-direction:row;align-items:center;gap:18px}.zmp-id{flex:1}.zmp-hero3 .zmp-rings{flex:none;grid-template-columns:repeat(4,84px);padding:0 0 0 18px;border-top:0;border-left:1px dashed #d9cfbd}.zmp-hero3 .zmp-ring svg{width:76px}}
 .zmp-ed{width:min(360px,100%);background:#fffdf8;border:1.5px solid #1d1b18;border-radius:18px;box-shadow:0 3px 0 #1d1b18;padding:16px}
 .zmp-ed .top{display:flex;align-items:center;gap:12px}
 .zmp-ed .top .zmp-av{flex:none}
@@ -352,16 +353,17 @@
     const ss = seriesState(p.badgeList), nGot = (p.badgeList || []).filter((b) => b.got).length;
     const wall = ss.length ? '<div class="zmp-card zmp-medals"><div class="zmp-h">勋章<small>' + nGot + ' / ' + MD().total + '</small></div><div class="zmp-wall">' +
       ss.map((x) => '<button type="button" data-ser="' + x.sid + '"' + (x.tier ? '' : ' class="off"') + '>' + medal(x) + '<b>' + esc(x.tier ? x.tiers[x.tier - 1].name : x.sname) + '</b></button>').join('') + '</div></div>' : '';
-    // 第一格（2026-11-27 用户）：已登录不再挂绿勾（没登录才有「登录保存」）；名字下放拿到的最高 4 枚勋章（拿掉后用户嫌空，又加回来）；
-    // 右边空着的一大块放玩法胜率（窄屏 2×2 小环，宽屏一排 4 个）；点头像 / 名字改名换头像
-    const tops = ss.filter((x) => x.tier).sort((x, y) => y.tier - x.tier).slice(0, 4).map((x) => '<button type="button" data-ser="' + x.sid + '" aria-label="' + esc(x.tiers[x.tier - 1].name) + '">' + MD().svg(x.sid, x.tier) + '</button>').join('');
+    // 第一格（2026-11-27 用户）：已登录不再挂绿勾（没登录才有「登录保存」）；名字下放每个系列拿到的最高档（档高在前，最多 8 枚一行）；
+    // 玩法胜率并进这一格（排法见 CSS .zmp-hero3）；点头像 / 名字改名换头像
+    const tops = ss.filter((x) => x.tier).sort((x, y) => y.tier - x.tier).map((x) => '<button type="button" data-ser="' + x.sid + '" aria-label="' + esc(x.tiers[x.tier - 1].name) + '">' + MD().svg(x.sid, x.tier) + '</button>').join('');
     const rings = '<div class="zmp-rings">' + MODES.map(([k, name, c]) => '<div class="zmp-ring">' + ring(p.modes[k].w, p.modes[k].g, c) + '<b>' + name + '<small>' + p.modes[k].g + '局</small></b></div>').join('') + '</div>';
     return '<div class="zmp-in">' +
-      '<div class="zmp-card zmp-hero3"><div class="l"><div class="zmp-id' + (tops ? '' : ' solo') + '"><button type="button" class="zmp-av" data-edit aria-label="改头像">' + me.face + '</button><button type="button" class="zmp-nick" data-edit aria-label="改名字"><span>' + esc(me.nick) + '</span>' + PEN + '</button>' +
-        (tops ? '<div class="zmp-tops">' + tops + '</div>' : '') + '</div>' +
-        (p.owner === 'account' ? '' : '<button type="button" class="zmp-login" data-login>登录保存</button>') +
+      '<div class="zmp-card zmp-hero3"><div class="zmp-id"><button type="button" class="zmp-av" data-edit aria-label="改头像">' + me.face + '</button><div class="info">' +
+        '<button type="button" class="zmp-nick" data-edit aria-label="改名字"><span>' + esc(me.nick) + '</span>' + PEN + '</button>' +
+        (tops ? '<div class="zmp-tops">' + tops + '</div>' : '') +
         '<div class="zmp-bal"><span class="n">' + FISH + '<b data-num>' + fmt(p.bal) + '</b></span></div>' +   // 2026-11-26 用户：余额旁边不要「近 7 天对局」和「多少局」
-        '</div>' + rings + '</div>' +
+        (p.owner === 'account' ? '' : '<button type="button" class="zmp-login" data-login>登录保存</button>') +
+        '</div></div>' + rings + '</div>' +
       wall +
       '<div class="zmp-grid">' +
         '<div class="zmp-card wide"><div class="zmp-h">签到<small>连签 ' + p.checkin.streak + ' 天</small></div><div class="zmp-week">' + week + '</div><div class="zmp-act" aria-label="近四周签到">' + actHtml(p) + '</div>' +
@@ -524,7 +526,8 @@
     else if (fx) anim = fx.roll(num, from, to, 420);
     else { num.textContent = fmt(to); anim = Promise.resolve(); }
     last.bal = to;
-    W().checkin().then(() => anim).then(() => setTimeout(() => load(true), 350)).catch(() => load(true));
+    // 签成功、鱼游完：交给 root.ZhamaoAfterCheckin(amt)（2026-11-27 用户：签到成功弹窗「知道了 / 看广告领翻倍」，关了就没有第二次机会；弹窗由内测 zhamao-beta.js 挂这个钩子）
+    W().checkin().then(() => anim).then(() => { setTimeout(() => load(true), 350); if (typeof root.ZhamaoAfterCheckin === 'function') { try { root.ZhamaoAfterCheckin(amt); } catch (_) { /* 内测钩子出错不影响签到 */ } } }).catch(() => load(true));
   }
   function login() {
     if (root.SiteAuth && root.SiteAuth.openLogin) root.SiteAuth.openLogin();
