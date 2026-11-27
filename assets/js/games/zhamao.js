@@ -6896,21 +6896,25 @@
   // 2026-11-26 用户：9 人局榜单太长、底下的小鱼干要滚才看得到——第 4 名往后超过 3 个就排成两列小格（is-grid）
   /* slot（2026-11-27 用户）：这局我的小鱼干不再单独一行，揉进榜里——上了台就放进我那根台子（名次数字下面），没上台放在我那一行右边；
    * 我第三名：台子矮放不下「3」+ 鱼，三根台子都不写数字（高低看得出名次），我那根只放鱼。托管多的小机器人标挂在我头像右上角 */
+  /* 每个人这一局的小鱼干（2026-11-27 用户：领奖台上每个人、排行榜每一行都写奖 / 罚，看得出第一拿多少、垫底扣多少；我的那份另外凸显）。
+   * 别人的 = 按名次的规则数（不含各人的余额封顶 / 托管减半，那是各人自己的事）；我的 = 服务器结算的真数（WAL.slot，会数上去、鱼游进左上角） */
+  const payTag = (v) => (v == null || !WAL ? '' : '<span class="zm-pay' + (v > 0 ? ' is-up' : v < 0 ? ' is-down' : '') + '">' + WAL.FISH + '<i>' + (v < 0 ? '−' : '+') + Math.abs(v).toLocaleString('en-US') + '</i></span>');
+  // 准备了的小勾（2026-11-27 用户：按钮上面那排头像不要了；点了「再来一局」以后，看得出谁准备了）：挂在领奖台 / 排行榜的头像上，我点了准备才显出来
+  const rdyTick = (x) => (x.pid ? '<i class="zm-rdy-st" data-rdy="' + esc(x.pid) + '">' + READY_IC + '</i>' : '');
   function podiumHtml(items, slot) {
     const mi = slot ? items.findIndex((x) => x.me) : -1;
     const sl = mi >= 0 ? slot.replace('class="zmw-res"', 'class="zmw-res is-inline"') : '';
-    const noNum = mi === 2;
     const bot = '<i class="zm-botslot" data-zmw-bot></i>';
     const col = (i) => {
       const x = items[i];
       if (!x) return '';
       return '<div class="zm-pod is-p' + (i + 1) + (x.me ? ' is-me' : '') + '" style="--pc:' + POD_COLORS[i] + '">' +
-        '<span class="avw"><span class="av">' + x.face + '</span>' + (i === mi ? bot : '') + '</span><b class="nm">' + esc(x.nick) + (x.me ? '<i class="me">' + T('ui.me', '我') + '</i>' : '') + '</b>' +
-        '<span class="blk">' + (noNum ? '' : '<span class="num">' + (i + 1) + '</span>') + (i === mi ? sl : '') + '</span></div>';
+        '<span class="avw"><span class="av">' + x.face + '</span>' + (i === mi ? bot : '') + rdyTick(x) + '</span><b class="nm">' + esc(x.nick) + (x.me ? '<i class="me">' + T('ui.me', '我') + '</i>' : '') + '</b>' +
+        '<span class="blk"><span class="num">' + (i + 1) + '</span>' + (i === mi ? sl : payTag(x.pay)) + '</span></div>';
     };
     const rest = items.slice(3);
-    return '<h2 class="zm-sr">' + T('ui.rank.title', '排行榜') + '</h2><div class="zm-podium' + (noNum ? ' is-nonum' : '') + '">' + col(1) + col(0) + col(2) + '</div>' +
-      (rest.length ? '<ol class="zm-rank zm-rank-rest' + (rest.length >= 4 ? ' is-grid' : '') + '">' + rest.map((x, j) => '<li class="' + (x.me ? 'is-me' : '') + '"><span class="pos">' + (j + 4) + '</span><span class="miniw"><span class="mini">' + x.face + '</span>' + (j + 3 === mi ? bot : '') + '</span><span class="nm">' + esc(x.nick) + (x.me && j + 3 !== mi ? '<small>' + T('ui.rank.me', '（我）') + '</small>' : '') + '</span>' + (j + 3 === mi ? sl : '') + '</li>').join('') + '</ol>' : '') +
+    return '<h2 class="zm-sr">' + T('ui.rank.title', '排行榜') + '</h2><div class="zm-podium">' + col(1) + col(0) + col(2) + '</div>' +
+      (rest.length ? '<ol class="zm-rank zm-rank-rest' + (rest.length >= 4 ? ' is-grid' : '') + '">' + rest.map((x, j) => '<li class="' + (x.me ? 'is-me' : '') + '"><span class="pos">' + (j + 4) + '</span><span class="miniw"><span class="mini">' + x.face + '</span>' + (j + 3 === mi ? bot : '') + rdyTick(x) + '</span><span class="nm">' + esc(x.nick) + (x.me && j + 3 !== mi ? '<small>' + T('ui.rank.me', '（我）') + '</small>' : '') + '</span>' + (j + 3 === mi ? sl : payTag(x.pay)) + '</li>').join('') + '</ol>' : '') +
       (slot && mi < 0 ? slot : '');
   }
   // 台子从底下长出来（三、二、一依次），头像随后落到台上，冠军那一下冒一圈金星
@@ -6969,7 +6973,8 @@
         '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + homeLabel() + '</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>' + T('ui.again', '再来一局') + '</button></div>', (d) => { soloEndWire(d); if (wp) WAL.fill(d, wp, game); });
       return;
     }
-    openDialog(podiumHtml(order.map((seat) => ({ face: avatarHtml(seat), nick: nameOf(seat), me: seat === 0 })), wp ? WAL.slot() : '') +
+    const sp = (i) => (wp && WAL.payout ? WAL.payout({ tier: settings.tier, mode: curMode(), n: order.length, rank: i + 1 }) : null);
+    openDialog(podiumHtml(order.map((seat, i) => ({ face: avatarHtml(seat), nick: nameOf(seat), me: seat === 0, pay: sp(i) })), wp ? WAL.slot() : '') +
       '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + homeLabel() + '</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>' + T('ui.again', '再来一局') + '</button></div>', (d) => { d.classList.add('is-podium'); soloEndWire(d); animPodium(d); if (wp) WAL.fill(d, wp, game); });
   }
   function soloEndWire(d) {
@@ -9514,7 +9519,7 @@
   /* ───── 准备（2026-11-27 用户：联机更民主）─────
    * 房主也只是点「准备」，坐着的真人全准备好，服务器当场开（最后一个人那次请求里开，不多轮询）。牌桌上不写说明：
    * · 按钮：准备 →（点了）✓ 已准备（淡底，再点取消）；别人都准备了、只差我 → 按钮直接写「开始」
-   * · 排行榜按钮上方一排小头像（.zm-readyrow，只有真人、两个以上才有）：准备了的亮、右下角盖朱红小勾；没准备的淡着、轻轻呼吸——房主一眼看得出在等谁
+   * · 排行榜：我点了「再来一局」以后，领奖台 / 名单里真人头像右上角亮出朱红小勾（谁准备了）；以前按钮上方那排小头像 2026-11-27 用户说不要了
    * · 房间页不加那一排：座位右上角直接盖同样的小勾
    * 我刚点、服务器还没回来：先按我点的显示（3 秒没回来作罢），不等来回 */
   const readyReq = { on: null, at: 0 };
@@ -9539,13 +9544,6 @@
   function readyBtnHtml(st, rank) {
     const k = readyMine(st);
     return '<button type="button" class="zm-btn zm-btn-primary zm-ready' + (rank ? ' is-rank' : '') + (k === 'on' ? ' is-on' : '') + '" data-ready data-focus><span class="zm-ready-t" data-k="' + k + '">' + readyLabel(k, rank) + '</span></button>';
-  }
-  function readyRowHtml(st) {
-    const hs = readyHumans(st);
-    if (hs.length < 2) return '';
-    const s = readySet(st);
-    const face = (p) => (p.avatar && AV && AV.byId[p.avatar] ? AV.byId[p.avatar].svg : '<span>' + esc((p.nick || '?').slice(0, 1)) + '</span>');
-    return '<div class="zm-readyrow" role="list">' + hs.slice().sort((a, b) => a.seat - b.seat).map((p) => '<i class="zm-rdy' + (s.has(p.id) ? ' is-on' : '') + (p.id === st.me ? ' is-me' : '') + (p.online ? '' : ' is-off') + '" role="listitem" title="' + esc(p.nick) + '" aria-label="' + esc(p.nick) + (s.has(p.id) ? T('ui.ready.on', '已准备') : '') + '">' + face(p) + '<b>' + READY_IC + '</b></i>').join('') + '</div>';
   }
   function readyToggle(btn) {
     const st = online && online.st;
@@ -9578,9 +9576,10 @@
       b.disabled = false;
       const acts = b.closest('.zm-actions');
       if (acts) acts.classList.toggle('is-ready', k === 'on');   // 道具格（zhamao-beta.js）看这个锁住
-      const row = d.querySelector('.zm-readyrow'), html = readyRowHtml(st);
-      if (row) { if (row.outerHTML !== html) { if (html) row.outerHTML = html; else row.remove(); } }
-      else if (html && acts) acts.insertAdjacentHTML('beforebegin', html);
+      // 头像上的小勾：我点了准备才显（d.is-rdy），谁准备了谁亮
+      const set = readySet(st);
+      d.classList.toggle('is-rdy', k === 'on');
+      d.querySelectorAll('[data-rdy]').forEach((x) => x.classList.toggle('is-on', set.has(x.dataset.rdy)));
     }
     if (ffBtn && ffBtn.dataset.mode === 'next') ffBtn.classList.toggle('is-on', k === 'on');
   }
@@ -9621,15 +9620,19 @@
     const order = order0 || (g.ranking || []).map(locOf);
     const face = (r) => (r.avatar && AV && AV.byId[r.avatar] ? AV.byId[r.avatar].svg : '<span>' + esc((r.nick || '?').slice(0, 1)) + '</span>');
     const meL = rankMe(), spec = meL < 0;
-    const items = rows ? rows.map((r) => ({ me: r.id === st.me && !spec, face: face(r), nick: r.nick }))
-      : order.map((seat) => ({ me: seat === meL, face: avatarHtml(seat), nick: nameOf(seat) }));
+    // 别人的奖罚按规则算：档位 = 桌上机器猫最高的那档（同后端 Econ.tableTier），没有机器猫算普通
+    const TI = ['easy', 'normal', 'hard'], ti = (game.tiers || []).reduce((b, t) => Math.max(b, TI.indexOf(t)), -1);
+    const rp = (i) => (WAL && WAL.payout && !teamGame() ? WAL.payout({ tier: ti < 0 ? 'normal' : TI[ti], mode: (g.rules && g.rules.mode) || 'classic', n: g.n, rank: i + 1 }) : null);
+    const hp = (id) => { const p = id && st.players.find((q) => q.id === id); return p && !p.isAi && !p.left ? id : null; };
+    const items = rows ? rows.map((r, i) => ({ me: r.id === st.me && !spec, face: face(r), nick: r.nick, pay: rp(i), pid: hp(r.id) }))
+      : order.map((seat, i) => { const p = playerAt(srvOf(seat)); return { me: seat === meL, face: avatarHtml(seat), nick: nameOf(seat), pay: rp(i), pid: hp(p && p.id) }; });
     const teamW = teamGame() ? (g.winners || 1) : 0;   // 组队：赢的那一队都算赢，不上领奖台，用队伍名单
     openDialog((host ? '<button type="button" class="zm-icbtn zm-rank-edit is-corner" data-edit aria-label="' + T('ui.host.edit', '调座位 / 请人离开') + '" title="' + T('ui.host.edit', '调座位 / 请人离开') + '">' + HOST_IC.swap + '</button>' : '') +
       rankPages(teamW ? teamRankHtml(order, teamW, !spec && order.slice(0, teamW).indexOf(meL) >= 0) + (WAL && g.pay && !spec && !g.pay.refund ? WAL.slot() : '') : podiumHtml(items, WAL && g.pay && !spec && !g.pay.refund ? WAL.slot() : ''), rec, face) +
-      (readyPhaseOk(st) ? readyRowHtml(st) : '') +
       '<div class="zm-actions' + (readyPhaseOk(st) && readyMine(st) === 'on' ? ' is-ready' : '') + '"><button type="button" class="zm-btn" data-leave>' + T('ui.leaveRoom', '离开房间') + '</button>' + (host ? '<button type="button" class="zm-btn" data-again>' + T('ui.room.backShort', '回房间') + '</button>' : '') + (readyPhaseOk(st) ? readyBtnHtml(st, true) : '') + '</div>', (d) => {
       if (!teamW) { d.classList.add('is-podium'); animPodium(d); }
       wireRankPages(d);
+      readyPaint();
       if (WAL) { const mi = teamW ? -1 : items.findIndex((x) => x.me); WAL.fillOnline(d, !spec && g.pay ? Object.assign({}, g.pay, mi >= 0 ? { rank: mi + 1 } : {}) : null, game); }
       d.querySelector('[data-leave]').addEventListener('click', () => { closeDialog(); leaveOnline(true); });
       const a = d.querySelector('[data-again]');
