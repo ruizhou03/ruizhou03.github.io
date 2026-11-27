@@ -10,7 +10,7 @@
  *   等桌  108 拍  牌桌外（开始页、房间、结算）：颤音琴从头唱到尾、B 段闷音小号轻轻叠上，电钢琴整小节垫和弦、低音提琴走步、刷子 + 响指，慵懒摇摆
  *   开打  132 拍  一局里常驻：铜管齐奏（叠低八度更厚）+ 清音吉他，切分低音跟着 3+3+2，军鼓 / 拍手、反拍和弦切音
  *   炸场  156 拍  有人出炸弹：厚锯齿主奏 + 铜管，四拍底鼓、反拍开镲、十六分芯片琶音、低音一拍一泵；放满一圈没人再炸就回「开打」
- * 进 / 出一局马上换；炸弹进「炸场」在下一小节就变身；回「开打」等到一段的段尾、两小节慢慢变回去（同 zhamao-music.js）。
+ * 什么时候换哪版见下面「导演」一节（2026-11-27 按真实对局重做）。
  * 全部 Web Audio 现场合成，没有素材文件。GuandanAudio 建好上下文后接到它的音乐总线上。 */
 (function (root) {
   'use strict';
@@ -245,34 +245,64 @@
     return at(16) - t0;
   }
 
-  /* ───── 导演：现在该放哪一版 ───── */
-  const D = { scene: 'off', mode: null, bombBars: 0 };
+  /* ───── 导演：现在该放哪一版 ─────
+   * 2026-11-27 跑了 8 局真实对局（AI 托管、正常节奏）看换版：一副牌约 2 分多钟，炸弹 2–6 个、多半挤在后半副；
+   * 以前「一出炸弹就换炸场、放一圈回开打」，结果一副牌里来回换四五次、四成到六成时间在炸场，炸场不稀罕了；
+   * 局间结算 → 进贡只有几秒，却先硬切到等桌、再硬切回开打。照炸弹猫的经验改：
+   *  - 换版跟「这一副打到哪儿了」走，不跟单个事件走（炸弹猫按牌堆里炸弹猫的占比分档，不按谁抽到什么）。
+   *    一副牌分两段：开局 → 开打；进入残局（有人报牌剩 10 张以内，或这副第二个炸弹）→ 炸场，一直放到这副打完。
+   *    炸场连放两圈（约 50 秒）没有新动静，回开打歇一歇（炸弹猫：乙放满两圈降到丙）；再炸 / 再报牌又上去。
+   *  - 单个炸弹只「踩一下」：在音乐的下一拍砸一声镲 + 底鼓（跟着节拍走，不打乱），不换版。
+   *  - 只按全桌都看得见的信息（报牌、出了炸弹），不泄露谁手里有什么。
+   *  - 换版都在乐句边界、用变身小节过渡（进炸场 = 两小节一句的句尾、变一小节 + 往上扫频；回开打 / 回等桌 = 一段的段尾、两小节 + 往下扫频）。
+   *    只有进 / 出牌桌（开始页、房间 ↔ 一局）马上换。
+   *  - 一盘里局与局之间（结算 → 进贡 → 下一副）不回等桌，只把炸场落回开打；整盘打完才回等桌。 */
+  const D = { scene: 'off', mode: null, bombs: 0, quietBars: 0 };
   function setScene(scene) {
     if (scene === D.scene) return;
-    const wasGame = D.scene === 'game';
+    const prev = D.scene;
     D.scene = scene;
-    if (scene === 'menu') D.mode = 'menu';
-    else if (scene === 'game') { if (!wasGame) D.mode = 'play'; }
-    else D.mode = null;
-    P.cut = true;   // 进 / 出一局：马上换，不等乐句
+    if (scene === 'menu') { D.mode = 'menu'; P.cut = true; }
+    else if (scene === 'game' || scene === 'between') {
+      if (prev !== 'game' && prev !== 'between') { D.mode = 'play'; P.cut = true; }   // 从牌桌外进来：马上换
+      else if (scene === 'between' && D.mode === 'bomb') D.mode = 'play';             // 一副打完：炸场在段尾落回开打
+    } else D.mode = null;
     kick();
   }
-  // 有人出炸弹：进「炸场」；已经在炸场里就从头再计一圈
-  function onBomb() {
-    if (D.scene !== 'game') return;
-    D.mode = 'bomb'; D.bombBars = 0;
-    kick();
-  }
-  function onBar(id) { if (D.mode === 'bomb' && id === 'bomb' && ++D.bombBars >= 16) D.mode = 'play'; }
+  const inHand = () => D.scene === 'game';
+  function climax() { if (!inHand()) return; D.quietBars = 0; if (D.mode !== 'bomb') { D.mode = 'bomb'; kick(); } }
+  // 新的一副牌发下来
+  function onHandStart() { D.bombs = 0; D.quietBars = 0; if (D.scene !== 'menu' && D.mode === 'bomb') D.mode = 'play'; }
+  // 有人出炸弹：踩一下；这副第二个炸弹起进残局
+  function onBomb(tier) { if (!inHand()) return; D.bombs++; accent(tier >= 3 ? 1.2 : 1); if (D.bombs >= 2) climax(); else if (D.mode === 'bomb') D.quietBars = 0; }
+  // 有人报牌剩几张（公开信息）：10 张以内进残局
+  function onLeft(n) { if (n <= 10) climax(); }
+  // 头游：踩一下
+  function onFirstOut() { if (inHand()) accent(1); }
+  // 整盘打完：回等桌（段尾慢慢变过去）
+  function onMatchEnd() { if (D.scene === 'off') return; D.scene = 'between'; D.mode = 'menu'; kick(); }
+  function onBar(id) { if (D.mode === 'bomb' && id === 'bomb' && ++D.quietBars >= 32) D.mode = 'play'; }
   const TRACK = { menu: 'lounge', play: 'play', bomb: 'bomb' };
   const target = () => (D.mode ? TRACK[D.mode] : null);
+
+  /* 节拍时钟：每排一小节记一笔「哪一版、几点开始、每格多长」，「踩一下」对到下一拍 */
+  const MARKS = [];
+  function mark(id, t, st) { MARKS.push({ id, t, st }); if (MARKS.length > 12) MARKS.shift(); }
+  function accent(v) {
+    if (!ac || !P.on || !P.cur || ac.state !== 'running') return;
+    const now = ac.currentTime + 0.03;
+    let m = null; for (const x of MARKS) if (x.t <= now) m = x;
+    if (!m) return;
+    const beat = 4 * m.st, t = m.t + Math.ceil((now - m.t) / beat) * beat;
+    OUT = busFor(m.id); DR.crash(t, 0.75 * v); DR.kick(t, 1.1 * v); OUT = null;
+  }
 
   /* ───── 播放器：提前 1.2 秒一小节一小节排 ───── */
   const P = { on: false, cur: null, bar: 0, nextT: 0, timer: null, stopAt: 0, cut: false };
   const LEVELS = { lounge: 1.25, play: 1, bomb: 0.85 };
   const bridgeLen = (want) => (want === 'bomb' ? 1 : 2);
-  // 进炸场：哪一小节都行（但别踩在齐奏小节上）；回开打：一段的段尾
-  const bridgeOk = (bar, want) => (want === 'bomb' ? bar !== HIT_BAR : bar % 4 === 2);
+  // 进炸场：两小节一句的句尾（别踩在齐奏小节上）；回开打 / 等桌：一段的段尾
+  const bridgeOk = (bar, want) => (want === 'bomb' ? bar % 2 === 1 && bar !== HIT_BAR : bar % 4 === 2);
   function pump() {
     sweep();
     if (!ac || !P.on || ac.state !== 'running') return;
@@ -285,6 +315,7 @@
         rampBus(P.cur, t, t + 0.45, busFor(P.cur).gain.value, 0.0001);
         P.cur = want; P.bar = 0; P.nextT = t + 0.12;
         setBus(want, P.nextT, LEVELS[want]);
+        MARKS.length = 0;
         OUT = busFor(want); DR.crash(P.nextT, 0.7); DR.kick(P.nextT, 1); OUT = null;
       }
     }
@@ -299,6 +330,7 @@
         for (let k = 0; k < n; k++) {
           const st0 = sa + (sb - sa) * k / n, st1 = sa + (sb - sa) * (k + 1) / n;
           scheduleBar(from, P.bar, t, st0, st1);
+          mark(want, t, (st0 + st1) / 2);
           t += scheduleBar(want, P.bar, t, st0, st1);
           if (k < n - 1) P.bar = (P.bar + 1) % 16;
         }
@@ -313,6 +345,7 @@
         P.nextT = t; P.bar = (P.bar + 1) % 16;
         continue;
       }
+      mark(P.cur, P.nextT, stepSec(P.cur));
       P.nextT += scheduleBar(P.cur, P.bar, P.nextT);
       onBar(P.cur);
       P.bar = (P.bar + 1) % 16;
@@ -349,9 +382,9 @@
   function connect(ctx, dest, level) { LEVEL = level == null ? 1 : level; return attach(ctx, dest, LEVEL); }
 
   root.GuandanMusic = {
-    connect, start, stop, setScene, onBomb,
+    connect, start, stop, setScene, onBomb, onLeft, onFirstOut, onHandStart, onMatchEnd,
     playing: () => P.on,
-    state: () => ({ scene: D.scene, mode: D.mode, track: P.cur, want: target(), bar: P.bar, bombBars: D.bombBars }),
+    state: () => ({ scene: D.scene, mode: D.mode, track: P.cur, want: target(), bar: P.bar, bombs: D.bombs, quietBars: D.quietBars }),
     VERSIONS, MOTIF, INST, DR, freq, build, barsOf, scheduleBar, stepSec,
     _level: (id, t, v) => setBus(id, t, v),   // 离线自测 / 试听用：直接把某一版的通道开到某个音量
   };

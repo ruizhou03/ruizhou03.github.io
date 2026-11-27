@@ -104,6 +104,7 @@
     },
     // 发牌：一串洗牌的沙沙声
     deal() {
+      if (musicOn()) MUSIC().onHandStart();
       const a = sfxReady(); if (!a) return;
       const t = a.currentTime;
       for (let i = 0; i < 14; i++) {
@@ -112,7 +113,7 @@
     },
     // 炸弹：低频轰鸣，档位越高越长越响；同花顺 / 天王炸加一记金属泛音
     bomb(tier = 1) {
-      bombMusic();
+      bombMusic(tier);
       const a = sfxReady(); if (!a) return;
       const t = a.currentTime;
       const k = Math.min(7, Math.max(1, tier));
@@ -160,6 +161,7 @@
       [0, 1, 2, 3, 4].forEach((n, i) => tone(a, t + i * 0.07, { freq: PENTA[n], dur: 0.35, gain: 0.08, type: 'triangle' }));
     },
     matchEnd(win) {
+      if (musicOn()) MUSIC().onMatchEnd();
       const a = sfxReady(); if (!a) return;
       const t = a.currentTime;
       const seq = win ? [0, 2, 4, 5, 7] : [5, 4, 2, 1, 0];
@@ -202,6 +204,7 @@
   }
   const lastVoiceEnd = now => voiceNodes.reduce((m, e) => Math.max(m, e.end), now);
   function voice(id, opts) {
+    musicCue(id);
     if (!prefs.voice || !id || !VOICE_MAP[id]) return;
     const audio = ensureContext();
     if (!audio) return;
@@ -222,14 +225,15 @@
     const entry = { src, gain, at, end, remind: queue };
     src.onended = () => { voiceNodes = voiceNodes.filter(e => e !== entry); try { gain.disconnect(); } catch (_) {} };
     voiceNodes.push(entry);
-    duckMusic(lastVoiceEnd(now) - now);
+    duckMusic(lastVoiceEnd(now) - now, 0.8);
   }
 
   // ---------- 背景音乐：交给 guandan-music.js（三版编曲 + 什么时候换哪版）；这里只管开关、总线和场景 ----------
   // 场景照牌桌当前页面（body[data-guandan-view]，由 GuandanEngine 的导航写）：开始页 / 房间 / 结算放「等桌」，一局里放「开打」
   const MUSIC = () => window.GuandanMusic || null;
   let musicAttached = false;
-  const sceneOf = view => (view === 'playing' || view === 'tribute' ? 'game' : 'menu');
+  // 结算页算「局间」：一盘里结算 → 进贡 → 下一副不回等桌（真实对局里这段只有几秒，来回硬切很乱）
+  const sceneOf = view => (view === 'playing' || view === 'tribute' ? 'game' : view === 'settlement' ? 'between' : 'menu');
   function syncScene() {
     if (!MUSIC() || !hasDom || !document.body) return;
     MUSIC().setScene(sceneOf(document.body.dataset.guandanView || 'setup'));
@@ -246,18 +250,27 @@
   function stopMusic() {
     if (MUSIC() && musicAttached) MUSIC().stop();
   }
-  // 有人出炸弹：音乐换「炸场」，同时压一下让炸弹声出来（音效关了也照样换）
-  function bombMusic() {
-    if (!prefs.music || !MUSIC() || !musicAttached) return;
-    MUSIC().onBomb();
-    duckMusic(0.9);
+  // 牌局里的公开动静告诉音乐（音效、语音关了也照样告诉）：炸弹、报牌剩几张、头游、发牌、整盘结束
+  const musicOn = () => prefs.music && MUSIC() && musicAttached;
+  function bombMusic(tier) {
+    if (!musicOn()) return;
+    MUSIC().onBomb(tier);
+    duckMusic(0.6, 0.6);
   }
-  function duckMusic(seconds) {
+  function musicCue(id) {
+    if (!musicOn() || !id) return;
+    const m = /^left-(\d+)$/.exec(id);
+    if (m) MUSIC().onLeft(+m[1]);
+    else if (id === 'e-first') MUSIC().onFirstOut();
+  }
+  // 压一下音乐让大动静出来。2026-11-27：报牌语音几乎每手都有，以前每句都压到一半，音乐一直一抽一抽的；
+  // 照炸弹猫改成语音只压到八成，炸弹压到六成
+  function duckMusic(seconds, depth) {
     if (!bus || !context) return;
     const g = bus.music.gain;
     const t = context.currentTime;
     g.cancelScheduledValues(t);
-    g.setTargetAtTime(MUSIC_LEVEL * 0.5, t, 0.05);
+    g.setTargetAtTime(MUSIC_LEVEL * (depth || 0.8), t, 0.05);
     g.setTargetAtTime(MUSIC_LEVEL, t + seconds, 0.25);
   }
   if (hasDom) {
