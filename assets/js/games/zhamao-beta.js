@@ -27,6 +27,13 @@
     let q;
     try { q = new URLSearchParams(location.search); } catch (_) { return; }
     const k = q.get('zmbeta');
+    const top = q.get('zbtop');
+    if (top != null && ls.get(FLAG) === '1') {   // 测试设备补鱼（2026-11-27 用户：测试账号鱼花完了让我补）：?zbtop=<数>-<号>，同一个号只认一次；只记本机内测账
+      const [amt, id] = top.split('-'); const n = Math.round(Number(amt) || 0);
+      try { const dd = JSON.parse(ls.get(DATA) || '{}'); dd.tops = dd.tops || []; if (n > 0 && n <= 10000000 && id && !dd.tops.includes(id)) { dd.tops.push(id); dd.delta = (dd.delta || 0) + n; dd.log = [{ at: Date.now(), amt: n, why: '补鱼（内测）' }].concat(dd.log || []).slice(0, 60); ls.set(DATA, JSON.stringify(dd)); } } catch (_) { /* */ }
+      q.delete('zbtop');
+      try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); } catch (_) { /* */ }
+    }
     if (k == null) return;
     if (k === 'off') ls.del(FLAG);
     else { try { if ((await sha(k)) === HASH) ls.set(FLAG, '1'); } catch (_) { /* 不是 https：认不了 */ } }
@@ -57,6 +64,8 @@
       return d.day;
     }
 
+    // 记牌器的图标：一把小算盘（2026-11-27 用户：用窥探的眼睛会让人以为保证开局有一张窥探）
+    const CTR_IC = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.2" fill="#fffdf8" stroke="#7a4f2a" stroke-width="1.8"/><path d="M3.9 9.3h16.2M3.9 14.7h16.2" stroke="#7a4f2a" stroke-width="1.1"/><g fill="#b4392c"><circle cx="7.5" cy="6.8" r="1.5"/><circle cx="15.5" cy="6.8" r="1.5"/><circle cx="10.5" cy="12" r="1.5"/></g><g fill="#c9a24a"><circle cx="12" cy="6.8" r="1.5"/><circle cx="14.5" cy="12" r="1.5"/><circle cx="8" cy="17.3" r="1.5"/><circle cx="16.5" cy="17.3" r="1.5"/></g></svg>';
     // ── 价格（2026-11-27 用户定）──
     // 门票的锚一律指顶格那张：高手 6–9 人 600。记牌器一天 = 5 张顶格门票，一局 = 1 张；加倍 = 本场门票；挑角色 = 本场门票 1.5 倍
     const TOP = 600;
@@ -156,11 +165,25 @@
 .zb-pick-in{display:grid;grid-template-columns:repeat(3,auto);gap:12px;padding:16px;background:#f3eee3;border-radius:14px;border:1px solid #1d1b18}
 .zb-pick-in button{border:0;background:none;padding:0;border-radius:9px}
 .zb-pick-in button[aria-pressed=true]{box-shadow:0 0 0 3px #b4392c}
-.zb-ctr{position:absolute;left:0;right:0;top:2px;display:flex;flex-wrap:wrap;justify-content:center;gap:3px 4px;z-index:3;pointer-events:none;padding:0 4px}
-.zb-ctr span{display:flex;align-items:center;gap:1px;font-size:11px;font-weight:700;line-height:1;background:rgba(255,253,248,.85);border:1px solid rgba(29,27,24,.2);border-radius:8px;padding:1px 4px 1px 1px;font-family:'ZM Num','ZM Serif',serif}
-.zb-ctr span svg{width:14px;height:14px}
-.zb-ctr span.z{opacity:.3}
-.zb-x2m{position:absolute;right:-8px;bottom:-6px;z-index:4;font-size:11px;font-weight:700;color:#fbf6ec;background:#b4392c;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 1.5px #fbf6ec;transform:rotate(-12deg);font-family:'ZM Num','ZM Serif',serif}
+.zb-ctr{position:absolute;left:50%;transform:translateX(-50%);z-index:1;pointer-events:none;display:flex;background:rgba(255,253,248,.92);border:1px solid rgba(29,27,24,.55);border-radius:5px;box-shadow:0 1px 0 rgba(29,27,24,.08);max-width:calc(100% - 12px);overflow:hidden}
+.zb-ctr span{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:19px;padding:1px 1px 0;font-size:10px;font-weight:700;line-height:1;color:#1d1b18;font-family:'ZM Num','ZM Serif',serif}
+.zb-ctr span+span{border-left:1px solid rgba(29,27,24,.14)}
+.zb-ctr span svg{width:11px;height:11px}
+.zb-ctr span.z{color:#c2bbaf}
+.zb-ctr span.z svg{opacity:.3;filter:grayscale(1)}
+.zb-x2m{position:absolute;right:-5px;bottom:-3px;z-index:4;font-size:9px;font-weight:700;color:#b4392c;background:#fbf6ec;border:1px solid #b4392c;border-radius:4px;padding:1px 2px;line-height:1;transform:rotate(-10deg);font-family:'ZM Num','ZM Serif',serif;opacity:.9}
+.zb-cf{position:absolute;inset:0;z-index:5;background:rgba(29,27,24,0);display:flex;align-items:center;justify-content:center;transition:background .2s}
+.zb-cf.is-on{background:rgba(29,27,24,.45)}
+.zb-cf-in{width:min(80vw,300px);background:#f3eee3;border:1px solid #1d1b18;border-radius:14px;padding:20px 16px 16px;display:flex;flex-direction:column;align-items:center;gap:6px;transform:scale(.92);opacity:0;transition:transform .2s cubic-bezier(.2,.8,.25,1),opacity .2s}
+.zb-cf.is-on .zb-cf-in{transform:none;opacity:1}
+.zb-cf-in .zb-pv{width:96px;height:96px}
+.zb-cf-in .zb-pv .zm-card{width:62px!important}
+.zb-cf-in .zb-pv.av{width:80px;height:80px}
+.zb-cf-in b{font-size:18px;margin-top:6px}
+.zb-cf-in small{color:#6a6358;font-size:13px}
+.zb-cf-btns{display:flex;gap:10px;margin-top:12px}
+.zb-cf-btns .zb-btn{height:40px;padding:0 18px;font-size:15px}
+
 .zb-x2s{display:inline-flex;align-items:center;justify-content:center;margin-left:6px;font-size:12px;font-weight:700;color:#fbf6ec;background:#b4392c;border-radius:50%;width:24px;height:24px;transform:rotate(-12deg);vertical-align:middle}
 .zb-frame{position:absolute;inset:-6px;pointer-events:none;z-index:2}
 .zb-frame svg{width:100%;height:100%;overflow:visible}
@@ -202,10 +225,16 @@
     function grabBal(el) { el.querySelectorAll('[data-zbbal]').forEach((e) => balEls.push(e)); }
     function previewHtml(cat, id) {
       if (cat === 'felt') return '<span class="zb-pv" style="background-color:' + (FELT[id] || '#f3eee3') + ';' + (FELT_PAT[id] ? 'background-image:' + FELT_PAT[id] + ';' : '') + 'box-shadow:inset 0 0 0 1px rgba(29,27,24,.25)"></span>';
-      if (cat === 'back') return '<span class="zb-pv zb-back-' + id + '">' + (TB() ? TB().backHtml() : '') + '</span>';
+      if (cat === 'back') return '<span class="zb-pv">' + backOf(id) + '</span>';
       if (cat === 'frame') return '<span class="zb-pv av">' + avFace() + (FRAME_SVG[id] || '') + '</span>';
       const glyph = { none: '', petals: '🌸', fish: FISH(), sparks: '✨' }[id];
       return '<span class="zb-pv" style="background:#ebe5d8;font-size:30px">' + (id === 'fish' ? '<span style="width:44px;display:inline-flex">' + glyph + '</span>' : glyph) + '</span>';
+    }
+    function backOf(id) {   // 牌背预览：直接把底色写进这张的 svg，不靠外层 class
+      let h = TB() ? TB().backHtml() : '';
+      h = h.replace(/(<rect[^>]*?fill=")[^"]*/, '$1' + (BACK_FILL[id] || BACK_FILL.navy));
+      if (id === 'gilt') { let i = 0; h = h.replace(/<rect[^>]*>/g, (r) => (++i === 2 ? r.replace(/stroke="[^"]*"/, 'stroke="#f3d58a"') : r)); }
+      return h;
     }
     function avFace() { const a = document.querySelector('#zmMe .zm-av-face'); return a ? '<span style="width:100%;height:100%;border-radius:50%;overflow:hidden;display:flex">' + a.innerHTML + '</span>' : ''; }
     function shopHtml() {
@@ -240,6 +269,36 @@
       shop.hidden = false;
       requestAnimationFrame(() => requestAnimationFrame(() => shop.classList.add('is-on')));
     }
+    /* 买东西（2026-11-27 用户：点了就直接买了很怪）：先弹一张确认卡（预览 + 名字 + 价钱），点「买下」→ 余额滚下去、鱼从余额游到这件东西上，放完才换成「使用中」 */
+    let buying = false;
+    function confirmBuy(o, tile, done) {
+      if (buying) return;
+      const m = document.createElement('div');
+      m.className = 'zb-cf';
+      m.innerHTML = '<div class="zb-cf-in" role="dialog" aria-label="确认购买">' + o.pv + '<b>' + o.name + '</b><small>' + o.sub + '</small>' +
+        '<div class="zb-cf-btns"><button type="button" class="zb-btn" data-cf="no">取消</button><button type="button" class="zb-btn is-red" data-cf="yes">买下 ' + FISH() + fmt(o.price) + '</button></div></div>';
+      shop.appendChild(m);
+      requestAnimationFrame(() => m.classList.add('is-on'));
+      const close = () => { m.classList.remove('is-on'); setTimeout(() => m.remove(), 200); };
+      m.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const b = e.target.closest('[data-cf]');
+        if (!b) { if (e.target === m) close(); return; }
+        if (b.dataset.cf === 'no') { close(); return; }
+        if (buying) return;
+        buying = true;
+        const num = shop.querySelector('.zb-top [data-zbbal]'), from = bal(), fx = root.ZhamaoWalletFx;
+        close();
+        done();
+        const to = bal();
+        if (num) num.textContent = fmt(from);
+        const end = () => { buying = false; paintShop(); };
+        if (fx && num) {
+          fx.roll(num, from, to, 520);
+          fx.school(FISH(), num, tile, 3, { spread: 12, gap: 90, dur: 620, lift: -30, size: 24 }).then(end, end);
+        } else end();
+      });
+    }
     function closeShop() { if (!shop) return; shop.classList.remove('is-on'); setTimeout(() => { shop.hidden = true; }, 320); }
     function onShop(e) {
       const t = e.target.closest('[data-zbtab]');
@@ -248,14 +307,18 @@
       if (a) {
         const k = a.dataset.zb;
         if (k === 'close') closeShop();
-        if (k === 'counterDay' && bal() >= PRICES.counterDay()) { book(-PRICES.counterDay(), '记牌器（一天）'); d.counterDay = today(); save(); paintShop(); }
-        if (k === 'reset') { const keep = d.pick; d = D0(); d.pick = keep; save(); applyLook(); paintShop(); }
+        if (k === 'counterDay' && bal() >= PRICES.counterDay()) confirmBuy({ pv: '<span class="zb-pv" style="background:#ebe5d8">' + CTR_IC.replace('<svg', '<svg style="width:44px;height:44px"') + '</span>', name: '记牌器', sub: '今天一整天', price: PRICES.counterDay() }, a, () => { book(-PRICES.counterDay(), '记牌器（一天）'); d.counterDay = today(); save(); });
+        if (k === 'reset') { const keep = d.pick, tops = d.tops; d = D0(); d.pick = keep; d.tops = tops; save(); applyLook(); paintShop(); }
         return;
       }
       const it = e.target.closest('[data-zbcat]');
       if (it) {
         const cat = it.dataset.zbcat, id = it.dataset.zbid, row = CAT[cat].find((x) => x[0] === id);
-        if (!d.own[cat].includes(id)) { if (bal() < row[2]) return; book(-row[2], CAT_NAME[cat] + '「' + row[1] + '」'); d.own[cat].push(id); }
+        if (!d.own[cat].includes(id)) {
+          if (bal() < row[2]) return;
+          confirmBuy({ pv: previewHtml(cat, id), name: row[1], sub: CAT_NAME[cat], price: row[2] }, it, () => { book(-row[2], CAT_NAME[cat] + '「' + row[1] + '」'); d.own[cat].push(id); d.use[cat] = id; save(); applyLook(); });
+          return;
+        }
         d.use[cat] = id; save(); applyLook(); paintShop();
       }
     }
@@ -276,8 +339,7 @@
       if (!app) return;
       [...app.classList].filter((c) => /^zb-(felt|back)-/.test(c)).forEach((c) => app.classList.remove(c));
       if (d.use.felt !== 'paper') app.classList.add('zb-felt-' + d.use.felt);
-      if (d.use.back !== 'navy') { app.classList.add('zb-back-' + d.use.back); document.body.classList.add('zb-back-' + d.use.back); }
-      [...document.body.classList].filter((c) => /^zb-back-/.test(c) && c !== 'zb-back-' + d.use.back).forEach((c) => document.body.classList.remove(c));
+      if (d.use.back !== 'navy') app.classList.add('zb-back-' + d.use.back);   // 只挂在牌桌根上：商店预览不在它里面，不会被染成同一种颜色（2026-11-27 用户截图：牌背几格全变紫）
     }
     function paintFrame() {
       const av = document.querySelector('#zmMe .zm-av');
@@ -302,7 +364,7 @@
       const team = ctx.mode === 'team';
       const icon = (k) => (ART() && ART().icon ? ART().icon(k) : '');
       const chips = [];
-      if (!counterDayOn()) chips.push(['counter', icon('future'), PRICES.counter(ctx)]);
+      if (!counterDayOn()) chips.push(['counter', CTR_IC, PRICES.counter(ctx)]);
       if (!team) chips.push(['x2', '<span class="x2">×2</span>', PRICES.x2(ctx)]);
       if (ctx.mode === 'roles') chips.push(['role', ART() ? (d.pick.role ? '<span class="rf">' + ART().roleFace(d.pick.role) + '</span>' : '<span class="rb">' + ART().ROLE_BACK + '</span>') : '', PRICES.role(ctx)]);   // 没挑：一张小角色牌背；挑了：那只猫的脸（2026-11-27 用户：技能小图标看不出是什么）
       if (!team) chips.push(['nope', icon('nope'), PRICES.nope(ctx)]);
@@ -363,7 +425,7 @@
     }
 
     // ── 牌桌上：记牌器、×2 印、头像框、出牌特效、结算翻倍 ──
-    const CTR_KINDS = ['boom', 'defuse', 'nope', 'attack', 'tattack', 'skip', 'reverse', 'bottom', 'favor', 'swap', 'shuffle', 'future', 'alter', 'flux', 'cat'];
+    const CTR_KINDS = ['defuse', 'nope', 'attack', 'tattack', 'skip', 'reverse', 'bottom', 'favor', 'swap', 'shuffle', 'future', 'alter', 'flux', 'cat'];
     let ctrEl = null, ctrInit = null, ctrGame = null;
     function kindOf(id) { const r = R(), k = r.KIND_OF[id]; return r.CATS.includes(k) || k === r.WILD ? 'cat' : k; }
     function paintCounter(g) {
@@ -373,13 +435,21 @@
       s.deck.forEach(add);
       for (let k = 1; k < s.n; k++) if (s.alive[k]) s.hands[k].forEach(add);
       if (ctrGame !== g) { ctrGame = g; ctrInit = {}; const all = s.deck.concat(...s.hands, s.discard); all.forEach((id) => { ctrInit[kindOf(id)] = 1; }); }
-      const center = $('zmCenter');
-      if (!center) return;
-      if (!ctrEl || !ctrEl.isConnected) { ctrEl = document.createElement('div'); ctrEl.className = 'zb-ctr'; ctrEl.setAttribute('aria-hidden', 'true'); center.appendChild(ctrEl); }
+      // 2026-11-27 用户：桌心上方一排太丑 → 一张细长纸条，压在我的头像 / 按钮下面、手牌上面（手牌抬起时盖住它）；炸弹猫不列（牌堆旁已经有数）
+      const table = $('zmTable'), hand = $('zmHand');
+      if (!table || !hand) return;
+      if (!ctrEl || !ctrEl.isConnected) { ctrEl = document.createElement('div'); ctrEl.className = 'zb-ctr'; ctrEl.setAttribute('aria-hidden', 'true'); table.appendChild(ctrEl); }
+      const tr = table.getBoundingClientRect(), hr = hand.getBoundingClientRect(), card = hand.querySelector('.zm-card');
+      const cardTop = card ? Math.min(...[...hand.querySelectorAll('.zm-card:not(.is-sel)')].map((x) => x.getBoundingClientRect().top).concat(hr.bottom)) : hr.top + 16;
+      const h = ctrEl.offsetHeight || 30;
+      let top = cardTop - h - 3;
+      const band = $('zmBand'), br = band && band.getBoundingClientRect();
+      if (br && br.bottom < cardTop && br.bottom > top) top = Math.min(br.bottom + 1, cardTop - h + 4);   // 竖屏：别压住摸牌 / 出牌键，挤不下就让手牌顶边盖住一点
+      ctrEl.style.top = Math.round(top - tr.top) + 'px';
       const key = JSON.stringify(c);
       if (ctrEl.dataset.k === key) return;
       ctrEl.dataset.k = key;
-      ctrEl.innerHTML = CTR_KINDS.filter((k) => ctrInit[k]).map((k) => '<span class="' + (c[k] ? '' : 'z') + '">' + (ART().icon(k === 'cat' ? 'wild' : k) || '') + (c[k] || 0) + '</span>').join('');
+      ctrEl.innerHTML = CTR_KINDS.filter((k) => ctrInit[k]).map((k) => '<span class="' + (c[k] ? '' : 'z') + '">' + (ART().icon(k === 'cat' ? 'wild' : k) || '') + '<b>' + (c[k] || 0) + '</b></span>').join('');
     }
     function paintX2(g) {
       const av = document.querySelector('#zmMe .zm-av');
