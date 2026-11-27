@@ -1499,9 +1499,10 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-app.is-giving .zm-hand .zm-card:not(.is-sel) { box-shadow: -2px 0 6px rgba(29, 27, 24, 0.08); }
 .zm-app.is-giving .zm-hand .zm-card.is-sel { translate: 0 -10px; box-shadow: 0 0 0 3px #e0566e, 0 10px 20px rgba(224, 86, 110, 0.45); }
 .zm-app.is-giving .zm-hand::before {
-  content: ''; position: absolute; left: -2%; right: -2%; bottom: -10px; height: calc(100% + 46px); pointer-events: none; z-index: 0; transform-origin: 50% 100%;
+  content: ''; position: absolute; left: 3%; right: 3%; bottom: -6px; height: calc(100% + 22px); pointer-events: none; z-index: 0; transform-origin: 50% 100%;
   /* 牌是实心的，暖光主要从牌的上沿、两侧和牌缝里透出来——所以要比手牌那一排高出一截 */
-  background: radial-gradient(66% 100% at 50% 100%, rgba(236, 104, 136, 0.75), rgba(236, 104, 136, 0.62) 62%, rgba(236, 104, 136, 0.3) 84%, rgba(236, 104, 136, 0) 100%);
+  /* 2026-11-27 用户：范围再收小（左右收进、上沿只高出一小截），颜色饱和度调低；急救那层同步 */
+  background: radial-gradient(60% 100% at 50% 100%, rgba(214, 132, 150, 0.7), rgba(214, 132, 150, 0.56) 60%, rgba(214, 132, 150, 0.26) 82%, rgba(214, 132, 150, 0) 100%);
   animation: zm-give-breathe 1.6s ease-in-out infinite;
 }
 .zm-app.is-giving.has-pick .zm-hand::before { animation: none; opacity: 0.35; transition: opacity 0.3s ease; }
@@ -1754,8 +1755,8 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-hand.is-saving .zm-card:not(.is-sel) { box-shadow: -2px 0 6px rgba(29, 27, 24, 0.08); }
 .zm-hand.is-saving .zm-card.is-sel { translate: 0 -10px; box-shadow: 0 0 0 3px #e9c86a, 0 10px 20px rgba(201, 160, 60, 0.45); }
 .zm-app.is-saving .zm-hand::before {
-  content: ''; position: absolute; left: -2%; right: -2%; bottom: -10px; height: calc(100% + 46px); pointer-events: none; z-index: 0; transform-origin: 50% 100%;
-  background: radial-gradient(66% 100% at 50% 100%, rgba(127, 176, 106, 0.72), rgba(160, 190, 100, 0.6) 62%, rgba(233, 212, 106, 0.3) 84%, rgba(233, 212, 106, 0) 100%);
+  content: ''; position: absolute; left: 3%; right: 3%; bottom: -6px; height: calc(100% + 22px); pointer-events: none; z-index: 0; transform-origin: 50% 100%;
+  background: radial-gradient(60% 100% at 50% 100%, rgba(140, 166, 124, 0.68), rgba(168, 180, 128, 0.55) 60%, rgba(220, 206, 148, 0.26) 82%, rgba(220, 206, 148, 0) 100%);
   animation: zm-give-breathe 1.6s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) { .zm-app.is-saving .zm-hand::before { animation: none; opacity: 0.8; } }
