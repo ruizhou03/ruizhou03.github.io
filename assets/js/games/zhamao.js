@@ -7897,6 +7897,7 @@
     game = { state: st, bots: drawBots(n, settings.tier), tiers: [null].concat(Array(n - 1).fill(settings.tier)), tutorial: false };
     if (WAL && WAL.tableStart) WAL.tableStart(game);
     if (HL) HL.start(game, st, seed);
+    if (window.ZhamaoBeta && window.ZhamaoBeta.onDeal) window.ZhamaoBeta.onDeal(game, { tier: settings.tier, mode: curMode() });   // 内测：开局道具（挑角色 / 保证拿牌 / 记牌器 / 加倍）
     if (WAL) {
       // 2026-11-26 用户：开局后（发牌 / 抽角色还没放完）退出再回来，没有「接着打上一局」、门票白扣——以前要等发完牌走第一步才存档。
       // 现在一开局就存；服务器发的门票号回来后再存一次（门票号没存上，接回来这局结算不了）
@@ -7992,6 +7993,7 @@
     $('zmSoloFaces').style.setProperty('--fs', Math.min(34, Math.floor((fw + (n - 1) * lap) / n)) + 'px');
     $('zmSoloTier').innerHTML = AI.TIERS.map((t) => '<button type="button" data-tier="' + t + '" aria-pressed="' + (t === settings.tier) + '">' + AI.TIER_NAMES[t] + '</button>').join('');
     if (WAL) WAL.priceTag(els.cover.querySelector('[data-cover="start"]'), settings.tier, curMode(), n);   // 开始键上标这局门票（小鱼干）
+    if (window.ZhamaoBeta && window.ZhamaoBeta.solo) window.ZhamaoBeta.solo({ tier: settings.tier, mode: curMode(), n, rules: R.normalizeRules(settings.rules) });   // 内测（zhamao-beta.js，只在开了内测的设备上有）：开局道具
     $('zmSoloRules').innerHTML = ruleChipsHtml(settings.rules, settings.turnSec, true);   // 这一局的规则：一排小规则牌，点开是规则页
     refreshDeck();
   }
@@ -10653,5 +10655,5 @@
   // 联机的「这步不对」：机器猫的动作取自服务器发下来的事件流（不暂停），发事件序号给服务器，由它找回是第几步（2026-11-20）
   const fbOnline = () => (online && online.st && online.st.game && game && game.online ? { log: online.st.game.log || [], me: online.st.mySeat, loc: locOf, over: !!online.st.game.over } : null);
   const fbSend = (n, why) => (online && NET ? NET.act(online.code, online.token, 'fb', { n, why }).catch(() => {}) : null);
-  window.ZhamaoTable = { cardHtml, backHtml, rulesHtml, game: () => game, hold: fbHold, resume: fbResume, canPause: () => canPause(), online: fbOnline, sendFb: fbSend };
+  window.ZhamaoTable = { cardHtml, backHtml, roleCardHtml, rulesHtml, game: () => game, hold: fbHold, resume: fbResume, canPause: () => canPause(), online: fbOnline, sendFb: fbSend };
 })();
