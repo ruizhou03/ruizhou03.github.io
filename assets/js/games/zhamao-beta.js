@@ -719,6 +719,17 @@
     function boxHtml(chips, pk, attr, ctx) {
       let cost = 0;
       const tk = ctrTaker(attr);
+      // 已经挑着、但钱不够的（上次挑完余额又少了）：按开局扣钱的顺序算，放不下的直接取消——不能亮着进局、开局却悄悄没买
+      // （2026-11-27 用户：挑了截胡猫进局还是要抽、抽到胆小猫）
+      if (attr === 'data-zbp' && known()) {
+        let room = bal() - ticketOf(ctx), drop = false;
+        ['counter', 'x2', 'role', 'nope', 'swap'].forEach((k) => {
+          const on = k === 'role' ? !!pk.role : !!pk[k];
+          if (!on || !chips.some(([c]) => c === k) || (k === 'counter' && counterDayOn())) return;
+          if (priceAt(k) <= room) room -= priceAt(k); else { if (k === 'role') pk.role = null; else pk[k] = false; drop = true; }
+        });
+        if (drop) save();
+      }
       chips.forEach(([k]) => { if (!(k === 'counter' && (counterDayOn() || tk)) && (k === 'role' ? !!pk.role : !!pk[k])) cost += priceAt(k); });
       // 买不起的（余额 − 这局门票 − 已挑的 < 它的价）：灰着、价钱标红，点了只抖一下（2026-11-27 用户：挑了「必有作废」进局没有——钱不够时开局悄悄没买）
       const left = known() ? bal() - ticketOf(ctx) - cost : Infinity;

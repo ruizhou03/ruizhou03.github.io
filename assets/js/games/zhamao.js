@@ -6103,21 +6103,26 @@
     };
     return { S, fanY, slot, z: (k) => (k % 2 ? n : 0) + k, bottom: fanY + dropY + H * 0.62 + 18 };   // 下排整体压在上排上面
   }
-  // 发身份那一下：牌从 from（中间那摞 / 扇面里那张）划一道弧、边飞边转正、缩到落点大小（以前 400ms 直线一闪就到，看不出是「发」过去的）
+  /* 发身份那一下（2026-11-27 用户：软绵绵不在快慢、在轨迹 → 照开局发牌 fx.fly 的轨迹）：
+   * 不再往侧面鼓出去一道弯（像飘过去）；改成往上抛的二次弧线（控制点在两点正中、高出较高那头 lift），
+   * 进度先快后稳（同发牌的 eT），半路微微变大、影子拉高变淡（看得出离了桌面），落下最后一小段压一下再回正（同发牌的 land） */
   function dealFly(el, from, rot) {
     const r = el.getBoundingClientRect();
     if (!from || !r.width || fx.reduce()) return Promise.resolve();
-    const dx = from.left + from.width / 2 - (r.left + r.width / 2), dy = from.top + from.height / 2 - (r.top + r.height / 2), k = from.width / r.width;
-    const L = Math.hypot(dx, dy) || 1, bend = Math.min(40, L * 0.16) * (dx >= 0 ? 1 : -1);   // 往行进方向的一侧鼓出去一点
-    /* 2026-11-27 用户：发身份手感软绵绵 → 不再先「拈起来悬一下」再慢慢加速；一出手就快、到头急刹，冲过一点点再回正（像牌被拍到桌上），整段短一截 */
-    const mx = dx * 0.45 + (-dy / L) * bend * 0.7, my = dy * 0.45 + (dx / L) * bend * 0.7, spin = dx > 0 ? -16 : 16;
-    const ux = -dx / L, uy = -dy / L;   // 行进方向（到落点为止）
-    return el.animate([
-      { transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + k.toFixed(3) + ') rotate(' + (rot || 0) + 'deg)' },
-      { transform: 'translate(' + mx.toFixed(1) + 'px,' + my.toFixed(1) + 'px) scale(' + ((k + 1) / 2).toFixed(3) + ') rotate(' + ((rot || 0) / 2 + spin) + 'deg)', offset: 0.42 },
-      { transform: 'translate(' + (ux * 5).toFixed(1) + 'px,' + (uy * 5).toFixed(1) + 'px) scale(1.04) rotate(' + (-spin * 0.15).toFixed(1) + 'deg)', offset: 0.8 },
-      { transform: 'none' },
-    ], { duration: Math.round(Math.min(440, 290 + L * 0.3)), easing: 'cubic-bezier(.2,.8,.3,1)' }).finished.catch(() => {});
+    const a = { x: from.left + from.width / 2 - (r.left + r.width / 2), y: from.top + from.height / 2 - (r.top + r.height / 2) }, k0 = from.width / r.width;
+    const L = Math.hypot(a.x, a.y) || 1, lift = Math.min(90, Math.max(40, L * 0.3));
+    const cx = a.x / 2, cy = Math.min(a.y, 0) - lift, r0 = rot || 0, r1 = a.x > 0 ? -8 : 8;   // 终点 = (0,0)
+    const eT = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2) * 0.35 + (1 - Math.pow(1 - t, 3)) * 0.65;
+    const N = 12, frames = [];
+    for (let i = 0; i <= N; i++) {
+      const t = eT(i / N), u = 1 - t, arc = Math.sin(Math.PI * (i / N));
+      const x = u * u * a.x + 2 * u * t * cx, y = u * u * a.y + 2 * u * t * cy;
+      frames.push({ transform: 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) scale(' + (k0 + (1 - k0) * t + 0.08 * arc).toFixed(3) + ') rotate(' + (r0 + (r1 - r0) * t).toFixed(1) + 'deg)',
+        filter: 'drop-shadow(0 ' + (3 + 16 * arc).toFixed(1) + 'px ' + (4 + 12 * arc).toFixed(1) + 'px rgba(29,27,24,' + (0.18 + 0.12 * arc).toFixed(2) + '))', offset: 0.86 * (i / N) });
+    }
+    frames.push({ transform: 'scale(.95) rotate(' + r1 + 'deg)', filter: 'drop-shadow(0 1px 2px rgba(29,27,24,.2))', offset: 0.93, easing: 'cubic-bezier(.3,.7,.4,1)' });
+    frames.push({ transform: 'rotate(0deg)', filter: 'drop-shadow(0 1px 2px rgba(29,27,24,.2))' });
+    return el.animate(frames, { duration: Math.round(Math.min(520, 380 + L * 0.25)), easing: 'linear' }).finished.catch(() => {});
   }
   /* 发身份（2026-11-26 用户：别人亮身份时不要把整张小卡牌摆在头像前——太小、看不清字、桌面乱）：
    * 背面朝上的角色牌飞到这家头像朝桌心那一侧 → 原地一翻，翻过来不是卡面，而是一枚只画这只猫的圆章（带角色色的光圈）
