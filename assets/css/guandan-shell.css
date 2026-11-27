@@ -1030,3 +1030,9 @@ body.gd-game-fullscreen .guandan-wrap .gd-play-band .gd-btn::after { content: ''
 /* 2026-11-27 用户：手牌挤时别让列叠在一起——理牌键往右挪一点，给手牌多让 14px（配合 JS 按 18 列定卡宽） */
 body.gd-game-fullscreen .guandan-wrap .gd-sort-actions { right: calc(6px + env(safe-area-inset-right, 0px)); }
 body.gd-game-fullscreen .guandan-wrap .gd-table { --gd-hand-r: 56px; }
+
+/* 2026-11-27 用户：手牌摆不下就左右滑，列不叠。还有牌没露出来的那一端淡出一点；按住准备框选的那张牌微微抬起 */
+body.gd-game-fullscreen .guandan-wrap .gd-hand.is-scrollable.more-right { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 26px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 26px), transparent); }
+body.gd-game-fullscreen .guandan-wrap .gd-hand.is-scrollable.more-left { -webkit-mask-image: linear-gradient(90deg, transparent, #000 26px); mask-image: linear-gradient(90deg, transparent, #000 26px); }
+body.gd-game-fullscreen .guandan-wrap .gd-hand.is-scrollable.more-left.more-right { -webkit-mask-image: linear-gradient(90deg, transparent, #000 26px, #000 calc(100% - 26px), transparent); mask-image: linear-gradient(90deg, transparent, #000 26px, #000 calc(100% - 26px), transparent); }
+body.gd-game-fullscreen .guandan-wrap .gd-hand .gd-card.is-hold { transform: translateY(-6px); transition: transform 0.12s ease-out; box-shadow: 0 6px 12px rgba(29, 27, 24, 0.25); }

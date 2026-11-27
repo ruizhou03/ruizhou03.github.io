@@ -1322,6 +1322,7 @@
     const activeCard = document.activeElement && document.activeElement.closest
       ? document.activeElement.closest('.gd-card[data-cid]') : null;
     const focusCid = activeCard ? parseInt(activeCard.dataset.cid, 10) : state._focusCardId;
+    const keepScroll = els.hand.scrollLeft;   // 重画手牌不把横滑的位置弹回最左
     els.hand.innerHTML = '';
     els.hand.style.removeProperty('--gd-card-w');
     els.hand.style.removeProperty('--gd-card-h');
@@ -1412,6 +1413,7 @@
       if (activeCard) focusTarget.focus({ preventScroll: true });
     }
     adaptHandSize();
+    if (keepScroll) { els.hand.scrollLeft = keepScroll; syncHandScrollEdges(); }
   }
 
   function classifyType(cards, level) {
@@ -1424,7 +1426,6 @@
   // 矮版按 12 列（手机上多出来的列横向滑动看牌，与以往一致）；高度按「对家行 + 两家出牌 +
   // 决策带 + 6 张深手牌」留足空间。
   // 宽版 / 矮版的分界与 CSS 的 @media (min-height: 500px) 一致。
-  const HAND_MAX_COLS = 18;
   function solveTableSize() {
     const table = els.table;
     if (!table) return;
@@ -1434,11 +1435,8 @@
     if (!vw || !vh || !table.clientWidth) return;
     const W = Math.max(vw, vh), H = Math.min(vw, vh);
     const wide = H >= 500;
-    // 2026-11-27 用户：手牌挤的时候列和列别叠——右下角理牌键往右挪（让出 14px），并按「理论最多列数」定卡宽：
-    // 一手 27 张，默认按点数分列最多 16 列（13 个点 + 逢人配 + 小王 + 大王）；自己成组只允许三带二 / 顺子 / 连对 / 钢板 / 炸弹 / 同花顺（≥4 张一摞），
-    // 16 列各占 1 张后剩 11 张最多再成 2 摞 → 理论上限 18 列。按 18 列都放得下来定卡宽，就永远不用叠。
     const handW = W - (74 + 56) - (wide ? 32 : 22);   // 左右让出头像 / 理牌键与牌桌内边距（2026-11-27 头像回到左下角，两边都离屏幕角远一点，同 CSS --gd-hand-l / -r）
-    const byW = handW / (wide ? 15.5 : 12) - 1;   // -1：列间 1px 缝（2026-11-27 用户：不按 18 列缩牌，挤不下改成左右滑动看）   // -1：列间 1px 缝
+    const byW = handW / (wide ? 15.5 : 12) - 1;   // -1：列间 1px 缝
     const byH = wide ? (H * 0.62 - 72) / 4.06 : (H - 150) / 5;   // 手牌贴底后多出约 10px
     const u = Math.max(36, Math.min(72, Math.floor(Math.min(byW, byH))));
     if (table.style.getPropertyValue('--u') !== u + 'px') table.style.setProperty('--u', u + 'px');
@@ -1491,16 +1489,10 @@
       cards.forEach((c, i) => { c.style.top = (i * colStep) + 'px'; });
     });
     // 量按钮正下方的列（列间叠压在下面才算，所以放到叠压之后再定按钮高度，见下）
-    // 2026-11-27 用户：列太多一行放不下怎么办——先让列和列叠起来（每列至少露出 0.72W，点数和花色都看得见），
-    // 实在还放不下，才交给 .gd-hand 横向滑动看牌。
-    const colArr = [...cols];
-    colArr.forEach(col => { col.style.marginLeft = ''; });
-    const natural = colArr.length * cardW + (colArr.length - 1) * gap;
-    if (colArr.length > 1 && natural > availW) {
-      const pitch = Math.max(cardW * 0.72, (availW - cardW) / (colArr.length - 1));
-      const ml = pitch - cardW - gap;
-      colArr.forEach((col, i) => { if (i) col.style.marginLeft = ml.toFixed(1) + 'px'; });
-    }
+    // 2026-11-27 用户：列和列不叠。看牌区左右边界固定，摆不下就整排左右滑动看（见 onHandPointerMove）。
+    // 随机发牌 80 万手统计：90% ≤14 列、99% ≤15 列；中号牌在 925 宽横屏能摆 15 列，所以多半用不着滑。
+    [...cols].forEach(col => { col.style.marginLeft = ''; });
+    syncHandScrollEdges();
     // 出牌决策带锚到「~6 张深」的高度：随卡片大小自适应，不再死留过多空白。
     // = 桌底+手牌底距 + 6 张摞高(1 张 cardH + 5 个错位 step)，再整体下移 20px(用户两次要按钮更低一点)；CSS 叠加 env(safe-bottom)。
     // 2026-11-26：微信横屏太矮，按钮行改锚到「5 张深」，给左右两家的出牌和我的闹钟腾出一行
@@ -2259,6 +2251,37 @@
   // PENDING=点选；MULTI_SELECT=拖框多选；顺序移动只通过可见的「调整顺序」
   // 按钮和左右移动键完成，不依赖没有可发现性的长按手势。
   const MOVE_THRESHOLD = 10;
+  // 手牌摆不下、能左右滑时：横着一划 = 滑动看牌；在一张牌上按住不动 ~0.22 秒（那张牌微微抬起）再拖 = 框选。
+  // 竖着 / 斜着拖照旧直接框选。框选拖到看牌区左右边上会自动往那边滚。
+  const HOLD_SELECT_MS = 220;
+  function handScrollable() { return els.hand.scrollWidth - els.hand.clientWidth > 2; }
+  // 看牌区两端还有牌没露出来时，那一端淡出一点，提示「这边还有」
+  function syncHandScrollEdges() {
+    const h = els.hand;
+    if (!h) return;
+    const can = handScrollable();
+    h.classList.toggle('is-scrollable', can);
+    h.classList.toggle('more-left', can && h.scrollLeft > 2);
+    h.classList.toggle('more-right', can && h.scrollLeft < h.scrollWidth - h.clientWidth - 2);
+  }
+  let edgeScroll = null;
+  function stopEdgeScroll() { if (edgeScroll) { cancelAnimationFrame(edgeScroll.raf); edgeScroll = null; } }
+  function updateEdgeScroll(x, y) {
+    if (!pState || pState.mode !== 'MULTI_SELECT' || !handScrollable()) { stopEdgeScroll(); return; }
+    const r = els.hand.getBoundingClientRect(), zone = 36;
+    const dir = x < r.left + zone ? -1 : x > r.right - zone ? 1 : 0;
+    if (!dir) { stopEdgeScroll(); return; }
+    if (edgeScroll) { edgeScroll.dir = dir; edgeScroll.x = x; edgeScroll.y = y; return; }
+    edgeScroll = { dir, x, y, raf: 0 };
+    const tick = () => {
+      if (!edgeScroll || !pState || pState.mode !== 'MULTI_SELECT') { edgeScroll = null; return; }
+      els.hand.scrollLeft += edgeScroll.dir * 7;
+      applyRectSelection(edgeScroll.x, edgeScroll.y);
+      syncHandScrollEdges();
+      edgeScroll.raf = requestAnimationFrame(tick);
+    };
+    edgeScroll.raf = requestAnimationFrame(tick);
+  }
   let pState = null;
   let orderMode = false;
 
@@ -2289,8 +2312,10 @@
   }
 
   function applyRectSelection(curX, curY) {
-    const x0 = Math.min(pState.startX, curX);
-    const x1 = Math.max(pState.startX, curX);
+    // 框选途中手牌滚动过：起点跟着牌走（按下时那张牌现在在哪）
+    const sx = pState.startX - (els.hand.scrollLeft - pState.startScrollLeft);
+    const x0 = Math.min(sx, curX);
+    const x1 = Math.max(sx, curX);
     const y0 = Math.min(pState.startY, curY);
     const y1 = Math.max(pState.startY, curY);
     updateMarquee(x0, y0, x1 - x0, y1 - y0);
@@ -2334,7 +2359,17 @@
       mode: 'PENDING',
       inTribute,
       startScrollLeft: els.hand.scrollLeft,   // 横滑看牌起点
+      t0: Date.now(),
+      holdEl: null,
     };
+    // 能滑时：按住一张牌不动到 HOLD_SELECT_MS，那张牌抬一下，表示接下来拖是框选、不是滑动
+    if (card && !inTribute && handScrollable()) {
+      const ps = pState;
+      ps.holdTimer = setTimeout(() => {
+        if (pState !== ps || ps.mode !== 'PENDING') return;
+        ps.holdEl = card; card.classList.add('is-hold');
+      }, HOLD_SELECT_MS);
+    }
     e.preventDefault();
   }
 
@@ -2348,8 +2383,10 @@
       if (Math.abs(dx) < MOVE_THRESHOLD && Math.abs(dy) < MOVE_THRESHOLD) return;
       // 横向滑 + 手牌超出看牌区(可滚) → 进入「滑动看牌」，不框选、不选牌；牌不变窄、只是平移看被挡的牌。
       // 列都摆得下(不可滚)时，横向拖仍按原样做矩形框选(选一串顺子)。
-      const scrollable = els.hand.scrollWidth - els.hand.clientWidth > 2;
-      if (scrollable && Math.abs(dx) > Math.abs(dy)) {
+      const scrollable = handScrollable();
+      const held = pState.startCid != null && Date.now() - pState.t0 >= HOLD_SELECT_MS;
+      clearTimeout(pState.holdTimer);
+      if (scrollable && Math.abs(dx) > Math.abs(dy) && !held) {
         pState.mode = 'SCROLL';
         els.hand.scrollLeft = pState.startScrollLeft - dx;
         e.preventDefault && e.preventDefault();
@@ -2369,18 +2406,23 @@
 
     if (pState.mode === 'SCROLL') {
       els.hand.scrollLeft = pState.startScrollLeft - dx;
+      syncHandScrollEdges();
       e.preventDefault && e.preventDefault();
       return;
     }
 
     if (pState.mode === 'MULTI_SELECT') {
       applyRectSelection(pt.clientX, pt.clientY);
+      updateEdgeScroll(pt.clientX, pt.clientY);
       e.preventDefault && e.preventDefault();
     }
   }
 
   function onHandPointerUp(e) {
     if (!pState) return;
+    clearTimeout(pState.holdTimer);
+    if (pState.holdEl) pState.holdEl.classList.remove('is-hold');
+    stopEdgeScroll();
 
     if (pState.mode === 'PENDING') {
       // 没动过 → 当作点击
@@ -2447,6 +2489,7 @@
     pState = null;
   }
 
+  els.hand.addEventListener('scroll', syncHandScrollEdges, { passive: true });
   els.hand.addEventListener('mousedown', onHandPointerDown);
   els.hand.addEventListener('touchstart', onHandPointerDown, { passive: false });
   window.addEventListener('mousemove', onHandPointerMove);
