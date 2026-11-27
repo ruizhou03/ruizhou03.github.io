@@ -153,7 +153,7 @@ test('iron rule: never swaps a bigger hand for a smaller one (self-play, roles, 
         const v = R.view(s, seat), mine = s.hands[seat].length - 1, theirs = s.hands[d.target].length;
         const myDef = s.hands[seat].filter((id) => R.KIND_OF[id] === R.DEFUSE).length, thDef = v.handKnown[d.target].filter((id) => R.KIND_OF[id] === R.DEFUSE).length;
         // 2026-11-27 门槛收紧到「换出去不比换回来多」；必死局面（顶上确定是炸弹猫、没逗猫棒）换牌碰运气找逗猫棒不算（guardDoom 放行）
-        const doomed = !myDef && v.known.some((k) => k.pos === 0 && R.KIND_OF[k.id] === R.BOOM);
+        const doomed = !myDef && (v.kittens >= v.deckSize || v.known.some((k) => k.pos === 0 && R.KIND_OF[k.id] === R.BOOM));   // 牌堆全是炸弹猫也算必死
         if (thDef <= myDef && !doomed) assert.ok(mine <= theirs, `swapped ${mine} cards for ${theirs}`);
       }
       apply(s, seat, d);
