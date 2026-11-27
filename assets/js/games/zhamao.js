@@ -5829,10 +5829,6 @@
     }
     const u = HU(), pu = PU();   // 发到我手里的牌按手牌大小落地（2026-11-26 放大）
     const flights = [];
-    /* 2026-11-27 用户：发牌有气无力、软绵绵、飘乎乎 → 改成「甩出去」：出手快、到头急刹（三次方减速，不再慢起慢落），弧线压低、半路不再鼓大，
-     * 牌一路小转着飞、到头像跟前一缩就进去（不再慢慢淡掉），头像被「啪」地打一下；每张间隔也收紧一点 */
-    const snap = (t) => 1 - Math.pow(1 - t, 3);
-    const tap = (seat) => { const av = avEl(seat); if (av && !fx.reduce()) av.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.09)', offset: 0.3 }, { transform: 'scale(1)' }], { duration: 170, easing: 'ease-out', composite: 'add' }); };
     for (let i = 0; i < order.length; i++) {
       if (skipped()) return;
       const [seat, id] = order[i];
@@ -5842,12 +5838,12 @@
       snd('deal');
       if (seat === 0) {
         const to = aboveSlot(reserveHandSlot(id));
-        flights.push(fx.fly({ html: cardHtml(id), back: backHtml(), flip: 'up', flipAt: 0.22, from, to, w: u, s0: pu / u, s1: 1, r0: -8, r1: 0, dur: 330, lift: 28, swell: 0.02, easeFn: snap }).then(() => { if (!skipped()) revealHandCard(id, to); }));
+        flights.push(fx.fly({ html: cardHtml(id), back: backHtml(), flip: 'up', flipAt: 0.35, from, to, w: u, s0: pu / u, s1: 1, r0: -10, r1: 0, dur: 420, lift: 60 }).then(() => { if (!skipped()) revealHandCard(id, to); }));
       } else {
-        const to = avPoint(seat), fc = fx.center(from);
-        flights.push(fx.fly({ html: backHtml(), from, to, w: pu, s0: 0.92, s1: 0.34, r0: -6, r1: to.x < fc.x - 4 ? -48 : 48, dur: 260, lift: overY != null ? arcOver(fc, to) : 14, swell: 0, easeFn: snap, sink: 0.8, land: false }).then(() => { if (!skipped()) { ov.counts[seat] += 1; renderSeat(seat); tap(seat); } }));
+        const to = avPoint(seat);
+        flights.push(fx.fly({ html: backHtml(), from, to, w: pu, s0: 1, s1: 0.4, r0: -10, r1: 20, dur: 380, lift: arcOver(fx.center(from), to), fadeOut: true, land: false }).then(() => { if (!skipped()) { ov.counts[seat] += 1; renderSeat(seat); } }));
       }
-      await wait(72 * Math.min(1, 20 / order.length));
+      await wait(85 * Math.min(1, 20 / order.length));
     }
     await Promise.all(flights);
     if (skipped()) return;
@@ -6113,13 +6109,15 @@
     if (!from || !r.width || fx.reduce()) return Promise.resolve();
     const dx = from.left + from.width / 2 - (r.left + r.width / 2), dy = from.top + from.height / 2 - (r.top + r.height / 2), k = from.width / r.width;
     const L = Math.hypot(dx, dy) || 1, bend = Math.min(40, L * 0.16) * (dx >= 0 ? 1 : -1);   // 往行进方向的一侧鼓出去一点
-    const mx = dx * 0.5 + (-dy / L) * bend, my = dy * 0.5 + (dx / L) * bend - Math.min(18, L * 0.06), spin = dx > 0 ? -14 : 14;
+    /* 2026-11-27 用户：发身份手感软绵绵 → 不再先「拈起来悬一下」再慢慢加速；一出手就快、到头急刹，冲过一点点再回正（像牌被拍到桌上），整段短一截 */
+    const mx = dx * 0.45 + (-dy / L) * bend * 0.7, my = dy * 0.45 + (dx / L) * bend * 0.7, spin = dx > 0 ? -16 : 16;
+    const ux = -dx / L, uy = -dy / L;   // 行进方向（到落点为止）
     return el.animate([
       { transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + k.toFixed(3) + ') rotate(' + (rot || 0) + 'deg)' },
-      { transform: 'translate(' + dx.toFixed(1) + 'px,' + (dy - 6).toFixed(1) + 'px) scale(' + (k * 1.04).toFixed(3) + ') rotate(' + (rot || 0) + 'deg)', offset: 0.12 },
-      { transform: 'translate(' + mx.toFixed(1) + 'px,' + my.toFixed(1) + 'px) scale(' + ((k + 1) / 2).toFixed(3) + ') rotate(' + ((rot || 0) / 2 + spin) + 'deg)', offset: 0.55 },
+      { transform: 'translate(' + mx.toFixed(1) + 'px,' + my.toFixed(1) + 'px) scale(' + ((k + 1) / 2).toFixed(3) + ') rotate(' + ((rot || 0) / 2 + spin) + 'deg)', offset: 0.42 },
+      { transform: 'translate(' + (ux * 5).toFixed(1) + 'px,' + (uy * 5).toFixed(1) + 'px) scale(1.04) rotate(' + (-spin * 0.15).toFixed(1) + 'deg)', offset: 0.8 },
       { transform: 'none' },
-    ], { duration: Math.round(Math.min(640, 420 + L * 0.6)), easing: 'cubic-bezier(.35,.1,.25,1)' }).finished.catch(() => {});
+    ], { duration: Math.round(Math.min(440, 290 + L * 0.3)), easing: 'cubic-bezier(.2,.8,.3,1)' }).finished.catch(() => {});
   }
   /* 发身份（2026-11-26 用户：别人亮身份时不要把整张小卡牌摆在头像前——太小、看不清字、桌面乱）：
    * 背面朝上的角色牌飞到这家头像朝桌心那一侧 → 原地一翻，翻过来不是卡面，而是一枚只画这只猫的圆章（带角色色的光圈）
@@ -6150,24 +6148,37 @@
     await dealFly(box, fr, rot || 0);
     return box;
   }
+  // 圆章盖进头像：先微微抬一下、再越来越快地扣下去（像盖章），不再匀匀地滑过去
+  function stampTo(el, to, ref) {
+    const r = el.getBoundingClientRect(), rr = ref ? ref.getBoundingClientRect() : r;
+    if (!to || !r.width || fx.reduce()) return Promise.resolve();
+    const k = to.width / rr.width, ox = r.left + r.width / 2, oy = r.top + r.height / 2;
+    const dx = to.left + to.width / 2 - (ox + (rr.left + rr.width / 2 - ox) * k), dy = to.top + to.height / 2 - (oy + (rr.top + rr.height / 2 - oy) * k);
+    return el.animate([
+      { transform: 'none', easing: 'cubic-bezier(.3,0,.5,1)' },
+      { transform: 'translate(' + (-dx * 0.04).toFixed(1) + 'px,' + (-dy * 0.04 - 6).toFixed(1) + 'px) scale(1.06)', offset: 0.22, easing: 'cubic-bezier(.6,0,.9,.4)' },
+      { transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + k.toFixed(3) + ')' },
+    ], { duration: 320, fill: 'forwards' }).finished.catch(() => {});
+  }
   // 第二段：原地一翻成圆章 → 停一下 → 盖进头像角上
   async function sealOpen(box, seat, gone, hold) {
     const role = box.dataset.role, tone = ART.ROLE_TONE[role] || ART.ROLE_TONE.fat, a = avEl(seat).getBoundingClientRect();
     try {
       const sf = box.querySelector('.zm-rd-sf'), seal = box.querySelector('.zm-rd-seal');
-      await sf.animate([{ transform: 'rotateY(0deg) scale(1)' }, { transform: 'rotateY(90deg) scale(.9)', offset: 0.5 }, { transform: 'rotateY(180deg) scale(1)' }], { duration: 420, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished.catch(() => {});
+      // 翻：利落一翻（不再慢慢转），翻过来圆章「嘭」地弹一下
+      await sf.animate([{ transform: 'rotateY(0deg) scale(1)' }, { transform: 'rotateY(90deg) scale(.88)', offset: 0.45 }, { transform: 'rotateY(180deg) scale(1)' }], { duration: 290, easing: 'cubic-bezier(.3,0,.2,1)', fill: 'forwards' }).finished.catch(() => {});
       if (gone()) return;
       seal.classList.add('is-on');
-      seal.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)', offset: 0.4 }, { transform: 'scale(1)' }], { duration: 360, easing: 'ease-out' });
+      seal.animate([{ transform: 'scale(.9)' }, { transform: 'scale(1.18)', offset: 0.35 }, { transform: 'scale(.97)', offset: 0.7 }, { transform: 'scale(1)' }], { duration: 300, easing: 'ease-out' });
       await wait(hold == null ? 760 : hold);
       if (gone()) return;
       game.roleHide.delete(seat); renderSeat(seat);
       const b = roleBadge(seat); if (b) b.style.visibility = 'hidden';
       seal.classList.remove('is-on');
-      await flipTo(box, b ? b.getBoundingClientRect() : null, 360, 0, seal);
+      await stampTo(box, b ? b.getBoundingClientRect() : null, seal);
       if (b) {
         b.style.visibility = '';
-        fx.pop(b, { scale: 1 + 0.7 * fireK(b), dur: 380 });
+        fx.pop(b, { scale: 1 + 0.7 * fireK(b), dur: 300 });
         const br = b.getBoundingClientRect();
         fx.ring(br.left + br.width / 2, br.top + br.height / 2, { color: tone.band, size: a.width * 1.5, width: 2.5, dur: 520 });
         snd('tap');
