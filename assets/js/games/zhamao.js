@@ -9847,6 +9847,53 @@
     if (me >= 0 && !game.spectator && online.base === me && !game.fastOut) return false;
     return online.st.players.every((p) => p.isAi || p.left || p.seat == null || !al[locOf(p.seat)]);
   }
+  /* 快进键点按记录（2026-11-27 用户：手机单机中局出局后点快进「没反应」，模拟器里复现不出来）：
+   * 看不见、不上传，只存在本机（localStorage zm.ffdiag，留最近 3 局）。网址加 ?zmtap=1 打开会弹出记录、能一键复制。
+   * 记：键什么时候出来、键附近每次按下（落在谁身上、离键多远、事件排队多久）、键的处理什么时候跑、金色什么时候真画到屏幕上、主线程长卡顿 */
+  const ffDiag = (() => {
+    const KEY = 'zm.ffdiag';
+    let cur = null, lto = null;
+    const now = () => Math.round(performance.now());
+    const rel = () => (cur ? now() - cur.t0 : 0);
+    const save = () => { try { const all = JSON.parse(localStorage.getItem(KEY) || '[]').filter((x) => x.id !== cur.id); all.push(cur); localStorage.setItem(KEY, JSON.stringify(all.slice(-3))); } catch (_) { /* 满了 / 无痕 */ } };
+    const tag = (el) => { if (!el || !el.tagName) return '?'; const c = typeof el.className === 'string' ? el.className.trim().split(/\s+/).slice(0, 2).join('.') : ''; return el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (c ? '.' + c : ''); };
+    const log = (a) => { if (!cur || cur.ev.length > 300) return; cur.ev.push([rel()].concat(a)); save(); };
+    function begin(btn) {
+      if (cur && cur.btn === btn) return;
+      if (cur && cur.g === game) { Object.defineProperty(cur, 'btn', { value: btn, configurable: true }); log(['reshown']); return; }   // 同一局键被重建：接着记
+      cur = { id: Date.now(), at: new Date().toISOString(), ua: navigator.userAgent.slice(0, 120), mode: game && game.state && game.state.rules ? game.state.rules.mode : '', n: game && game.state ? game.state.n : 0, alive: game && game.state ? game.state.alive.filter(Boolean).length : 0, t0: now(), ev: [], lt: [] };
+      Object.defineProperty(cur, 'btn', { value: btn, configurable: true }); Object.defineProperty(cur, 'g', { value: game });
+      log(['shown']);
+      if (!lto && window.PerformanceObserver) { try { lto = new PerformanceObserver((l) => { if (!cur) return; for (const e of l.getEntries()) if (e.duration >= 100 && cur.lt.length < 60) cur.lt.push([Math.round(e.startTime) - cur.t0, Math.round(e.duration)]); save(); }); lto.observe({ type: 'longtask' }); } catch (_) { lto = null; } }
+    }
+    function down(e) {
+      if (!cur || !cur.btn || !cur.btn.isConnected) return;
+      const p = e.touches ? e.touches[0] : e;
+      if (!p) return;
+      const r = cur.btn.getBoundingClientRect(), d = Math.round(Math.hypot(p.clientX - (r.left + r.width / 2), p.clientY - (r.top + r.height / 2)));
+      if (d > 90) return;
+      const lag = e.timeStamp ? Math.round(performance.now() - e.timeStamp) : -1;   // 手指按下到这里排上队跑了多久
+      log([e.type, 'd' + d, tag(e.target), cur.btn.contains(e.target) ? 'onBtn' : 'miss', 'lag' + lag, cur.btn.dataset.mode + (cur.btn.disabled ? '+dis' : '') + (cur.btn.classList.contains('is-on') ? '+on' : '')]);
+    }
+    ['touchstart', 'pointerdown', 'click'].forEach((t) => document.addEventListener(t, down, { capture: true, passive: true }));
+    return {
+      begin,
+      press(e) { log(['press', e.type, 'lag' + (e.timeStamp ? Math.round(performance.now() - e.timeStamp) : -1)]); const t = now(); requestAnimationFrame(() => requestAnimationFrame(() => log(['painted', now() - t]))); },
+      note(x) { log([x]); },
+      show() {
+        let txt = '';
+        try { txt = JSON.stringify(JSON.parse(localStorage.getItem(KEY) || '[]'), null, 0).replace(/\],\[/g, '],\n['); } catch (_) { txt = '(读不到)'; }
+        const box = document.createElement('div');
+        box.style.cssText = 'position:fixed;inset:10px;z-index:99999;background:#fffdf8;border:1px solid #c9a96e;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;font:12px/1.4 monospace;color:#2a2318';
+        const ta = document.createElement('textarea'); ta.value = txt || '(还没有记录：单机出局后点一下快进键再来看)'; ta.readOnly = true; ta.style.cssText = 'flex:1;width:100%;font:11px/1.35 monospace';
+        const row = document.createElement('div'); row.style.cssText = 'display:flex;gap:8px';
+        const cp = document.createElement('button'); cp.textContent = '复制'; cp.onclick = () => { ta.select(); try { navigator.clipboard.writeText(ta.value).then(() => { cp.textContent = '已复制'; }, () => { document.execCommand('copy'); cp.textContent = '已复制'; }); } catch (_) { document.execCommand('copy'); cp.textContent = '已复制'; } };
+        const x = document.createElement('button'); x.textContent = '关掉'; x.onclick = () => box.remove();
+        row.append(cp, x); box.append(ta, row); document.body.appendChild(box);
+      },
+    };
+  })();
+  if (new URLSearchParams(location.search).has('zmtap')) setTimeout(() => ffDiag.show(), 800);
   function updateFF() {
     if (!game) { if (ffBtn) { ffBtn.remove(); ffBtn = null; } return; }   // 主页 / 房间页：没有牌局（以前这里会每 0.4 秒报一次错）
     let mode = '';
@@ -9872,7 +9919,7 @@
       const canNext = !!(g && g.over && game.finishShown === g.matchNo && readyPhaseOk(online.st) && !online.playing && !online.queue.length);   // 2026-11-27：人人都有（= 准备）
       mode = replaying || (game.ffJump && g && game.finishShown !== g.matchNo) ? 'ff' : canNext ? 'next' : '';
     }
-    if (!mode) { if (ffBtn) { ffBtn.remove(); ffBtn = null; } return; }
+    if (!mode) { if (ffBtn) { if (!game.online) ffDiag.note('gone'); ffBtn.remove(); ffBtn = null; } return; }
     if (!ffBtn || !els.center.contains(ffBtn)) {
       if (ffBtn) ffBtn.remove();
       ffBtn = document.createElement('button');
@@ -9883,6 +9930,7 @@
       const press = (e) => {
         e.stopPropagation();
         const b = e.currentTarget;
+        if (!game.online) ffDiag.press(e);
         if (e.type === 'pointerdown' && e.button > 0) return;
         if (b.dataset.mode === 'ff') {
           if (game.ffJump) return;
@@ -9898,6 +9946,7 @@
       ffBtn.addEventListener('pointerdown', press);
       ffBtn.addEventListener('click', press);
       els.center.appendChild(ffBtn);
+      if (!game.online) ffDiag.begin(ffBtn);
       if (!fx.reduce()) ffBtn.animate([{ opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1 }], { duration: 260, easing: 'cubic-bezier(.3,.7,.4,1.4)' });
     }
     // 组队围桌一圈（2026-11-18 用户）：桌沿是另算的一圈，不是牌桌中间那块的边——快进键贴着桌沿右下角往里一点放
