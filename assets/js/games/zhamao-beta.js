@@ -183,7 +183,10 @@
 .zb-ctr span svg{width:11px;height:11px}
 .zb-ctr span.z{color:#c2bbaf}
 .zb-ctr span.z svg{opacity:.3;filter:grayscale(1)}
-.zb-x2m{position:absolute;right:-5px;bottom:-3px;z-index:4;font-size:9px;font-weight:700;color:#b4392c;background:#fbf6ec;border:1px solid #b4392c;border-radius:4px;padding:1px 2px;line-height:1;transform:rotate(-10deg);font-family:'ZM Num','ZM Serif',serif;opacity:.9}
+.zb-cnt-br .zm-seat-me .zm-count{top:auto!important;bottom:-7px!important;right:-9px!important;left:auto!important}
+.zb-ls-av.me .zb-ls-n{top:auto;bottom:-7px}
+.zb-cnt-br .zm-seat-me .zm-turns{left:calc(100% + 14px)!important}
+.zb-x2m{position:absolute;right:-14px;bottom:24px;z-index:4;font-size:9px;font-weight:700;color:#b4392c;background:#fbf6ec;border:1px solid #b4392c;border-radius:4px;padding:1px 2px;line-height:1;transform:rotate(-10deg);font-family:'ZM Num','ZM Serif',serif;opacity:.9}
 .zb-cf{position:absolute;inset:0;z-index:5;background:rgba(29,27,24,0);display:flex;align-items:center;justify-content:center;transition:background .2s}
 .zb-cf.is-on{background:rgba(29,27,24,.45)}
 .zb-cf-in{width:min(80vw,300px);background:#f3eee3;border:1px solid #1d1b18;border-radius:14px;padding:20px 16px 16px;display:flex;flex-direction:column;align-items:center;gap:6px;transform:scale(.92);opacity:0;transition:transform .2s cubic-bezier(.2,.8,.25,1),opacity .2s}
@@ -678,6 +681,7 @@
     function applyLook() {
       const app = $('zmApp');
       if (!app) return;
+      app.classList.add('zb-cnt-br');   // 2026-11-27：头像框的头饰（猫耳等）占头像正上方，我自己的手牌数挪到右下角
       [...app.classList].filter((c) => /^zb-(felt|back)-/.test(c)).forEach((c) => app.classList.remove(c));
       if (d.use.felt !== 'paper') app.classList.add('zb-felt-' + d.use.felt);
       if (d.use.back !== 'navy') app.classList.add('zb-back-' + d.use.back);   // 只挂在牌桌根上：商店预览不在它里面，不会被染成同一种颜色（2026-11-27 用户截图：牌背几格全变紫）
