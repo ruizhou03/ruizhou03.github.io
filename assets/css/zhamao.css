@@ -1535,6 +1535,13 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-app.is-giving.has-pick .zm-hand::before { animation: none; opacity: 0.35; transition: opacity 0.3s ease; }
 @keyframes zm-give-breathe { 0%, 100% { opacity: 0.45; transform: scaleY(0.9); } 50% { opacity: 1; transform: scaleY(1.06); } }
 @media (prefers-reduced-motion: reduce) { .zm-app.is-giving .zm-hand::before { animation: none; opacity: 0.8; } }
+/* 2026-11-27 用户：轮到我给牌（普通索要 / 贪吃猫要两张）时整排手牌微微抬起、轻轻晃（照作废的跳，但抬得低、晃得轻），提示「该给牌了」；
+ * 挑够了（普通一张、贪吃猫两张）就停，只留挑中的抬着。用独立的 translate / rotate 属性，不和手牌自己的 transform 打架 */
+.zm-app.is-giving:not(.give-full) .zm-hand .zm-card:not(.is-sel) { animation: zm-give-wiggle 1.3s ease-in-out infinite; }
+.zm-app.is-giving:not(.give-full) .zm-hand .zm-card:nth-child(3n+2):not(.is-sel) { animation-delay: -0.43s; }
+.zm-app.is-giving:not(.give-full) .zm-hand .zm-card:nth-child(3n):not(.is-sel) { animation-delay: -0.86s; }
+@keyframes zm-give-wiggle { 0%, 100% { translate: 0 -3px; rotate: 0deg; } 25% { translate: 0 -6px; rotate: -1.6deg; } 50% { translate: 0 -3px; rotate: 0deg; } 75% { translate: 0 -6px; rotate: 1.6deg; } }
+@media (prefers-reduced-motion: reduce) { .zm-app.is-giving:not(.give-full) .zm-hand .zm-card:not(.is-sel) { animation: none; translate: 0 -4px; } }
 /* 作废这一步（被索要、我有作废）：先决定作不作废，再进给牌。
  * 2026-11-27 用户：整排灰下去不好看（同急救）——其余牌原彩、原位不动；改成作废牌整体往上抬一截，突出能点的那几张 */
 .zm-app.is-favor-wait .zm-hand .zm-card[data-k="nope"] { translate: 0 -12px; }

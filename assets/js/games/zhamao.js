@@ -2562,7 +2562,8 @@
     if (giving && !els.app.classList.contains('is-giving')) snd('ask');
     els.app.classList.toggle('is-giving', giving);
     els.app.classList.toggle('is-favor-wait', favorNopeStep());
-    els.app.classList.toggle('has-pick', giving && selected.length > 0);   // 挑中了一张：暖光停止呼吸、变淡
+    els.app.classList.toggle('has-pick', giving && selected.length > 0);
+    els.app.classList.toggle('give-full', giving && selected.length >= (fa || !(s.phase === 'give' && s.give && s.give.from === 0) ? 1 : giveNeed()));   // 挑够了：手牌停止轻晃   // 挑中了一张：暖光停止呼吸、变淡
     const lk = els.table && els.table.querySelector(':scope > .zm-rim .links');
     if (lk) lk.classList.toggle('is-give', giving);
     els.cancelBtn.hidden = mode !== 'target';
