@@ -419,6 +419,9 @@
 .zb-by{position:absolute;top:-7px;left:calc(50% + 9px);width:19px;height:19px;border-radius:50%;overflow:hidden;background:#ebe5d8;box-shadow:0 0 0 1.5px #fffdf8,0 0 0 2.6px #1d1b18;display:flex;align-items:center;justify-content:center;font-size:10px;color:#1d1b18}
 .zb-by svg{width:100%;height:100%;display:block}
 .zb-x2r{font-style:normal;font-size:.62em;margin-left:2px;font-weight:700;opacity:.85;letter-spacing:0}
+/* 领奖台上我那颗胶囊本来就窄（台子 104px 宽），×2 跟在数字后面会把胶囊撑出台子（2026-11-28 用户）：改成胶囊右上角斜盖的一枚小红印（同发牌时那枚 ×2 印），不占宽度 */
+.zm-pod .zmw-ln>b{position:relative}
+.zm-pod .zb-x2r{position:absolute;top:-8px;right:-7px;margin:0;font-size:9px;line-height:1;padding:1px 2px;color:#b4392c;background:#fbf6ec;border:1px solid #b4392c;border-radius:4px;transform:rotate(-10deg);opacity:1;font-family:'ZM Num','ZM Serif',serif;pointer-events:none}
 .zb-it2[aria-pressed=true] .zr-mc{box-shadow:0 0 0 2px #b4392c,0 2px 5px rgba(29,27,24,.25);transform:translateY(-2px)}
 .zb-it2[aria-pressed=true] small{color:#1d1b18;font-weight:700}
 .zb-it2[aria-pressed=true] .pr{color:#b4392c;border-top-color:rgba(180,57,44,.35)}
@@ -895,7 +898,9 @@
         if (d.pick.swap && s.rules.swap && can('swap') && guarantee(s, R().SWAP, zb.nope ? [R().NOPE] : [])) { buy('swap'); zb.swap = true; }
         if ((zb.nope || zb.swap) && R().sortHand) s.hands[0] = R().sortHand(s.hands[0]);
       }
-      if (zb.role || zb.nope || zb.swap) game.hl = null;   // 改过发牌：这局的录像按种子重放会对不上，不收
+      /* 改过发牌：这局的录像按种子重放会对不上，不上传——但日志留在本机（只打标记 mod），「反馈」要靠它列出最近几步机器猫的动作；
+       * 以前直接清成 null，菜单里的「反馈」就跟着没了（2026-11-28 用户：菜单里没有反馈按钮） */
+      if ((zb.role || zb.nope || zb.swap) && game.hl) game.hl.mod = 1;
       if (Object.keys(zb).length) { s.zb = zb; game.zb = zb; }
       d.pick = { counter: false, x2: false, role: null, nope: false, swap: false };   // 开局道具一局一买，开局后清掉
       dayRec().games++; save();

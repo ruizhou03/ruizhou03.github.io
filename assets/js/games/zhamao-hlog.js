@@ -55,13 +55,14 @@
     const s = game.state, n = s.n, r = (x) => (x >= 0 ? real(game, x) : -1);
     const body = Object.assign({}, h, { res: { winner: r(s.winner), winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1, outOrder: s.outOrder.map(r) } });
     delete body.t0;
+    if (h.mod) return;   // 内测开局道具改过发牌（zhamao-beta.js）：按种子重放对不上，不上传
     if (body.acts.length < 2 || body.res.outOrder.length >= n) return;
     try { fetch(URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), keepalive: true }).catch(() => {}); } catch (_) { /* 离线 */ }
   }
   // 「这步不对」反馈（zhamao-feedback.js）：当场发一份打到一半的快照（res.open），这局要是没打完反馈也不丢；打完整局日志里同样带着 fb
   function snapshot(game) {
     const h = game && game.hl;
-    if (!h || !h.fb || !h.fb.length) return;
+    if (!h || h.mod || !h.fb || !h.fb.length) return;
     const s = game.state, r = (x) => (x >= 0 ? real(game, x) : -1);
     const body = Object.assign({}, h, { id: h.id + 'f' + h.fb.length, acts: h.acts.slice(), fb: h.fb.slice(), res: { open: true, winner: -1, winnerTeam: -1, outOrder: s.outOrder.map(r) } });
     delete body.t0;

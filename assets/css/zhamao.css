@@ -2206,8 +2206,9 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zm-pod .zm-pay .zmw-fish circle { fill: var(--pc); }
 /* 我的：胶囊 */
 .zm-pod .zmw-res.is-inline .zmw-ln > b, .zm-pod .zmw-res.is-inline .zmw-ln > b.is-up, .zm-pod .zmw-res.is-inline .zmw-ln > b.is-down {
-  flex-direction: row; gap: 4px; font-size: 15px; color: var(--pc); background: #fffdf8; padding: 4px 10px 4px 8px; border-radius: 999px; text-shadow: none; box-shadow: 0 1px 3px rgba(29, 27, 24, 0.18); }
-.zm-pod .zmw-res.is-inline .zmw-fish { width: 20px; height: 13px; opacity: 1; }
+  flex-direction: row; gap: 3px; font-size: 14px; color: var(--pc); background: #fffdf8; padding: 4px 8px 4px 6px; border-radius: 999px; text-shadow: none; box-shadow: 0 1px 3px rgba(29, 27, 24, 0.18); }
+.zm-pod .zmw-res.is-inline .zmw-fish { width: 18px; height: 12px; opacity: 1; }
+/* 胶囊收窄一点（2026-11-28 用户：加倍后标签超出台子）：两位数千的奖（+12,000）也放得进 94px 的台子 */
 .zm-pod .zmw-res.is-inline .zmw-fish path:nth-child(3) { stroke: #fffdf8; }
 .zm-pod .zmw-res.is-inline .zmw-fish circle { fill: #fffdf8; }
 .zm-pod.is-p2 .blk, .zm-pod.is-p3 .blk { gap: 6px; }
