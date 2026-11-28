@@ -12,6 +12,11 @@
  * 记账（2026-11-27 用户改：只记一个余额）：内测里花的 / 看广告领的 / 补的小鱼干都记到服务器真余额上（钱包 beta → 后端 action=beta，只认站长账号）；
  * 服务器不认（不是站长）才退回本机账 zm.beta.data.v1 的 delta，左上角 / 档案显示「真实余额 + 本机账」。
  * 牌桌上不出说明文字（用户设计原则）：记牌器只有小图标 + 数字，加倍只有一枚 ×2 小印。
+ *
+ * 2026-11-28 用户：开局道具、每日任务对所有玩家开放（每日任务的广告那一份不开）；商店、装扮、广告仍只在内测设备上。
+ *   没开内测的设备也跑 boot(false)：只有开局道具格（单机 / 联机）、记牌器、×2、档案里的每日任务行。
+ *   开局道具 / 加倍 / 每日任务的钱一律走后端 action=item / action=task（价钱、进度服务器自己算，所有玩家同一套；站长也走这条）；
+ *   action=beta 只剩商店外观、看广告、补鱼。
  */
 (function (root) {
   'use strict';
@@ -41,9 +46,9 @@
     try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); } catch (_) { /* */ }
   }
 
-  gate().then(() => { if (ls.get(FLAG) === '1') boot(); });
+  gate().then(() => boot(ls.get(FLAG) === '1'));
 
-  function boot() {
+  function boot(BETA) {
     const W = () => root.ZhamaoWallet || null, R = () => root.ZhamaoRules || null, ART = () => root.ZhamaoArt || null, TB = () => root.ZhamaoTable || null;
     const FISH = () => (W() ? W().FISH : '🐟');
     const fmt = (x) => Math.round(Math.abs(x)).toLocaleString('en-US');
@@ -455,7 +460,7 @@
         cnt.addEventListener('click', () => { clearInterval(iv); m.remove(); resolve({ isEnded: left <= 0 }); });
       });
     }
-    root.ZhamaoAds = { rewarded };
+    if (BETA) root.ZhamaoAds = { rewarded };
     const adThen = (slot, fn) => rewarded(slot).then((r) => { if (r.isEnded) fn(); });
 
     // ── 商店 ──
@@ -479,11 +484,20 @@
     // 记牌器：一局 600，当天花满 3,000（= 原来「一整天」的价）后当天剩下的局都免费
     function ctrSpent() { if (!d.ctr || d.ctr.d !== today()) d.ctr = { d: today(), n: 0 }; return d.ctr.n; }
     const priceAt = (k) => (k === 'counter' ? (counterDayOn() ? 0 : Math.min(BASE.counter, BASE.counterDay - ctrSpent())) : BASE[k]);
-    function takeBuy(k, why) {
-      const p = priceAt(k);
-      if (p > 0) book(-p, why || ITEM_NAME[k]);
-      if (k === 'counter') { ctrSpent(); d.ctr.n += p; if (d.ctr.n >= BASE.counterDay) d.counterDay = today(); save(); }
-      return p;
+    /* 开局道具当场买（2026-11-28 起所有玩家）：后端 action=item op=buy，价钱服务器定（同 BASE）；本机先按 priceAt 摆。返回这笔的 key（加倍结算 / 联机退回要用） */
+    function takeBuy(k, src) {
+      const p = priceAt(k), key = W() && W().itemKey ? W().itemKey() : 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      d.log.unshift({ at: Date.now(), amt: -p, why: ITEM_NAME[k] + (src === 'online' ? '（联机）' : '') }); d.log = d.log.slice(0, 60);
+      if (W() && W().item) W().item('buy', { it: k, key, src: src || 'solo' }, -p).catch(() => { /* 服务器没扣上（余额不够 / 网断）：钱包已按服务器的数摆回去 */ });
+      if (k === 'counter') { ctrSpent(); d.ctr.n += p; if (d.ctr.n >= BASE.counterDay) d.counterDay = today(); }
+      save();
+      return key;
+    }
+    function giveBack(k, key, amt) {   // 联机准备时垫的钱没开成：退回那一笔（服务器只退一次）
+      d.log.unshift({ at: Date.now(), amt, why: ITEM_NAME[k] + '退回（没开局）' }); d.log = d.log.slice(0, 60);
+      if (k === 'counter') { ctrSpent(); d.ctr.n = Math.max(0, d.ctr.n - amt); if (d.counterDay === today() && d.ctr.n < BASE.counterDay) d.counterDay = ''; }
+      save();
+      if (key && W() && W().item) W().item('back', { key }, amt).catch(() => {});
     }
     if (d.inv || d.bd) {   // 第三轮囤的道具按原价退回（第四轮商店不卖道具了）
       let t = 0; Object.keys(d.inv || {}).forEach((k) => { t += (d.inv[k] | 0) * (BASE[k] || 0); });
@@ -896,7 +910,8 @@
       const zb = {};
       // 当场买：钱在这时才扣（2026-11-27 第四轮：不再有存货）
       const can = (k) => !known() || bal() >= priceAt(k);
-      const buy = (k) => { if (!can(k)) return false; takeBuy(k, ITEM_NAME[k]); return true; };
+      const keys = {};
+      const buy = (k) => { if (!can(k)) return false; keys[k] = takeBuy(k); return true; };
       if (counterDayOn()) zb.counter = true;
       else if (d.pick.counter && buy('counter')) zb.counter = true;
       if (o.mode !== 'team') {
@@ -917,6 +932,7 @@
          * 照样上传；重放时先按种子开局、再换成这份，不靠种子对上 */
         game.hl.init = { deck: s.deck.slice(), hands: s.hands.map((h) => h.slice()), roles: s.roles ? s.roles.slice() : null };
       }
+      if (keys.x2) zb.x2key = keys.x2;
       if (Object.keys(zb).length) { s.zb = zb; game.zb = zb; }
       d.pick = PICK0();   // 开局道具一局一买，开局后清掉
       dayRec().games++; save();
@@ -1012,7 +1028,11 @@
       zb.x2done = true; if (g.online) { d.onl = Object.assign({}, d.onl, { done: true }); save(); }
       let x = pay;
       if (x > 0) x = Math.min(x, bal()); else if (x < 0) x = -Math.min(-x, bal());
-      if (x) book(x, '加倍（' + (x > 0 ? '多赢' : '多扣') + '）' + (g.online ? '·联机' : ''));
+      if (x) { d.log.unshift({ at: Date.now(), amt: x, why: '加倍（' + (x > 0 ? '多赢' : '多扣') + '）' + (g.online ? '·联机' : '') }); d.log = d.log.slice(0, 60); save(); }
+      // 2026-11-28 起服务器算：后端 action=item op=x2 认「买了以后第一局结算完的那局」，名次结算再记一份。联机那局是房间结算的，可能还没记上（409）→ 过两秒再问，最多 5 次
+      if (!zb.x2key || !W() || !W().item) return;
+      const ask = (left, est) => W().item('x2', { key: zb.x2key }, est).catch((e) => { if (e && e.status === 409 && left > 0) setTimeout(() => ask(left - 1, 0), 2000); });
+      ask(5, x);
     }
     const zbOf = (g) => g.zb || (g.state && g.state.zb) || null;
     /* 联机开局（2026-11-27 用户同意：联机只开记牌器和加倍，作废 / 交换 / 挑角色不开——会改发牌、影响别人）：
@@ -1029,10 +1049,10 @@
     const OST = () => (TB() && TB().onlineSt ? TB().onlineSt() : null);
     const oPhaseOk = (st) => !!(st && !st.spectator && st.mySeat >= 0 && (st.phase === 'lobby' || (st.game && st.game.over)));
     let oClaimAt = 0, oLast = null;
-    function oRelease(k, why) {
-      const h = d.ohold, amt = h && h[k];
-      if (h) delete h[k];
-      if (amt > 0) book(amt, ITEM_NAME[k] + (why || '退回（没开局）'));
+    function oRelease(k) {
+      const h = d.ohold, amt = h && h[k], key = h && h[k + 'k'];
+      if (h) { delete h[k]; delete h[k + 'k']; }
+      if (amt > 0) giveBack(k, key, amt);
     }
     function oReleaseAll(why) { if (!d.ohold) return; ['counter', 'x2'].forEach((k) => oRelease(k, why)); d.ohold = null; save(); }
     function onlineSync() {
@@ -1046,8 +1066,8 @@
       if (g && !g.over && st.phase !== 'lobby') {
         if (d.ohold) {
           const h = d.ohold, zb = {};
-          if ('counter' in h) { zb.counter = true; ctrSpent(); d.ctr.n += h.counter | 0; if (d.ctr.n >= BASE.counterDay) d.counterDay = today(); }
-          if ('x2' in h) zb.x2 = true;
+          if ('counter' in h) zb.counter = true;   // 记牌器当天花了多少：垫钱时 takeBuy 已经记过
+          if ('x2' in h) { zb.x2 = true; if (h.x2k) zb.x2key = h.x2k; }
           d.onl = { m: g.matchNo, at: Date.now(), zb: Object.keys(zb).length ? zb : null };
           d.ohold = null; save();
         }
@@ -1058,12 +1078,12 @@
       const team = !!(g && g.teams && g.teams.length) || !!(st.config && st.config.rules && st.config.rules.mode === 'team');
       const h = d.ohold || (d.ohold = { code: st.code, t: Date.now() });
       // 加倍：准备了、勾着 → 垫上；否则退
-      if (ready && pk.x2 && !team) { if (!('x2' in h) && bal() >= priceAt('x2')) { h.x2 = priceAt('x2'); book(-h.x2, '加倍（联机）'); } }
+      if (ready && pk.x2 && !team) { if (!('x2' in h) && bal() >= priceAt('x2')) { h.x2 = priceAt('x2'); h.x2k = takeBuy('x2', 'online'); } }
       else if ('x2' in h) oRelease('x2');
       // 记牌器：准备了、勾着、桌上还没人认 → 报给服务器；服务器认的是我才垫钱，认的是别人就退
       const wantC = ready && pk.counter;
       if (wantC && !st.ctrBy && performance.now() - oClaimAt > 1500 && (counterDayOn() || bal() >= priceAt('counter'))) { oClaimAt = performance.now(); if (TB().act) TB().act('counter', {}); }
-      if (wantC && st.ctrBy === me) { if (!('counter' in h)) { h.counter = priceAt('counter'); if (h.counter > 0) book(-h.counter, '记牌器（联机·全桌）'); } }
+      if (wantC && st.ctrBy === me) { if (!('counter' in h)) { const p0 = priceAt('counter'); h.counterk = p0 > 0 ? takeBuy('counter', 'online') : ''; h.counter = p0; } }
       else if ('counter' in h) oRelease('counter');
       if (!('x2' in h) && !('counter' in h)) d.ohold = null;
       save();
@@ -1236,20 +1256,26 @@
     }
     setInterval(() => {
       if (SHOW) { paintFrame(); const g = TB() && TB().game ? TB().game() : null; if (g && g.state) try { fxWatch(g); } catch (_) { /* */ } return; }
-      mountCover();
-      try { repaintPicks(); mountDress(); } catch (_) { /* */ }
-      paintFrame();
+      if (BETA) mountCover();
+      try { repaintPicks(); if (BETA) mountDress(); } catch (_) { /* */ }
+      if (BETA) paintFrame();
       const g = TB() && TB().game ? TB().game() : null;
       if (!g || !g.state) { if (ctrEl) { ctrEl.remove(); ctrEl = null; } closeCtr(); return; }
-      try { onlineStart(g); paintCounter(g); paintX2(g); settleX2(g); taskWatch(g); fxWatch(g); } catch (_) { /* 内测：别让它拖垮牌局 */ }
+      try { onlineStart(g); paintCounter(g); paintX2(g); settleX2(g); taskWatch(g); if (BETA) fxWatch(g); } catch (_) { /* 内测：别让它拖垮牌局 */ }
     }, 150);
-    applyLook();
+    if (BETA || SHOW) applyLook();
 
     // ── 档案里的「内测」卡：广告翻倍、额外救济、每日任务 ──
     const TASKS = [['games', '对战 3 局', 3, 300], ['win', '拿 1 次第一名', 1, 500], ['online', '联机对战 1 局', 1, 500]];   // 2026-11-27 用户：措辞要严谨（「赢一局」有歧义）
     const RELIEF = 2000, EXTRA_MAX = 2;
     /* 2026-11-27 用户第 9 条：任务和签到合成一栏——先签到七格，下面一行行任务。内测这几行直接沿用签到卡里「今日首胜」那种 .zmp-task 行，
      * 插在今日首胜下面（没有就接在七格下面），不再单独开一张卡 */
+    /* 任务进度（2026-11-28 起以服务器为准：钱包 me / profile 回的 tasks，按结算完的局算）；服务器还没说过今天的 → 先用本机数 */
+    function taskOf(k, goal) {
+      const ws = W() && W().state ? W().state() : null, t = ws && ws.tasks && ws.tasksDay === today() ? ws.tasks[k] : null, r = dayRec();
+      if (t) return { v: Math.min(goal, Math.max(t.v | 0, r.got[k] ? goal : 0)), got: r.got[k] === 2 ? 2 : t.got || r.got[k] ? 1 : 0 };
+      return { v: Math.min(goal, r[k] || 0), got: r.got[k] || 0 };
+    }
     function betaCard() {
       const r = dayRec(), ws = W() && W().state ? W().state() || {} : {}, ck = ws.ck === today(), rl = ws.relief || {};
       const used = rl.left != null ? Math.max(0, 2 - rl.left) : 0;
@@ -1258,12 +1284,13 @@
       const ad = (k, ok) => (ok ? '<button type="button" data-zbad="' + k + '">▶ 看广告</button>' : '');
       let h = '<div data-zbcard>';   // 2026-11-27 用户：任务 / 内测右边不要单独一行小计，加的鱼直接算进档案第一格的总额（ZhamaoProfileBalAdj）
       TASKS.forEach(([k, name, goal, amt]) => {
-        const v = Math.min(goal, r[k] || 0), got = r.got[k] || 0;
+        const { v, got } = taskOf(k, goal);
         // 没做完：「去完成」（同今日首胜，点了关档案、打开单机 / 联机设置单），进度写在名字底下
-        const right = got === 2 ? '<em>已领取</em>' : got === 1 ? ad('t2:' + k, true) : v >= goal ? '<button type="button" data-zbt="' + k + '">领取</button>' : '<button type="button" class="go" data-zbgo="' + (k === 'online' ? 'online' : 'solo') + '">去完成</button>';
+        const right = got === 2 || (got === 1 && !BETA) ? '<em>已领取</em>' : got === 1 ? ad('t2:' + k, true) : v >= goal ? '<button type="button" data-zbt="' + k + '">领取</button>' : '<button type="button" class="go" data-zbgo="' + (k === 'online' ? 'online' : 'solo') + '">去完成</button>';
         // 2026-11-27 用户：一局没做只写名字；做了一部分名字后面加（1/3）；做完不写 3/3，按钮直接变「领取」
-        h += line(name + (v > 0 && v < goal ? '（' + v + '/' + goal + '）' : ''), amt, got === 1 ? '看广告再领一份' : '', v >= goal && got < 2, right);
+        h += line(name + (v > 0 && v < goal ? '（' + v + '/' + goal + '）' : ''), amt, got === 1 && BETA ? '看广告再领一份' : '', v >= goal && (BETA ? got < 2 : !got), right);
       });
+      if (!BETA) return h + '</div>';   // 2026-11-28 用户：广告不上线——救济翻倍 / 额外救济只在内测
       if (used > r.rAd) h += line('救济翻倍', RELIEF, '今天领过 ' + used + ' 次救济', true, ad('relief', true));
       if (rl.left === 0) h += line('额外救济', RELIEF, '今天 ' + r.extra + ' / ' + EXTRA_MAX, r.extra < EXTRA_MAX, r.extra < EXTRA_MAX ? ad('extra', true) : '<em>明天再来</em>');
       return h + '</div>';
@@ -1291,7 +1318,15 @@
         const a = e.target.closest('[data-zbad]'), t = e.target.closest('[data-zbt]');
         const r = dayRec(), row0 = (a || t) && (a || t).closest('.zmp-task'), idx = row0 ? [...card.querySelectorAll('.zmp-task')].indexOf(row0) : 0;
         const gain = (amt, why) => { book(amt, why); mountCard(bodyEl); fishIn(rowAt(bodyEl, idx), amt); };
-        if (t && !t.disabled) { const k = t.dataset.zbt, row = TASKS.find((x) => x[0] === k); r.got[k] = 1; save(); gain(row[3], '每日任务「' + row[1] + '」'); return; }
+        if (t && !t.disabled) {   // 2026-11-28 起服务器领（action=task：服务器自己对进度、一天一次）；没领上（进度还没对上 / 网断）→ 按钮回来
+          const k = t.dataset.zbt, row = TASKS.find((x) => x[0] === k);
+          if (r.got[k]) return;
+          r.got[k] = 1; save(); mountCard(bodyEl); fishIn(rowAt(bodyEl, idx), row[3]);
+          d.log.unshift({ at: Date.now(), amt: row[3], why: '每日任务「' + row[1] + '」' }); d.log = d.log.slice(0, 60); save();
+          const back = () => { r.got[k] = 0; save(); if (bodyEl.isConnected) mountCard(bodyEl); };
+          if (W() && W().task) W().task(k, row[3]).then((j) => { if (j && j.dup) { /* 已经领过：按服务器的数摆 */ } if (bodyEl.isConnected) mountCard(bodyEl); }, back); else back();
+          return;
+        }
         if (!a || a.disabled) return;
         const k = a.dataset.zbad;
         if (k === 'relief') adThen('relief', () => { r.rAd++; save(); gain(RELIEF, '救济·看广告翻倍'); });
@@ -1303,7 +1338,7 @@
      * 档案那边签成功、鱼游完会调 ZhamaoAfterCheckin(amt) */
     root.ZhamaoAfterCheckin = (amt) => {
       const r = dayRec(), host = document.querySelector('.zmp');
-      if (!host || r.ck) return;
+      if (!BETA || !host || r.ck) return;   // 签到看广告翻倍：只在内测
       r.ck = 'seen'; save();   // 弹过一次就算：关了不再给
       const m = document.createElement('div');
       m.className = 'zmp-bmask zb-ckpop';
@@ -1323,7 +1358,7 @@
     // 档案每次重画 body：看到签到卡就把内测卡插在前面
     new MutationObserver(() => {
       const b = document.querySelector('.zmp .zmp-body');
-      mountProfileShop();
+      if (BETA) mountProfileShop();
       if (b && b.querySelector('.zmp-week') && !b.querySelector('[data-zbcard]')) {
         // 签到额：今天这格（已签的最后一格 / 正要签的那格）的数，看广告再领同样一份
         const days = [...b.querySelectorAll('.zmp-day')], cur = days.filter((x) => x.classList.contains('is-done')).pop();
@@ -1333,6 +1368,6 @@
       }
     }).observe(document.body, { childList: true, subtree: true });
 
-    root.ZhamaoBeta = { on: true, solo, onDeal, blockStart, pickCost, openShop, rewarded, bal, data: () => d };
+    root.ZhamaoBeta = { on: BETA, solo, onDeal, blockStart, pickCost, openShop, rewarded, bal, data: () => d };
   }
 })(window);
