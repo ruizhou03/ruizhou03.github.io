@@ -900,9 +900,12 @@
   const isActPair = (m) => m.type === 'play' && m.cards.length === 2 && K[m.cards[0]] === K[m.cards[1]] && R.ACTIONS.indexOf(K[m.cards[0]]) >= 0 && K[m.cards[0]] !== R.FLUX;
   const pairEmergency = (v) => PAIR_EMERG === 'never' ? false : PAIR_EMERG === 'nodef' ? !saveOk(v) : (!saveOk(v) && (() => { const t = pol(v).topInfo(v); return t.known ? t.boom : t.p >= 0.3; })());
   const pairPen = (v, m) => (PAIR_HOLD && isActPair(m) && !pairEmergency(v) ? PAIR_HOLD : 0);
+  const PEEK_NET = !(FXO && FXO.peekNet === false);
   function brainAct(v) {
     const nm = pol(v).act(v);
-    if (isPeekMove(nm)) return nm;
+    // 窥探 / 改命的时机照规则（网络没练过什么时候看）——但顶上那张我已经知道了，规则还想再看 / 再改，就让网络把它和别的出法一起比
+    // （2026-11-28 用户局：被甩锅、知道顶上两张都是炸弹猫，手握索要却又打一张改命，被截胡猫作废连索要也被顺走，摸炸弹出局；网络本来给「索要」最高分）
+    if (isPeekMove(nm) && !(PEEK_NET && v.known.some((x) => x.pos === 0))) return nm;
     const cands = actCandidates(v);
     if (!cands.some((c) => moveKey(c) === moveKey(nm))) cands.push(nm);
     if (cands.length === 1) return cands[0];
@@ -1048,11 +1051,16 @@
    * 顶上几张的每种排法都在同一批假想局面里打到底比名次分。研究版实测对 S5 名次分 0.504 / 开交换 0.514 / 组队胜率 50.7%，
    * 猫放顶从 47% 降到 17%，多数放第 2、3 张后自己摸 */
   function perms(a) { if (a.length <= 1) return [a.slice()]; const out = []; a.forEach((x, i) => perms(a.slice(0, i).concat(a.slice(i + 1))).forEach((p) => out.push([x].concat(p)))); return out; }
+  const ALTER_TIE = 0.01;   // 推演分差在这以内（每局名次分）算打平
   function hardAlter(v, rng) {
     const cands = perms(v.alter.cards);
     if (cands.length === 1) return cands[0];
     const scores = evaluate(v, (s, o) => R.alterTop(s, v.me, o), cands, ALTER_S, rng);
-    return cands[argmax(scores)];
+    // 2026-11-28 用户：怎么排都死（推演分全是 0）时按原顺序留着炸弹猫在第一张，看着很蠢——分数打平 / 只差一点时，炸弹猫越往后越好
+    const best = scores[argmax(scores)], deep = (o) => o.findIndex((id) => K[id] === R.BOOM);
+    let bi = -1;
+    cands.forEach((o, i) => { if (scores[i] >= best - ALTER_TIE * ALTER_S && (bi < 0 || deep(o) > deep(cands[bi]) || (deep(o) === deep(cands[bi]) && scores[i] > scores[bi]))) bi = i; });
+    return cands[bi];
   }
   function chooseAlter(v, tier, rng) {
     rng = rng || Math.random;
