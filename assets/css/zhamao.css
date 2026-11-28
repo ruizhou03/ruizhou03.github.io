@@ -2247,3 +2247,6 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zm-rank-rest.is-many li > .zmw-res.is-inline .zmw-ln > b { font-size: 16px; }
 .zm-rank-rest.is-many li > .zmw-res.is-inline .zmw-ln > b .zmw-fish { width: 24px; height: 15px; }
 @media (max-width: 359px) { .zm-pod .zmw-res.is-inline .zmw-ln > b, .zm-pod .blk > .zm-pay { font-size: 11px; gap: 2px; letter-spacing: -0.01em; } .zm-pod .zmw-res.is-inline .zmw-fish, .zm-pod .zm-pay .zmw-fish { width: 15px; height: 10px; } }
+/* 第一名台子宽、二三名窄（2026-11-28 用户）：只有第一名会拿到五位数（高手 8–9 人局加倍 +10,800 / +12,000），第二名最多 +8,400、第三名最多 ±5,200，窄台子放得下 */
+.zm-pod.is-p1 { flex-basis: 122px; }
+.zm-pod.is-p2, .zm-pod.is-p3 { flex-basis: 98px; }

@@ -421,7 +421,7 @@
 .zb-x2r{font-style:normal;font-size:.62em;margin-left:2px;font-weight:700;opacity:.85;letter-spacing:0}
 /* 领奖台上我那颗胶囊本来就窄（台子 104px 宽），×2 跟在数字后面会把胶囊撑出台子（2026-11-28 用户）：改成胶囊右上角斜盖的一枚小红印（同发牌时那枚 ×2 印），不占宽度 */
 .zm-pod .zmw-ln>b{position:relative}
-.zm-pod .zb-x2r{position:absolute;top:-11px;right:-4px;margin:0;font-size:9px;line-height:1;padding:1px 2px;color:#b4392c;background:#fbf6ec;border:1px solid #b4392c;border-radius:4px;transform:rotate(-10deg);opacity:1;font-family:'ZM Num','ZM Serif',serif;pointer-events:none}
+.zm-pod .zb-x2r{position:absolute;top:-15px;right:-3px;margin:0;font-size:9px;line-height:1;padding:1px 2px;color:#b4392c;background:#fbf6ec;border:1px solid #b4392c;border-radius:4px;transform:rotate(-10deg);opacity:1;font-family:'ZM Num','ZM Serif',serif;pointer-events:none}
 .zb-it2[aria-pressed=true] .zr-mc{box-shadow:0 0 0 2px #b4392c,0 2px 5px rgba(29,27,24,.25);transform:translateY(-2px)}
 .zb-it2[aria-pressed=true] small{color:#1d1b18;font-weight:700}
 .zb-it2[aria-pressed=true] .pr{color:#b4392c;border-top-color:rgba(180,57,44,.35)}
