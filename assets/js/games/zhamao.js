@@ -2603,8 +2603,9 @@
     else if (mode === 'give') {
       // 胖橘出的索要要给两张：按钮上写第几张（2026-11-15 巡查：以前给完一张又要给，不知道怎么回事）
       const gv = s.give, two = gv && R.roleOf && R.roleOf(s, gv.to) === 'fat';
-      if (two) els.playBtn.innerHTML = T('ui.btn.give', '给牌') + '<b class="zm-xn">×' + (gv.left > 1 ? 2 : 1) + '</b>'; else els.playBtn.textContent = T('ui.btn.give', '给牌');
-      els.playBtn.disabled = selected.length !== 1;
+      const need = giveNeed();
+      if (two) els.playBtn.innerHTML = T('ui.btn.give', '给牌') + '<b class="zm-xn">×' + need + '</b>'; else els.playBtn.textContent = T('ui.btn.give', '给牌');
+      els.playBtn.disabled = selected.length !== need;
     }
     else if (fa) { els.drawBtn.hidden = true; els.playBtn.textContent = T('ui.btn.give', '给牌'); els.playBtn.disabled = !(selected.length === 1 && R.KIND_OF[selected[0]] !== R.NOPE); }   // 索要合一：作废 · 给牌 两个键
     else if (canNope || onlinePass) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = favorNopeStep() ? T('ui.btn.noNope', '不作废') : T('ui.cancel', '取消'); }
@@ -2681,6 +2682,8 @@
    * 一开始就是挑牌的样子（整排手牌抬起描粉边、「给牌」粉色），手里的作废照旧发紫光，作废键也在。点作废牌 / 作废键 = 作废；
    * 挑一张别的牌点「给牌」= 不作废、直接给这张（反应窗一关就飞过去，不再停一下等我挑）。导火索烧完没动 = 照常进挑牌，样子不变 */
   // 已经挑好、等窗口关：样子保持挑牌（粉边、那张抬着），别闪回一下普通手牌
+  // 这一下要我给几张：贪吃猫出的索要 = 两张（手里只剩一张就一张）；联机的局面里没有 left，按角色算
+  const giveNeed = () => { const s = game && game.state, g = s && s.give; if (!g) return 1; const left = g.left != null ? g.left : (s.roles && R.roleOf(s, g.to) === 'fat' ? 2 : 1); return Math.max(1, Math.min(left, (s.hands[0] || []).length)); };
   const favorLook = () => favorAsk() || !!(game && game.favorPre != null && (game.state.phase === 'react' || game.state.phase === 'give'));
   /* 2026-11-22 用户（新玩家看不懂：一上来能点手牌、按钮却是「作废」，几秒后又变「给牌」）：拆回两步，挑了丙——
    * ① 作废：我或队友手里有作废时先过这一步，手牌灰着不能挑，只有「作废 / 不作废」；② 给牌：手牌底下一层粉色暖光一呼一吸，挑中一张后停。
@@ -2951,11 +2954,17 @@
     if (!game || busy || game.online) return;   // 联机超时由服务器处理
     const s = game.state;
     if (mode === 'target') cancelTarget();
+    const keep = mode === 'give' ? selected.slice() : [];
     selected = [];
     timeouts += 1;
     autoAct = true;
     if (s.phase === 'act' && s.turn === 0) { renderHand(); apply(0, { type: 'draw' }); }
-    else if (s.phase === 'give' && s.give.from === 0) { mode = null; renderHand(); apply(0, decideBot(0)); }
+    else if (s.phase === 'give' && s.give.from === 0) {
+      // 到点：贪吃猫要两张、我已经抬起一张——这张照给，另一张替我挑
+      const d = decideBot(0);
+      if (d.cards && keep.length === 1 && s.hands[0].indexOf(keep[0]) >= 0) d.cards = [keep[0], d.cards.find((id) => id !== keep[0])], d.card = keep[0];
+      mode = null; renderHand(); apply(0, d);
+    }
     if (timeouts >= 2) setAutopilot(true);   // 第二回合还超时：这一下照样摸，之后进托管
   }
   const myTier = () => settings.tier || 'normal';
@@ -3129,7 +3138,7 @@
     try {
       if (d.type === 'draw') ev = R.draw(s, seat);
       else if (d.type === 'play') ev = R.play(s, seat, d.cards, d);
-      else if (d.type === 'give') ev = R.give(s, seat, d.card);
+      else if (d.type === 'give') ev = R.give(s, seat, d.cards || d.card);
       else if (d.type === 'pick') ev = R.pickDiscard(s, seat, d.card);
       else if (d.type === 'insert') ev = R.insertKitten(s, seat, d.pos, !!d.rand);
       else if (d.type === 'save') ev = R.catSave(s, seat, d.cards, !!d.no);
@@ -3159,7 +3168,7 @@
     const m = {};
     if (seat !== 0) return m;
     if (d.type === 'play' && game.previewSrc) { const p = game.previewSrc; game.previewSrc = null; return p; }   // 先摆到桌上的那几张：从桌上接着演
-    const ids = d.type === 'play' ? d.cards : d.type === 'give' ? [d.card] : [];
+    const ids = d.type === 'play' ? d.cards : d.type === 'give' ? d.cards || [d.card] : [];
     for (const id of ids) { const c = handCard(id); if (c) m[id] = c.getBoundingClientRect(); }
     return m;
   }
@@ -3208,7 +3217,8 @@
     if (e.t === 'play') game.nopeSeats = [];
     else if (e.t === 'nope') (game.nopeSeats = game.nopeSeats || []).push(e.seat);
     if (e.t === 'askGive') return animAskGive(e, t, prev);
-    if (e.t === 'give' && game.rolePop) return animTransfer(e, t, 'give').then(() => fatGave(e, t));
+    if (e.t === 'give' && game.rolePop) return (game.rolePop.owe && game.rolePop.owe.isConnected ? animGiveSlots(e, t) : animTransfer(e, t, 'give')).then(() => fatGave(e, t));
+    if (e.t === 'give' && e.n > 1) return bareEnd(animGiveSlots(e, t), t);
     if (e.t === 'steal' && game.rolePop) return animSteal(e, t).then(() => (t === token ? wait(ms(200)).then(rolePopDone) : null));
     switch (e.t) {
       case 'play': return animPlay(e, t);
@@ -3941,9 +3951,10 @@
         if (av) {
           owe = document.createElement('span');
           const ar = av.getBoundingClientRect();
-          owe.className = 'zm-owe' + (ar.left + ar.width / 2 > innerWidth * 0.6 ? ' is-left' : '');   // 右半边的头像：小牌背摆左边，别出屏
+          // 2026-11-27 用户：一次要两张——被要的人头像底下摆两个空格（贪吃猫橙色虚框），给的牌扣着落进去，再一起飞给贪吃猫
+          owe.className = 'zm-owe is-slot' + (ar.left + ar.width / 2 > innerWidth * 0.6 ? ' is-left' : '');   // 右半边的头像：空格摆左边，别出屏
           owe.style.setProperty('--glow', band);
-          owe.innerHTML = '<i data-r="-12" style="transform:rotate(-12deg)"></i><i data-r="10" style="transform:rotate(10deg)"></i>';
+          owe.innerHTML = '<i data-r="-7" style="transform:rotate(-7deg)"></i><i data-r="7" style="transform:rotate(7deg)"></i>';
           av.appendChild(owe);
           if (!fx.reduce()) owe.querySelectorAll('i').forEach((c, k) => c.animate([{ transform: 'rotate(' + c.dataset.r + 'deg) translateY(10px) scale(.3)', opacity: 0 }, { transform: 'rotate(' + c.dataset.r + 'deg) translateY(-3px) scale(1.15)', opacity: 1, offset: 0.65 }, { transform: 'rotate(' + c.dataset.r + 'deg)', opacity: 1 }], { duration: ms(380), delay: ms(k * 120), easing: 'cubic-bezier(.3,.9,.4,1.2)', fill: 'backwards' }));
         }
@@ -3992,9 +4003,12 @@
   async function fatGave(e, t) {
     const rp = game.rolePop;
     if (t !== token || !rp || rp.kind !== 'fat') return;
-    rp.n += 1;
-    const c = rp.owe && rp.owe.querySelector('i:not(.is-gone)');
-    if (c) { c.classList.add('is-gone'); c.animate([{ opacity: 1, transform: 'rotate(' + c.dataset.r + 'deg)' }, { opacity: 0, transform: 'rotate(' + c.dataset.r + 'deg) translateY(-8px) scale(.4)' }], { duration: ms(220), fill: 'forwards' }); }
+    rp.n += e.n || 1;
+    for (let k = 0; k < (e.slotted ? 0 : e.n || 1); k++) {   // animGiveSlots 已经把落过的空格收掉了
+      const c = rp.owe && rp.owe.querySelector('i:not(.is-gone)');
+      if (!c) break;
+      c.classList.add('is-gone'); c.animate([{ opacity: 1, transform: 'rotate(' + c.dataset.r + 'deg)' }, { opacity: 0, transform: 'rotate(' + c.dataset.r + 'deg) translateY(-8px) scale(.4)' }], { duration: ms(220), fill: 'forwards' });
+    }
     const s = game.state, more = rp.n < 2 && s.phase === 'give' && s.give && s.give.from === e.from && s.give.to === e.to;
     if (!more && rp.n < 2) {   // 对方只剩一张、给完就空了：剩下那张小牌背抖两下散掉，粉色灯带黯淡着缩回，猫章耷拉一下（要不到第二张，有点失落）
       const c2 = rp.owe && rp.owe.querySelector('i:not(.is-gone)');
@@ -4045,6 +4059,67 @@
     }
   }
 
+
+  /* 贪吃猫一次给两张（2026-11-27 用户）：被要的人头像底下那两个空格各落进一张扣着的牌（我给的：从手里原位飞进去、半路翻成背面；
+   * 别人给的：从他头像里冒出来），停一拍，两张一前一后飞给贪吃猫（我是贪吃猫：半路翻开、收进手牌）。灯带只连这一次。
+   * 对方只剩一张就只落一格；没有空格（换视角 / 断线重连后）就照普通给牌一张张飞 */
+  async function animGiveSlots(e, t) {
+    const n = e.n || 1, ids = e.cards || (e.card != null ? [e.card] : []);
+    const rp = game.rolePop, slots = rp && rp.owe && rp.owe.isConnected ? Array.from(rp.owe.querySelectorAll('i:not(.is-gone)')).slice(0, n) : [];
+    if (slots.length < n || fx.reduce()) {
+      for (let k = 0; k < n; k++) { if (t !== token) return; await animTransfer(Object.assign({}, e, { card: ids[k], cards: undefined, n: undefined }), t, 'give'); }
+      return;
+    }
+    seatEl(e.from).querySelectorAll('.zm-bubble').forEach((b) => b.remove());
+    if (game.arrow) { game.arrow.remove(); game.arrow = null; }
+    if (game.wanderDone) { game.wanderDone.cancel(); game.wanderDone = null; }
+    e.slotted = true;
+    const known = ids.length === n, seeFrom = known && e.from === 0, seeTo = known && e.to === 0;
+    const srcs = ids.length === n && e.from === 0 ? ids.map((id) => (game.src && game.src[id]) || handRectOf(id)) : slots.map(() => avPoint(e.from));
+    if (e.from === 0) { dropFromHand(ids); renderHand(); } else { ov.counts[e.from] -= n; renderSeat(e.from); }
+    const sr = slots.map((c) => c.getBoundingClientRect()), su = sr[0].width / Math.cos(7 * Math.PI / 180) * 0.97;
+    // ① 落进空格
+    snd('give');
+    const sit = await Promise.all(slots.map((c, k) => fx.fly({
+      html: seeFrom ? cardHtml(ids[k]) : backHtml(), back: backHtml(), flip: seeFrom ? 'down' : null, flipAt: 0.15,
+      from: srcs[k], to: sr[k], w: su, s0: e.from === 0 ? HU() / su : 0.35, s1: 1, dur: ms(e.from === 0 ? 520 : 380), delay: k * ms(130),
+      lift: e.from === 0 ? 60 : 18, r0: e.from === 0 ? 0 : -16, r1: +c.dataset.r, keep: true, shadow: false,
+    }).then((el) => { if (el && t === token) { c.classList.add('is-full'); if (!fx.reduce()) c.animate([{ transform: 'rotate(' + c.dataset.r + 'deg) scale(1.18)' }, { transform: 'rotate(' + c.dataset.r + 'deg)' }], { duration: ms(200), easing: 'ease-out' }); } return el; })));
+    if (t !== token) { sit.forEach((el) => el && el.remove()); return; }
+    await wait(ms(260));
+    if (t !== token) { sit.forEach((el) => el && el.remove()); return; }
+    // ② 两张一起飞给贪吃猫
+    releaseRim();
+    const dest = slots.map((c, k) => (e.to === 0 && ids[k] != null ? null : avPoint(e.to)));
+    if (e.to === 0) ids.forEach((id, k) => { dest[k] = aboveSlot(reserveHandSlot(id)); });
+    const u = e.to === 0 ? HU() : U();
+    snd('give');
+    const a = fx.center(sr[0]), b = e.to === 0 ? fx.center(dest[0]) : dest[0];
+    for (let i = 1; i <= 5; i++) {
+      const q = i / 6, x = a.x + (b.x - a.x) * q, y = a.y + (b.y - a.y) * q - Math.sin(Math.PI * q) * 60;
+      setTimeout(() => { if (t === token) fx.float(x + (i % 2 ? 7 : -7), y + 6, 'heart', { dx: i % 2 ? 8 : -8, dy: -26, size: 9 + i * 1.6, color: PINKS[i % 3], dur: ms(760), rot: i % 2 ? 12 : -12 }); }, ms(620) * q);
+    }
+    await Promise.all(slots.map((c, k) => {
+      const from = sr[k];
+      return wait(k * ms(140)).then(() => {
+        if (sit[k]) sit[k].remove();
+        c.classList.remove('is-full'); c.classList.add('is-gone'); c.style.opacity = '0';
+        if (t !== token) return null;
+        return fx.fly({
+          html: seeTo ? cardHtml(ids[k]) : backHtml(), back: backHtml(), cls: 'is-favor', flip: seeTo ? 'up' : null, flipAt: 0.25,
+          from, to: dest[k], w: u, s0: su / u, s1: e.to === 0 ? 1 : 0.4, fadeOut: e.to !== 0, dur: ms(620), lift: 70, r0: +c.dataset.r, r1: 0,
+        }).then(() => {
+          if (t !== token) return;
+          if (e.to === 0) revealHandCard(ids[k], dest[k]); else { ov.counts[e.to] += 1; renderSeat(e.to); }
+        });
+      });
+    }));
+    if (t !== token) return;
+    const hr = e.to === 0 && ids[0] != null ? handRectOf(ids[0]) : null;
+    favorLand(e.to, hr ? fx.center(hr) : null);
+    markVictim(-1);
+    await wait(ms(220));
+  }
 
   /* 给 / 偷来的牌在两人之间飞：我参与的那一方看得到正面（从我手里出去的从原位起飞，进我手里的半路翻开）；
    * 「蹭一张」一路冒小心心 */
@@ -5500,7 +5575,11 @@
     nopeLift.clear();
     if (game.favorPre != null) return;   // 索要合一：已经点了给牌，等它飞
     if (favorAsk()) { selected = selected[0] === id ? [] : [id]; snd('tap'); renderHand({ flip: false }); renderBand(); return; }
-    if (mode === 'give') { selected = selected[0] === id ? [] : [id]; snd('tap'); renderHand(); renderBand(); return; }
+    if (mode === 'give') {   // 贪吃猫要两张（2026-11-27 用户）：一次点起两张；再点抬着的放下，点第三张就把最早抬的那张换下去
+      const need = giveNeed(), i = selected.indexOf(id);
+      if (i >= 0) selected.splice(i, 1); else { selected.push(id); if (selected.length > need) selected.shift(); }
+      snd(i >= 0 ? 'untap' : 'tap'); renderHand(); renderBand(); return;
+    }
     if (mode === 'save') { saveTap(id, node); return; }
     if (mode === 'target') { cancelTarget(); }
     if (!myTurnToAct()) { shake(node); return; }
@@ -5534,10 +5613,10 @@
       passReact(); return;
     }
     if (mode === 'give') {
-      if (selected.length !== 1) return;
+      const need = giveNeed();
+      if (selected.length !== need) return;
       if (tut && tut.allow && !tut.allow({ type: 'give', card: selected[0] })) { shake(els.playBtn); return; }
-      const id = selected[0];
-      apply(0, { type: 'give', card: id });
+      apply(0, need > 1 ? { type: 'give', card: selected[0], cards: selected.slice() } : { type: 'give', card: selected[0] });
       return;
     }
     if (!myTurnToAct()) return;
@@ -8992,11 +9071,14 @@
         for (const id of mA.concat(mB)) forget(s, id);
         break;
       }
-      case 'askGive': s.phase = 'give'; s.give = { from: e.from, to: e.to }; break;
-      case 'give': {
-        let id = e.card;
-        if (id != null) { putInHand(s, e.from, id); const h = s.hands[e.from]; h.splice(h.indexOf(id), 1); } else id = takeAny(s, e.from);
-        moveTo(s, e.to, id);
+      case 'askGive': s.phase = 'give'; s.give = { from: e.from, to: e.to }; if (e.left != null) s.give.left = e.left; break;
+      case 'give': {   // 贪吃猫一次给两张：cards / n（别人看只有 n）
+        const ids = e.cards || (e.card != null ? [e.card] : null);
+        for (let k = 0; k < (e.n || 1); k++) {
+          let id = ids ? ids[k] : null;
+          if (id != null) { putInHand(s, e.from, id); const h = s.hands[e.from]; h.splice(h.indexOf(id), 1); } else id = takeAny(s, e.from);
+          moveTo(s, e.to, id);
+        }
         s.give = null; s.phase = 'act';
         break;
       }
@@ -10112,7 +10194,7 @@
       const run = (x) => {
         if (x.type === 'draw') return R.draw(s, seat);
         if (x.type === 'play') return R.play(s, seat, x.cards, x);
-        if (x.type === 'give') return R.give(s, seat, x.card);
+        if (x.type === 'give') return R.give(s, seat, x.cards || x.card);
         if (x.type === 'pick') return R.pickDiscard(s, seat, x.card);
         if (x.type === 'insert') return R.insertKitten(s, seat, x.pos, !!x.rand);
         if (x.type === 'save') return R.catSave(s, seat, x.cards, !!x.no);
@@ -11026,6 +11108,7 @@
       rolefatone: () => { setRole(0, 'fat'); give(0, R.FAVOR); s.removed.push(...s.hands[bot].splice(1)); s.turn = 0; renderAll(); apply(0, { type: 'play', cards: [R.findKind(s.hands[0], R.FAVOR)], target: bot }); },
       roletabbymiss: () => { const o = 2 % s.n; setRole(o, 'tabby'); if (R.countKind(s.hands[o], R.NOPE) === 0) give(o, R.NOPE); s.removed.push(...s.hands[bot].splice(0)); give(bot, R.SKIP); s.turn = bot; game.forceNope = [o]; renderAll(); apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.SKIP)] }); },
       rolefat: () => { setRole(bot, 'fat'); plays.favor(); },
+      rolefatbot: () => { const o = 2 % s.n; setRole(bot, 'fat'); give(bot, R.FAVOR); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.FAVOR)], target: o === bot ? 0 : o }); },   // 看别人：机器猫贪吃猫找另一家要两张
       rolefatme: () => { setRole(0, 'fat'); give(0, R.FAVOR); s.turn = 0; apply(0, { type: 'play', cards: [R.findKind(s.hands[0], R.FAVOR)], target: bot }); },
       rolecalicosteal: () => { setRole(0, 'calico'); ['orange', 'tabby', 'siamese'].forEach((k) => give(0, k)); give(bot, 'cow'); give(bot, 'cow'); s.turn = bot; const cw = s.hands[bot].filter((x) => R.KIND_OF[x] === 'cow').slice(0, 2); apply(bot, { type: 'play', cards: cw, target: 0 }); },   // 我是百搭猫、被偷：手里的猫亮本身，偷完翻回万能猫
       rolecalicofavor: () => { setRole(0, 'calico'); ['orange', 'tabby', 'siamese'].forEach((k) => give(0, k)); give(bot, R.FAVOR); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.FAVOR)], target: 0 }); },   // 我是百搭猫、被索要：挑牌时猫亮本身

@@ -8,7 +8,7 @@ const A = require('../assets/js/games/zhamao-ai.js');
 function apply(s, seat, d) {
   if (d.type === 'draw') return R.draw(s, seat);
   if (d.type === 'play') return R.play(s, seat, d.cards, d);
-  if (d.type === 'give') return R.give(s, seat, d.card);
+  if (d.type === 'give') return R.give(s, seat, d.cards || d.card);
   if (d.type === 'pick') return R.pickDiscard(s, seat, d.card);
   if (d.type === 'insert') return R.insertKitten(s, seat, d.pos);
   if (d.type === 'save') return R.catSave(s, seat, d.cards);

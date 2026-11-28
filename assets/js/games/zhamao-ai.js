@@ -1263,7 +1263,12 @@
     switch (state.phase) {
       case 'act': return guardMulti(state, seat, v, guardDoom(state, seat, v, guardSwap(state, seat, v, spreadTarget(state, seat, v, revengeNudge(state, seat, v, actFor(v, tier, rng)), rng))));
       case 'react': return { type: reactFor(v, tier, rng) ? 'nope' : 'pass' };
-      case 'give': return { type: 'give', card: chooseGive(v, tier, rng) };
+      case 'give': {   // 贪吃猫要两张：一次挑两张一起给（先挑一张，从手里拿掉再挑第二张）
+        const a = chooseGive(v, tier, rng), need = Math.min((v.give && v.give.left) || 1, v.hand.length);
+        if (need < 2) return { type: 'give', card: a };
+        const b = chooseGive(Object.assign({}, v, { hand: v.hand.filter((id) => id !== a) }), tier, rng);
+        return { type: 'give', card: a, cards: [a, b] };
+      }
       case 'pick': return { type: 'pick', card: choosePick(v, tier, rng) };
       case 'defuse': return { type: 'insert', pos: insertFor(v, tier, rng) };
       case 'save': return { type: 'save' };   // 急救：交最便宜的一对（规则里不给牌 = catPairIds）

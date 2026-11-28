@@ -654,7 +654,7 @@
         if (s.hands[p.target].length) {
           s.phase = 'give';
           s.give = { from: p.target, to: me, left: roleOf(s, me) === 'fat' ? 2 : 1 };
-          ev.push({ t: 'askGive', from: p.target, to: me });
+          ev.push({ t: 'askGive', from: p.target, to: me, left: s.give.left });
         }
         break;
       case FLUX: {
@@ -726,15 +726,21 @@
   }
   function runLater(s, ev) { const l = s.tabbyLater; if (!l) return ev; s.tabbyLater = null; runTabby(s, l, ev); return ev; }
 
-  function give(s, seat, id) {
-    if (s.phase !== 'give' || s.give.from !== seat || s.hands[seat].indexOf(id) < 0) throw new Error('illegal give');
+  // 贪吃猫（2026-11-27 用户）：一次问询里把两张一起交出去——give(s, seat, [a, b])，只发一个 give 事件（cards 两张、n = 2）；
+  // 对方只剩一张就交那一张。旧的一张一张给（传单张 id）照样认：给完第一张再问一次
+  function give(s, seat, x) {
+    const ids = Array.isArray(x) ? x : [x];
+    if (s.phase !== 'give' || s.give.from !== seat || !ids.length) throw new Error('illegal give');
+    const h = s.hands[seat], need = Math.min(s.give.left || 1, h.length);
+    if (ids.length > need || (ids.length > 1 && ids.length !== need) || new Set(ids).size !== ids.length || ids.some((id) => h.indexOf(id) < 0)) throw new Error('illegal give');
     const to = s.give.to;
-    moveCard(s, seat, to, id, [seat, to]);
-    // 角色猫「胖橘」：他出的索要，对方要给两张——给完第一张接着再挑一张
-    if (s.give.left > 1 && s.hands[seat].length) { s.give.left -= 1; return [{ t: 'give', from: seat, to, card: id, priv: [seat, to] }, { t: 'askGive', from: seat, to }]; }
+    for (const id of ids) moveCard(s, seat, to, id, [seat, to]);
+    const e = ids.length > 1 ? { t: 'give', from: seat, to, card: ids[0], cards: ids.slice(), n: ids.length, priv: [seat, to] } : { t: 'give', from: seat, to, card: ids[0], priv: [seat, to] };
+    s.give.left -= ids.length;
+    if (s.give.left > 0 && s.hands[seat].length) return [e, { t: 'askGive', from: seat, to, left: s.give.left }];
     s.give = null;
     s.phase = 'act';
-    return runLater(s, [{ t: 'give', from: seat, to, card: id, priv: [seat, to] }]);   // 胖橘被索要不补牌（2026-11-15 平衡：索要本来就由他自己挑）
+    return runLater(s, [e]);   // 胖橘被索要不补牌（2026-11-15 平衡：索要本来就由他自己挑）
   }
 
   function pickDiscard(s, seat, id) {

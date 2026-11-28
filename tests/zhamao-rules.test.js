@@ -277,6 +277,32 @@ test('favor: target chooses', () => {
   assert.equal(R.redactEvents(ev, 0)[0].card, cow);
 });
 
+test('贪吃猫索要 (2026-11-27): both cards in one give, one event; one card left = just that one; old one-by-one still works', () => {
+  const mk = (hand) => { const s = rig([['favor'], hand], ['orange', 'calico']); s.roles = ['fat', 'timid']; R.play(s, 0, [idOf(s, 0, 'favor')], { target: 1 }); closeAll(s); return s; };
+  let s = mk(['defuse', 'cow', 'skip']);
+  assert.equal(s.phase, 'give');
+  const a = idOf(s, 1, 'cow'), b = idOf(s, 1, 'skip');
+  assert.throws(() => R.give(s, 1, [a, a]));
+  assert.throws(() => R.give(s, 1, [a, b, idOf(s, 1, 'defuse')]));
+  let ev = R.give(s, 1, [a, b]);
+  assert.equal(ev.length, 1);
+  assert.deepEqual(ev[0].cards, [a, b]);
+  assert.equal(ev[0].n, 2);
+  assert.equal(s.phase, 'act');
+  assert.ok(s.hands[0].indexOf(a) >= 0 && s.hands[0].indexOf(b) >= 0);
+  const red = R.redactEvents(ev, 2)[0];
+  assert.equal(red.card, undefined); assert.equal(red.cards, undefined); assert.equal(red.n, 2);
+  s = mk(['cow']);
+  assert.throws(() => R.give(s, 1, [idOf(s, 1, 'cow'), idOf(s, 0, 'orange')]));
+  ev = R.give(s, 1, [idOf(s, 1, 'cow')]);
+  assert.equal(ev.length, 1); assert.equal(s.phase, 'act');
+  s = mk(['cow', 'skip']);
+  ev = R.give(s, 1, idOf(s, 1, 'cow'));
+  assert.equal(ev[1].t, 'askGive'); assert.equal(s.phase, 'give');
+  R.give(s, 1, idOf(s, 1, 'skip'));
+  assert.equal(s.phase, 'act');
+});
+
 test('favor / pair need a target with cards', () => {
   const s = rig([['favor', 'cow', 'cow'], []], ['orange', 'calico']);
   assert.equal(R.checkPlay(s, 0, [idOf(s, 0, 'favor')], { target: 1 }), null);
