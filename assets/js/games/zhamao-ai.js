@@ -886,6 +886,16 @@
    * 减 0.03 后降到 11%、和人类选择的一致率 87.7%→91.4%；经典/百变/5 人/组队各几千局只掉 0~0.4 分（噪声内）（用户 2026-11-27） */
   const SWAP_HOLD = FXO && FXO.swapHold != null ? FXO.swapHold : 0.03;
   const isSwapMove = (m) => m.type === 'play' && m.cards.length === 1 && K[m.cards[0]] === R.SWAP;
+  /* 功能牌别随手拆成两张偷牌（2026-11-27 用户：机器猫拿两张甩锅去偷一个 4 张牌的人，成本比收益大）。
+   * 网络只在手里有 3 张一样的功能牌时把「拆两张偷牌」当候选；高手对打约每 25 局出一次（6 人约 15 局）。
+   * 改成只在紧急时才允许：手里没逗猫棒（九命 / 急救也算有救）而且顶上是炸弹猫或可能性 ≥ 30%；否则候选分数扣 PAIR_HOLD（= 等于不选）。
+   * 百变牌不算（百变局里攒多了拆掉换规则本来就便宜）。同种子成对对比，经典 4 / 6 人、百变 4 人、角色 5 人各 4800–6000 局，
+   * 名次分差 +0.0003 ~ +0.0001（噪声 ±0.0003），功能牌对子 31→17、51→21 次 */
+  const PAIR_HOLD = FXO && FXO.pairHold != null ? FXO.pairHold : 1;
+  const PAIR_EMERG = FXO && FXO.pairEmerg != null ? FXO.pairEmerg : 'top';   // 实测用：nodef = 只看有没有逗猫棒；never = 一律不拆
+  const isActPair = (m) => m.type === 'play' && m.cards.length === 2 && K[m.cards[0]] === K[m.cards[1]] && R.ACTIONS.indexOf(K[m.cards[0]]) >= 0 && K[m.cards[0]] !== R.FLUX;
+  const pairEmergency = (v) => PAIR_EMERG === 'never' ? false : PAIR_EMERG === 'nodef' ? !saveOk(v) : (!saveOk(v) && (() => { const t = pol(v).topInfo(v); return t.known ? t.boom : t.p >= 0.3; })());
+  const pairPen = (v, m) => (PAIR_HOLD && isActPair(m) && !pairEmergency(v) ? PAIR_HOLD : 0);
   function brainAct(v) {
     const nm = pol(v).act(v);
     if (isPeekMove(nm)) return nm;
@@ -894,7 +904,7 @@
     if (cands.length === 1) return cands[0];
     const sf = brainState(v);
     let bi = 0, bv = -Infinity;
-    for (let i = 0; i < cands.length; i++) { const q = brainScore(v, sf, cands[i]) - (SWAP_HOLD && isSwapMove(cands[i]) ? SWAP_HOLD : 0); if (q > bv) { bv = q; bi = i; } }
+    for (let i = 0; i < cands.length; i++) { const q = brainScore(v, sf, cands[i]) - (SWAP_HOLD && isSwapMove(cands[i]) ? SWAP_HOLD : 0) - pairPen(v, cands[i]); if (q > bv) { bv = q; bi = i; } }
     return cands[bi];
   }
   // v2：塞炸弹猫的位置也让网络挑（pos = 塞之前牌堆的第几张，0 = 顶）。和训练场 feat.js insFeat / game.js netInsert 一致
@@ -1235,7 +1245,7 @@
     if (!cands.length) return d;
     const sf = brainState(v), base = brainScore(v, sf, d) + revengeBonus(v, d);
     let best = d, bs = base;
-    for (const m of cands) { const q = brainScore(v, sf, m) + revengeBonus(v, m); if (q > bs) { bs = q; best = m; } }
+    for (const m of cands) { const q = brainScore(v, sf, m) + revengeBonus(v, m) - pairPen(v, m) + pairPen(v, d); if (q > bs) { bs = q; best = m; } }
     if (best !== d && REV_LOG) REV_LOG.push(revengeBonus(v, best) === REV_BACK && K[best.cards[0]] === R.REVERSE ? 'back' : 'hit');
     return best;
   }
