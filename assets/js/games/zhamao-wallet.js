@@ -105,7 +105,11 @@
   /* 几个请求同时在路上（开局：买道具几笔 + 门票）时，回来的先后不一定：只有最后发出的那个请求回来的余额才摆上去，
    * 早发的晚回来就不改余额（不然左上角会先跳回中间某一步的数再落下来——2026-11-27 用户：扣完又弹一下） */
   let postSeq = 0, lastOk = 0;
+  /* 领福利（救济 / 首胜）的请求还在路上时，门票、开局道具的请求先等它落账再发（2026-11-28 用户：领完救济本机马上加、够了马上开局——
+   * 不能让门票比救济先到服务器，被说成余额不够） */
+  let claimP = Promise.resolve();
   async function post(action, body, sync) {
+    if (action === 'ticket' || action === 'item') await claimP;
     const mySeq = ++postSeq;
     const b = Object.assign({ day: today(), tz: new Date().getTimezoneOffset() }, body || {});   // tz：服务器记下手机时区，联机结算时也按当地日期算首胜（2026-11-24）
     const opts = { method: 'POST', headers: { 'Content-Type': 'application/json' } };
@@ -290,13 +294,16 @@
    * 几条小鱼从余额（主页面左上角 / 结算页的余额）游进要按的那个键（「开始」/「再来一局」），余额同时往下滚，放完才 resolve——调用方这时才真正开局。
    * 余额不够：先弹「小鱼干不够了」（救济、签到都在里面自己点），凑够了点「开始」才往下走；关掉 = 不开（resolve false）。
    * 不知道余额（连不上服务器）/ 没开动画：直接 resolve true（照旧开局，服务器那边不够就不计分） */
+  /* 够不够这局门票：按服务器那份余额（本机先记上的门票 / 救济也算）判，不算内测本机账（adj）——门票是从服务器那份扣的。
+   * 2026-11-28 用户：领完救济还提示不够、能一直领——本机显示的数（带了内测本机账）比服务器少，服务器回「已经够了」不发救济，弹窗却还卡着 */
+  const hasFor = (p) => !!state && state.bal != null && state.bal >= p;
   let fxGen = 0;   // 每收一次动画 +1：放到一半被收掉的扣票，不能再接着开局
   /* 开局道具（内测 zhamao-beta.js pickCost）：点「开始」那一下门票和挑着的道具一起往下滚（2026-11-27 用户：以前只先扣门票，进局一会儿才扣道具钱）。
    * 道具钱真正记账还是开局时（beta onDeal），这里只让显示的数一步到位；门票本机先记上 */
   const extraOf = (o) => { try { return root.ZhamaoBeta && root.ZhamaoBeta.pickCost ? Math.max(0, root.ZhamaoBeta.pickCost(o) || 0) : 0; } catch (_) { return 0; } };
   function pay(o) {
     const p = price(o.tier, o.mode, o.n);
-    if (state && state.bal != null && vb() < p) return shortDialog(o, p).then((ok) => (ok ? fishPay(p, o.from, o.to, extraOf(o)) : false));
+    if (state && state.bal != null && !hasFor(p)) return shortDialog(o, p).then((ok) => (ok ? fishPay(p, o.from, o.to, extraOf(o)) : false));
     return fishPay(p, o.from, o.to, extraOf(o));
   }
   function fishPay(p, from, to, extra) {
@@ -338,37 +345,54 @@
       const end = (ok) => { if (done) return; done = true; shortOpen = false; mask.remove(); if (chip && state) { shown = vb(); chip.querySelector('b').textContent = fmt(vb()); } resolve(ok); };
       mask.addEventListener('click', (e) => { if (e.target === mask) end(false); });
       const btn = (cls, html, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.innerHTML = html; b.addEventListener('click', () => fn(b)); acts.appendChild(b); return b; };
-      // 拿到小鱼干（点下去就放，不等服务器——知道能领多少）：鱼从按钮游进上面的余额、数字滚上去；服务器回来且动画放完再按服务器的余额重摆按钮
+      /* 领（点下去就算领了，不等服务器——2026-11-28 用户：领完要马上变「已领取」、余额马上加、够了马上能开局，服务器在后台补）：
+       * 本机先把余额加上、这一行记成领过（mark），按钮当场换成「已领取」，鱼从按钮游进上面的余额；放完就按本机的数重摆（够了 = 「开始」）。
+       * 服务器回来：领成了 = 数一样；说「已经够了」（本机记的比服务器少）= 摆服务器的数，也够；说领完了 / 没连上 = 按服务器的摆回去 */
       let busy = 0;
-      const claim = (b, amt, req) => {
+      const claim = (b, amt, req, mark) => {
         b.disabled = true;
         busy++;
         const from = vb(), fx = FX(), numEl = balEl.querySelector('b');
+        state = Object.assign({}, state, { bal: state.bal + amt, t: Date.now() }, mark ? mark() : {});
+        ls.set(CACHE, JSON.stringify(state));
+        listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } });
         const anim = fx && fxOn()
           ? fx.school(FISH, b, balEl, Math.min(4, 2 + Math.round(Math.log10(amt) - 1)), { spread: 16, gap: 80, dur: 640, lift: -40, size: 26, onLand: () => fx.roll(numEl, from, from + amt, 480) })
           : Promise.resolve().then(() => { numEl.textContent = fmt(from + amt); });
-        const settle = (v) => { busy--; numEl.__zmwRoll = {}; numEl.textContent = fmt(v); draw(); };   // 收掉还在滚的那段，再摆服务器的数（录屏：滚到 1,990 被晚到的一帧盖住）
-        Promise.all([req(), anim]).then(() => settle(vb())).catch(() => settle(vb()));   // 没领成：数字摆回去
+        const em = document.createElement('em');
+        em.textContent = T('ui.wallet.claimed', '已领取');
+        b.replaceWith(em);   // 鱼从按钮原来的位置游出（school 起飞时已经量好了位置）
+        let off = false;   // 服务器没按本机记的发
+        const r = Promise.resolve().then(req).then((j) => { if (j && j.awarded === 0 && j.reason !== 'enough') off = true; }, () => { off = true; return refresh(); });
+        claimP = claimP.then(() => r).catch(() => null);
+        const show = () => { numEl.__zmwRoll = {}; numEl.textContent = fmt(vb()); draw(); };   // 收掉还在滚的那段，再摆现在的数（录屏：滚到 1,990 被晚到的一帧盖住）
+        anim.catch(() => null).then(() => { busy--; if (!done) show(); });
+        r.then(() => { if (!done && !busy && off) show(); });
       };
       function draw() {
         acts.innerHTML = '';
-        const bal = vb(), rl = state.relief || {};
-        mask.querySelector('h3').hidden = bal >= p;   // 凑够了：标题收起，只剩数字和「开始」
-        if (bal >= p) { const go = btn('is-main', o.okLabel || T('ui.start', '开始'), () => end(true)); go.focus(); btn('is-plain', T('ui.cancel', '取消'), () => end(false)); return; }
+        const rl = state.relief || {};
+        const ok = hasFor(p);
+        mask.querySelector('h3').hidden = ok;   // 凑够了：标题收起，只剩数字和「开始」
+        if (ok) { const go = btn('is-main', o.okLabel || T('ui.start', '开始'), () => end(true)); go.focus(); btn('is-plain', T('ui.cancel', '取消'), () => end(false)); return; }
         const list = document.createElement('div');
         list.className = 'zmw-tasks';
         acts.appendChild(list);
-        const task = (name, isDone, go) => {
+        const task = (name, isDone, go, label) => {
           const row = document.createElement('p');
           row.innerHTML = '<span>' + name + '</span>';
           if (isDone) row.insertAdjacentHTML('beforeend', '<em>' + T('ui.wallet.done', '已完成') + '</em>');
-          else { const b = document.createElement('button'); b.type = 'button'; b.textContent = T('ui.wallet.go', '前往'); b.addEventListener('click', () => go(b)); row.appendChild(b); }
+          else { const b = document.createElement('button'); b.type = 'button'; b.textContent = label || T('ui.wallet.go', '前往'); b.addEventListener('click', () => go(b)); row.appendChild(b); }
           list.appendChild(row);
         };
         const amt = rl.amount || (rl.first ? 5000 : 2000);   // 后端下发下一次能领多少（2026-11-26 起：第一次亏空 5,000、之后救济 2,000，每天 2 次）
-        task(T('ui.wallet.relief', '领取救济'), !(rl.first || rl.left > 0), (b) => claim(b, amt, () => post('relief', { n: o.n, mode: o.mode, tier: o.tier })));
-        task(T('ui.wallet.checkin', '每日签到'), state.ck === today(), (b) => claim(b, state.next || 100, () => api.checkin()));
-        if (state.fw && state.fw.ready) task(T('ui.wallet.win', '对局获胜'), false, (b) => claim(b, state.fw.amount || 1000, () => claimFirstWin()));   // 赢过、首胜奖励还没领：当场领
+        const CLAIM = T('ui.wallet.claim', '领取');
+        // 救济：当场领（2026-11-28 用户：按钮叫「领取」，不叫「前往」）；本机先记一次用掉
+        task(T('ui.wallet.relief', '领取救济'), !(rl.first || rl.left > 0), (b) => claim(b, amt, () => post('relief', { n: o.n, mode: o.mode, tier: o.tier }),
+          () => ({ relief: Object.assign({}, rl, { first: false, left: rl.first ? rl.left : Math.max(0, (rl.left | 0) - 1), amount: 2000 }) })), CLAIM);
+        // 签到：「前往」= 关掉弹窗、整页切到猫咪档案（签到卡在那儿签）——2026-11-28 用户：不要留在对局排行榜里
+        task(T('ui.wallet.checkin', '每日签到'), state.ck === today(), () => { end(false); openProfile(); });
+        if (state.fw && state.fw.ready) task(T('ui.wallet.win', '对局获胜'), false, (b) => claim(b, state.fw.amount || 1000, () => claimFirstWin()), CLAIM);   // 赢过、首胜奖励还没领：当场领
         else task(T('ui.wallet.win', '对局获胜'), !!state.winToday, () => end(false));
         btn('is-plain', T('ui.ok', '知道了'), () => end(false));
       }
@@ -382,7 +406,8 @@
     if (shortOpen) return Promise.resolve(false);
     return refresh().then(() => {
       if (!state || state.bal == null) return true;
-      return shortDialog(o, o.price != null ? o.price : price(o.tier, o.mode, o.n));
+      // 联机：点「准备」时房间服务器按钱包余额判——等领的救济落了账再报（单机的门票请求自己会等）
+      return shortDialog(o, o.price != null ? o.price : price(o.tier, o.mode, o.n)).then((ok) => (ok ? claimP.then(() => ok) : ok));
     });
   }
   /* 领今日首胜（2026-11-26：首胜不在结算里发，档案 / 「不够了」弹窗里自己领） */
