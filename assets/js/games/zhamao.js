@@ -3924,6 +3924,9 @@
     renderPiles();
   }
 
+  // 贪吃猫讨牌的猫爪（掌心朝外：底下一截小臂，掌垫 + 四个指头、粉肉垫）
+  const FAT_PAW = '<svg viewBox="0 0 40 54" aria-hidden="true"><path class="fur" d="M13 54V38h14v16z"/><g class="fur"><ellipse cx="20" cy="30" rx="13" ry="11.5"/><circle cx="8.5" cy="19" r="5"/><circle cx="15.5" cy="12.5" r="5.3"/><circle cx="24.5" cy="12.5" r="5.3"/><circle cx="31.5" cy="19" r="5"/></g>' +
+    '<g class="bean"><path d="M20 25.5c4.6 0 8 3 8 6.3 0 2.6-2.2 3.7-4.2 3.2-1.4-.4-2.3-.9-3.8-.9s-2.4.5-3.8.9c-2 .5-4.2-.6-4.2-3.2 0-3.3 3.4-6.3 8-6.3z"/><ellipse cx="9" cy="19.6" rx="2" ry="2.5" transform="rotate(-25 9 19.6)"/><ellipse cx="15.7" cy="13.4" rx="2.1" ry="2.7" transform="rotate(-8 15.7 13.4)"/><ellipse cx="24.3" cy="13.4" rx="2.1" ry="2.7" transform="rotate(8 24.3 13.4)"/><ellipse cx="31" cy="19.6" rx="2" ry="2.5" transform="rotate(25 31 19.6)"/></g></svg>';
   /* 被蹭：粉色箭头还在，等他挑一张 */
   async function animAskGive(e, t, prev) {
     if (game.arrow) game.arrow.remove();
@@ -3951,10 +3954,10 @@
         if (av) {
           owe = document.createElement('span');
           const ar = av.getBoundingClientRect();
-          // 2026-11-27 用户：一次要两张——被要的人头像底下摆两个空格（贪吃猫橙色虚框），给的牌扣着落进去，再一起飞给贪吃猫
+          // 2026-11-27 用户：一次要两张——被要的人头像底下伸出两只讨牌的猫爪（起先是两个虚框，用户嫌别人看会懵），给的牌扣着落到爪心上，再一起飞给贪吃猫
           owe.className = 'zm-owe is-slot' + (ar.left + ar.width / 2 > innerWidth * 0.6 ? ' is-left' : '');   // 右半边的头像：空格摆左边，别出屏
           owe.style.setProperty('--glow', band);
-          owe.innerHTML = '<i data-r="-7" style="transform:rotate(-7deg)"></i><i data-r="7" style="transform:rotate(7deg)"></i>';
+          owe.innerHTML = '<i data-r="-10" style="transform:rotate(-10deg)">' + FAT_PAW + '</i><i data-r="10" style="transform:rotate(10deg)">' + FAT_PAW + '</i>';
           av.appendChild(owe);
           if (!fx.reduce()) owe.querySelectorAll('i').forEach((c, k) => c.animate([{ transform: 'rotate(' + c.dataset.r + 'deg) translateY(10px) scale(.3)', opacity: 0 }, { transform: 'rotate(' + c.dataset.r + 'deg) translateY(-3px) scale(1.15)', opacity: 1, offset: 0.65 }, { transform: 'rotate(' + c.dataset.r + 'deg)', opacity: 1 }], { duration: ms(380), delay: ms(k * 120), easing: 'cubic-bezier(.3,.9,.4,1.2)', fill: 'backwards' }));
         }
@@ -4077,7 +4080,8 @@
     const known = ids.length === n, seeFrom = known && e.from === 0, seeTo = known && e.to === 0;
     const srcs = ids.length === n && e.from === 0 ? ids.map((id) => (game.src && game.src[id]) || handRectOf(id)) : slots.map(() => avPoint(e.from));
     if (e.from === 0) { dropFromHand(ids); renderHand(); } else { ov.counts[e.from] -= n; renderSeat(e.from); }
-    const sr = slots.map((c) => c.getBoundingClientRect()), su = sr[0].width / Math.cos(7 * Math.PI / 180) * 0.97;
+    // 牌落在爪心上（猫爪上半截），比爪子略窄
+    const sr = slots.map((c) => { const r = c.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height * 0.42 }; }), su = slots[0].getBoundingClientRect().width * 0.78;
     // ① 落进空格
     snd('give');
     const sit = await Promise.all(slots.map((c, k) => fx.fly({
@@ -4094,7 +4098,7 @@
     if (e.to === 0) ids.forEach((id, k) => { dest[k] = aboveSlot(reserveHandSlot(id)); });
     const u = e.to === 0 ? HU() : U();
     snd('give');
-    const a = fx.center(sr[0]), b = e.to === 0 ? fx.center(dest[0]) : dest[0];
+    const a = sr[0], b = e.to === 0 ? fx.center(dest[0]) : dest[0];
     for (let i = 1; i <= 5; i++) {
       const q = i / 6, x = a.x + (b.x - a.x) * q, y = a.y + (b.y - a.y) * q - Math.sin(Math.PI * q) * 60;
       setTimeout(() => { if (t === token) fx.float(x + (i % 2 ? 7 : -7), y + 6, 'heart', { dx: i % 2 ? 8 : -8, dy: -26, size: 9 + i * 1.6, color: PINKS[i % 3], dur: ms(760), rot: i % 2 ? 12 : -12 }); }, ms(620) * q);
@@ -4103,7 +4107,8 @@
       const from = sr[k];
       return wait(k * ms(140)).then(() => {
         if (sit[k]) sit[k].remove();
-        c.classList.remove('is-full'); c.classList.add('is-gone'); c.style.opacity = '0';
+        c.classList.add('is-gone');
+        c.animate([{ transform: 'rotate(' + c.dataset.r + 'deg)', opacity: 1 }, { transform: 'rotate(' + c.dataset.r + 'deg) translateY(30%) scale(.55)', opacity: 0 }], { duration: ms(240), easing: 'ease-in', fill: 'forwards' });
         if (t !== token) return null;
         return fx.fly({
           html: seeTo ? cardHtml(ids[k]) : backHtml(), back: backHtml(), cls: 'is-favor', flip: seeTo ? 'up' : null, flipAt: 0.25,
