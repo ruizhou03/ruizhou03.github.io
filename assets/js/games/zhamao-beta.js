@@ -911,7 +911,12 @@
       }
       /* 改过发牌：这局的录像按种子重放会对不上，不上传——但日志留在本机（只打标记 mod），「反馈」要靠它列出最近几步机器猫的动作；
        * 以前直接清成 null，菜单里的「反馈」就跟着没了（2026-11-28 用户：菜单里没有反馈按钮） */
-      if ((zb.role || CARD_ITEMS.some((c) => zb[c])) && game.hl) game.hl.mod = 1;
+      if ((zb.role || CARD_ITEMS.some((c) => zb[c])) && game.hl) {
+        game.hl.mod = 1;
+        /* 2026-11-28 用户：用了道具的局点「这步不对」也要能找回来——改完发牌这一刻把牌堆、每人手牌、角色原样记下（init），
+         * 照样上传；重放时先按种子开局、再换成这份，不靠种子对上 */
+        game.hl.init = { deck: s.deck.slice(), hands: s.hands.map((h) => h.slice()), roles: s.roles ? s.roles.slice() : null };
+      }
       if (Object.keys(zb).length) { s.zb = zb; game.zb = zb; }
       d.pick = PICK0();   // 开局道具一局一买，开局后清掉
       dayRec().games++; save();
