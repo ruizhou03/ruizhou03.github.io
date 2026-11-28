@@ -905,8 +905,11 @@
     const nm = pol(v).act(v);
     // 窥探 / 改命的时机照规则（网络没练过什么时候看）——但顶上那张我已经知道了，规则还想再看 / 再改，就让网络把它和别的出法一起比
     // （2026-11-28 用户局：被甩锅、知道顶上两张都是炸弹猫，手握索要却又打一张改命，被截胡猫作废连索要也被顺走，摸炸弹出局；网络本来给「索要」最高分）
-    if (isPeekMove(nm) && !(PEEK_NET && v.known.some((x) => x.pos === 0))) return nm;
-    const cands = actCandidates(v);
+    const peekKnown = isPeekMove(nm) && PEEK_NET && v.known.some((x) => x.pos === 0);
+    if (isPeekMove(nm) && !peekKnown) return nm;
+    // 只和「索要 / 凑对偷牌」比（老师推演：网络改选洗牌 / 摸牌 / 百变时反而比再改命差 0.05，选索要时好 0.05）
+    const cands = peekKnown ? actCandidates(v).filter((c) => c.type === 'play' && (K[c.cards[0]] === R.FAVOR || c.cards.length >= 2)) : actCandidates(v);
+    if (peekKnown && !cands.length) return nm;
     if (!cands.some((c) => moveKey(c) === moveKey(nm))) cands.push(nm);
     if (cands.length === 1) return cands[0];
     const sf = brainState(v);
