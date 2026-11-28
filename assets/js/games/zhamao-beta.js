@@ -52,7 +52,9 @@
     const $ = (id) => document.getElementById(id);
 
     // ── 本机账本 ──
-    const D0 = () => ({ delta: 0, log: [], own: { felt: ['paper'], back: ['navy'], frame: ['none'], fx: ['none'] }, use: { felt: 'paper', back: 'navy', frame: 'none', fx: 'none' }, counterDay: '', pick: { counter: false, x2: false, role: null, nope: false, swap: false }, day: null });
+    // 开局道具挑选状态（2026-11-28 用户加必有索要 / 跳过 / 抽底：和必有作废同一做法）
+    const PICK0 = () => ({ counter: false, x2: false, role: null, nope: false, swap: false, favor: false, skip: false, bottom: false });
+    const D0 = () => ({ delta: 0, log: [], own: { felt: ['paper'], back: ['navy'], frame: ['none'], fx: ['none'] }, use: { felt: 'paper', back: 'navy', frame: 'none', fx: 'none' }, counterDay: '', pick: PICK0(), day: null });
     let d = (() => { try { return Object.assign(D0(), JSON.parse(ls.get(DATA)) || {}); } catch (_) { return D0(); } })();
     const save = () => ls.set(DATA, JSON.stringify(d));
     const FRAMES_NOW = ['none', 'fishbone', 'bell', 'qinghua', 'ears'];   // 下架的头像框：用着的退回「无」
@@ -94,8 +96,10 @@
     // 记牌器一局 / 加倍 / 作废 / 交换 = 1 张，挑角色 = 1.5 张，记牌器一整天 = 5 张。当天同一样越买越贵（见 priceAt）
     // 模拟（/mnt/project-files/shop-sim/res.jsonl，高手机器猫当玩家 2500 局一格）：开局保证拿作废多赢的期望 ≈ 0（±0.02 份），交换 2 人 +0.14 份、4–9 人 ≤ +0.03 份；
     // 挑最强角色（截胡 / 影子）+0.05–0.08 份——一份最多 6,000（高手 9 人），多赢 ≤ 500，都低于这里的价，单机刷不了鱼
+    // 2026-11-28 加必有索要 / 跳过 / 抽底（同价 600）：经典 4 / 6 人各 2000 局多赢 −0.05~+0.02 份（≈0，换走一张随机牌本身也有代价）；
+    // 角色局里配最搭的角色（胆小猫 / 贪吃猫 / 扛锅猫）最多 +0.065 份 ≈ 390，仍低于价（/mnt/project-files/role-item-sim/）
     const TOP = 600;
-    const BASE = { counterDay: TOP * 5, counter: TOP, x2: TOP, role: nice(TOP * 1.5), nope: TOP, swap: TOP };
+    const BASE = { counterDay: TOP * 5, counter: TOP, x2: TOP, role: nice(TOP * 1.5), nope: TOP, swap: TOP, favor: TOP, skip: TOP, bottom: TOP };
     const counterDayOn = () => d.counterDay === today();
 
     // ── 外观目录 ──
@@ -406,6 +410,7 @@
 .zb-dr-shop small{color:#b4392c}
 .zb-items.is-lock{opacity:.55;pointer-events:none}
 .zb-items .zr-chips{justify-content:space-around}
+.zb-items .zr-chips.is-many{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,72px));justify-content:space-around;row-gap:10px}   /* 道具多于 5 件（2026-11-28 加必有索要 / 跳过 / 抽底）：排两行，一行挤不下 */
 .zb-it2{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;flex:1;max-width:72px;border:0;background:none;padding:0;font:inherit;color:inherit;-webkit-tap-highlight-color:transparent;cursor:pointer}
 .zb-it2 .zr-mc{transition:box-shadow .2s,transform .2s}
 .zb-it2 .zr-mc>svg{width:78%}
@@ -470,7 +475,7 @@
     function grabBal(el) { el.querySelectorAll('[data-zbbal]').forEach((e) => balEls.push(e)); }
 
     // 道具（2026-11-27 用户第四轮：商店不卖道具、不囤，只在单机开局当场买，一局一件，不涨价）
-    const ITEM_NAME = { counter: '记牌器', x2: '加倍', role: '挑角色', nope: '必有作废', swap: '必有交换' };
+    const ITEM_NAME = { counter: '记牌器', x2: '加倍', role: '挑角色', nope: '必有作废', swap: '必有交换', favor: '必有索要', skip: '必有跳过', bottom: '必有抽底' };
     // 记牌器：一局 600，当天花满 3,000（= 原来「一整天」的价）后当天剩下的局都免费
     function ctrSpent() { if (!d.ctr || d.ctr.d !== today()) d.ctr = { d: today(), n: 0 }; return d.ctr.n; }
     const priceAt = (k) => (k === 'counter' ? (counterDayOn() ? 0 : Math.min(BASE.counter, BASE.counterDay - ctrSpent())) : BASE[k]);
@@ -724,7 +729,9 @@
      * 点亮 = 这局开局当场买（钱在开局时才扣）。不再有存货角标 */
     let soloCtx = null;
     const ROLE_IDS = () => (R() && R().ROLES ? R().ROLES.map((r) => r.id) : []);
-    const ITEM_BG = { counter: '#f3e6cf', x2: '#f6e0da', role: '#efe3d0', nope: '#e9e2f0', swap: '#dcebea' };
+    const ITEM_BG = { counter: '#f3e6cf', x2: '#f6e0da', role: '#efe3d0', nope: '#e9e2f0', swap: '#dcebea', favor: '#f4e3d6', skip: '#e2ead8', bottom: '#e6e1d6' };
+    const ITEM_ORDER = ['counter', 'x2', 'role', 'nope', 'swap', 'favor', 'skip', 'bottom'];   // 开局扣钱的顺序
+    const CARD_ITEMS = ['nope', 'swap', 'favor', 'skip', 'bottom'];   // 「必有某张牌」类
     function chipsFor(ctx) {
       const team = ctx.mode === 'team';
       const icon = (k) => (ART() && ART().icon ? ART().icon(k) : '');
@@ -734,6 +741,7 @@
       if (ctx.mode === 'roles') chips.push(['role', ART() ? (d.pick.role ? '<span class="rf">' + ART().roleFace(d.pick.role) + '</span>' : '<span class="rb">' + ART().ROLE_BACK + '</span>') : '']);   // 没挑：一张小角色牌背；挑了：那只猫的脸
       if (!team) chips.push(['nope', icon('nope')]);
       if (!team && ctx.rules && ctx.rules.swap) chips.push(['swap', icon('swap')]);
+      if (!team) ['favor', 'skip', 'bottom'].forEach((k) => chips.push([k, icon(k)]));
       return chips;
     }
     /* 11-27 第六轮（用户：玩家不知道这些能点起来带进这局；内容偏上、下面空得多）：
@@ -751,7 +759,7 @@
       if (!known()) return [];
       let room = bal() - ticketOf(ctx);
       const out = [];
-      ['counter', 'x2', 'role', 'nope', 'swap'].forEach((k) => {
+      ITEM_ORDER.forEach((k) => {
         const on = k === 'role' ? !!pk.role : !!pk[k];
         if (!on || !kinds.includes(k) || (k === 'counter' && counterDayOn())) return;
         if (priceAt(k) <= room) room -= priceAt(k); else out.push(k);
@@ -779,7 +787,7 @@
       const rules = o.rules || (soloCtx && soloCtx.rules) || (g && g.state && g.state.rules) || {};
       const kinds = chipsFor({ mode: o.mode, rules }).map(([k]) => k);
       let room = known() ? bal() - ticketOf(o) : Infinity, sum = 0;
-      ['counter', 'x2', 'role', 'nope', 'swap'].forEach((k) => {
+      ITEM_ORDER.forEach((k) => {
         const on = k === 'role' ? !!d.pick.role : !!d.pick[k];
         if (!on || !kinds.includes(k) || (k === 'counter' && counterDayOn())) return;
         const p = priceAt(k);
@@ -796,7 +804,7 @@
       // 买不起的（余额 − 这局门票 − 已挑的 < 它的价）：灰着、价钱标红，点了只抖一下（2026-11-27 用户：挑了「必有作废」进局没有——钱不够时开局悄悄没买）
       const left = known() ? bal() - ticketOf(ctx) - cost : Infinity;
       return '<span class="zb-ih"><b>开局道具</b>' + (over.length ? '<em class="on is-over">余额不足</em>' : cost ? '<em class="on">合计 ' + FISH() + fmt(cost) + '</em>' : '<em>点选使用</em>') + '</span>' +
-        '<span class="zr-chips">' + chips.map(([k, ic]) => {
+        '<span class="zr-chips' + (chips.length > 5 ? ' is-many" style="--cols:' + Math.ceil(chips.length / 2) : '') + '">' + chips.map(([k, ic]) => {
         const by = k === 'counter' && tk;   // 别人带了：亮着、不写价、角上挂他的小头像
         const free = k === 'counter' && (counterDayOn() || !!by), on = free || (k === 'role' ? !!pk.role : !!pk[k]), p = priceAt(k), short = !on && p > left;
         return '<button type="button" class="zb-it2' + (by ? ' is-by' : '') + (short ? ' is-short' : '') + (over.includes(k) ? ' is-over' : '') + '" ' + attr + '="' + k + '" aria-pressed="' + on + '"' + (free ? ' data-free="1"' : '') + (by ? ' aria-label="' + ITEM_NAME[k] + '，' + String(tk.nick || '').replace(/[<>&"]/g, '') + ' 已带"' : '') + '><i class="zr-mc" style="--bg:' + ITEM_BG[k] + '" aria-hidden="true">' + ic + '</i>' + (by ? '<span class="zb-by" aria-hidden="true">' + faceOfP(tk) + '</span>' : '') + '<small>' + ITEM_NAME[k] + '</small>' +
@@ -896,13 +904,16 @@
         if (o.mode === 'roles' && d.pick.role && s.roles && buy('role')) { s.roles[0] = d.pick.role; zb.role = d.pick.role; }
         if (d.pick.nope && can('nope') && guarantee(s, R().NOPE)) { buy('nope'); zb.nope = true; }
         if (d.pick.swap && s.rules.swap && can('swap') && guarantee(s, R().SWAP, zb.nope ? [R().NOPE] : [])) { buy('swap'); zb.swap = true; }
-        if ((zb.nope || zb.swap) && R().sortHand) s.hands[0] = R().sortHand(s.hands[0]);
+        ['favor', 'skip', 'bottom'].forEach((k) => {   // 已经保证拿到的那几张别再换走
+          if (d.pick[k] && can(k) && guarantee(s, k, CARD_ITEMS.filter((c) => zb[c]))) { buy(k); zb[k] = true; }
+        });
+        if (CARD_ITEMS.some((c) => zb[c]) && R().sortHand) s.hands[0] = R().sortHand(s.hands[0]);
       }
       /* 改过发牌：这局的录像按种子重放会对不上，不上传——但日志留在本机（只打标记 mod），「反馈」要靠它列出最近几步机器猫的动作；
        * 以前直接清成 null，菜单里的「反馈」就跟着没了（2026-11-28 用户：菜单里没有反馈按钮） */
-      if ((zb.role || zb.nope || zb.swap) && game.hl) game.hl.mod = 1;
+      if ((zb.role || CARD_ITEMS.some((c) => zb[c])) && game.hl) game.hl.mod = 1;
       if (Object.keys(zb).length) { s.zb = zb; game.zb = zb; }
-      d.pick = { counter: false, x2: false, role: null, nope: false, swap: false };   // 开局道具一局一买，开局后清掉
+      d.pick = PICK0();   // 开局道具一局一买，开局后清掉
       dayRec().games++; save();
     }
 
