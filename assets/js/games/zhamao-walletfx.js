@@ -157,7 +157,7 @@
       const a = { x: a0.x + (rnd() - 0.5) * (opts.spread || 60), y: a0.y + (rnd() - 0.5) * (opts.spread || 60) * 0.5 };
       all.push(fish(svg, a, b, { delay: i * (opts.gap || 80), bulge: 0.1 + (i / Math.max(1, n - 1)) * 0.3, dur: (opts.dur || 760) + rnd() * 120, size: opts.size, lift: opts.lift }).then(() => {
         if (!landed) { landed = true; if (opts.onLand) opts.onLand(); }
-        bump(toEl);
+        if (!opts.noBump) bump(toEl);
       }));
     }
     return Promise.all(all);

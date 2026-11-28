@@ -585,7 +585,8 @@
         const end = () => { buying = false; if (num) num.__zbHold = false; paintBal(); if (o.after) o.after(); };
         if (fx && num) {
           fx.roll(num, from, to, 520);
-          fx.school(FISH(), num, tile, 4, { spread: 12, gap: 90, dur: 620, lift: -30, size: 24 }).then(end, end);
+          fx.school(FISH(), num, tile, 4, { spread: 12, gap: 90, dur: 620, lift: -30, size: 24, noBump: true })   // 11-28 用户：买完整个窗口猛抖几下 = 4 条鱼落进牌桌、牌桌每条弹一次（整块牌桌放大 3%）；落进牌桌不弹
+         .then(end, end);
         } else end();
       });
     }
@@ -626,16 +627,22 @@
       f.src = location.pathname.replace(/[^/]*$/, '') + '?zmshow=1';
       el.innerHTML = ''; el.appendChild(f);
       const send = (m) => { try { f.contentWindow.postMessage(Object.assign({ zbShow: 1 }, m), location.origin); } catch (_) { /* */ } };
+      /* 11-28 用户：预览里比例怪、特效位置怪。原因：小窗按「框有多宽就 390 宽、框有多高就多高」来排，框常常比任何手机都矮胖
+       * （大屏手机上相当于 390×606，iPhone SE 上 390×432 ≈ 方的），牌桌被压扁成平时见不到的样子：头像压牌堆、手牌缩成一小排。
+       * 现在小窗一律按真手机竖屏的比例排（至少 390×640，比 SE 在浏览器里还高一点），整体缩进框里；框太矮放不下就把框本身收窄成手机形，居中。 */
+      const wrap = el.parentNode, IW = 390, CROP = 40, MINH = 640;   // 顶栏（看不见的）裁 40、留 12 给对手头像透口气（裁满 52 时头像贴着框顶、手牌数被切）
       const fit = () => {
-        const w = el.clientWidth, h = el.clientHeight;
-        if (!w || !h) return;
-        const IW = 390, k = w / IW, IH = Math.max(Math.round(h / k) + 52, IW);   // 多出顶栏那 52 从上面裁掉；至少是方的：一定按竖屏排（横屏那套布局在矮窗里会切过去）
+        const w = wrap.clientWidth - 24, h = el.clientHeight;   // wrap 左右各 12 内边距
+        if (w <= 0 || !h) return;
+        const IH = Math.max(Math.round(h * IW / w) + CROP, MINH);   // 多出顶栏那一截从上面裁掉
+        const k = Math.min(w / IW, h / (IH - CROP)), fw = Math.round(IW * k);
+        el.style.flex = 'none'; el.style.width = fw + 'px'; el.style.margin = '0 auto';
         f.style.width = IW + 'px'; f.style.height = IH + 'px';
         f.style.transform = 'translateY(' + Math.round(h - IH * k) + 'px) scale(' + k + ')';
       };
       fit();
       const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(fit) : null;
-      if (ro) ro.observe(el);
+      if (ro) ro.observe(wrap);
       const onMsg = (e) => { if (e.source === f.contentWindow && e.data && e.data.zbShowReady) { ready = true; send({ look }); el.classList.add('is-live'); } };
       window.addEventListener('message', onMsg);
       return {
