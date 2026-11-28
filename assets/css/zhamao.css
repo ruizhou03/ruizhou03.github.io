@@ -2210,13 +2210,14 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zm-pod .zm-pay .zmw-fish path:nth-child(-n+2) { fill: currentColor; stroke: none; }
 .zm-pod .zm-pay .zmw-fish path:nth-child(3) { stroke: var(--pc); }
 .zm-pod .zm-pay .zmw-fish circle { fill: var(--pc); }
-/* 我的：胶囊 */
+/* 我的：不再垫奶白胶囊（2026-11-28 用户：赢得多时 +12,000 连胶囊撑出台子，选「自己的也不加底」）——和别人一样奶白字刻在台子上，
+ * 只是不透明、粗一点；是不是我看名字旁的「我」章。台子左右也让出一点（领奖台两侧留白收窄），+12,000 在 375 宽的屏上也放得下 */
 .zm-pod .zmw-res.is-inline .zmw-ln > b, .zm-pod .zmw-res.is-inline .zmw-ln > b.is-up, .zm-pod .zmw-res.is-inline .zmw-ln > b.is-down {
-  flex-direction: row; gap: 3px; font-size: 14px; color: var(--pc); background: #fffdf8; padding: 4px 8px 4px 6px; border-radius: 999px; text-shadow: none; box-shadow: 0 1px 3px rgba(29, 27, 24, 0.18); }
-.zm-pod .zmw-res.is-inline .zmw-fish { width: 18px; height: 12px; opacity: 1; }
-/* 胶囊收窄一点（2026-11-28 用户：加倍后标签超出台子）：两位数千的奖（+12,000）也放得进 94px 的台子 */
-.zm-pod .zmw-res.is-inline .zmw-fish path:nth-child(3) { stroke: #fffdf8; }
-.zm-pod .zmw-res.is-inline .zmw-fish circle { fill: #fffdf8; }
+  flex-direction: row; gap: 4px; font-size: 14px; color: #fffdf8; background: none; padding: 0; border-radius: 0; box-shadow: none; text-shadow: 0 1px 0 rgba(29, 27, 24, 0.16); white-space: nowrap; }
+.zm-pod .zmw-res.is-inline .zmw-fish { width: 20px; height: 13px; opacity: 1; flex: none; }
+.zm-pod .zmw-res.is-inline .zmw-fish path:nth-child(3) { stroke: var(--pc); }
+.zm-pod .zmw-res.is-inline .zmw-fish circle { fill: var(--pc); }
+.zm-podium { margin: 0; padding: 0 2px; gap: 6px; }
 .zm-pod.is-p2 .blk, .zm-pod.is-p3 .blk { gap: 6px; }
 /* 名单里的别人 */
 .zm-rank li > .zm-pay { flex: none; margin-left: auto; color: var(--zm-ink-mute); font-size: 15px; }
@@ -2245,3 +2246,4 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zm-rank-rest.is-many li > .zm-pay { font-size: 14px; }
 .zm-rank-rest.is-many li > .zmw-res.is-inline .zmw-ln > b { font-size: 16px; }
 .zm-rank-rest.is-many li > .zmw-res.is-inline .zmw-ln > b .zmw-fish { width: 24px; height: 15px; }
+@media (max-width: 359px) { .zm-pod .zmw-res.is-inline .zmw-ln > b, .zm-pod .blk > .zm-pay { font-size: 11px; gap: 2px; letter-spacing: -0.01em; } .zm-pod .zmw-res.is-inline .zmw-fish, .zm-pod .zm-pay .zmw-fish { width: 15px; height: 10px; } }
