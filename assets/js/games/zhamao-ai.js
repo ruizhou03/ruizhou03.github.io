@@ -900,7 +900,8 @@
   const isActPair = (m) => m.type === 'play' && m.cards.length === 2 && K[m.cards[0]] === K[m.cards[1]] && R.ACTIONS.indexOf(K[m.cards[0]]) >= 0 && K[m.cards[0]] !== R.FLUX;
   const pairEmergency = (v) => PAIR_EMERG === 'never' ? false : PAIR_EMERG === 'nodef' ? !saveOk(v) : (!saveOk(v) && (() => { const t = pol(v).topInfo(v); return t.known ? t.boom : t.p >= 0.3; })());
   const pairPen = (v, m) => (PAIR_HOLD && isActPair(m) && !pairEmergency(v) ? PAIR_HOLD : 0);
-  const PEEK_NET = !(FXO && FXO.peekNet === false);
+  // 2026-11-28 早：老师数据（全员按网络推演，5,700 个顶牌已知局面）显示再窥探 / 改命平均比网络换成的索要 / 偷牌好 0.027±0.002（616 处、各模式一致），默认关掉；等改命时机单独训好再开
+  const PEEK_NET = !!(FXO && FXO.peekNet === true);
   function brainAct(v) {
     const nm = pol(v).act(v);
     // 窥探 / 改命的时机照规则（网络没练过什么时候看）——但顶上那张我已经知道了，规则还想再看 / 再改，就让网络把它和别的出法一起比
