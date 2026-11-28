@@ -87,6 +87,7 @@
   const FX_E = Object.freeze(Object.assign({}, FX_DEF, (FXO && FXO.easy) || {}));
 
   const has = (v, k) => R.countKind(v.hand, k) > 0;
+  const cnt = (v, k) => R.countKind(v.hand, k);
   const isFlux = (v) => !!(v.rules && v.rules.mode === 'flux');
   const D0 = new Map();   // 每种人数 / 规则开局牌堆有多少张（交换看时机用）
   const deck0 = (v) => { const k = v.n + ':' + JSON.stringify(v.rules || {}); if (!D0.has(k)) D0.set(k, R.createGame(v.n, 1, v.rules).deck.length); return D0.get(k); };
@@ -513,7 +514,10 @@
       if (tier === 'easy') return R.shuffleIn({ rs: (rng() * 4294967296) >>> 0 }, cards.slice());
       const booms = cards.filter((id) => K[id] === R.BOOM), safe = cards.filter((id) => K[id] !== R.BOOM);
       if (!booms.length) return cards.slice();
-      const canDodge = has(v, R.ATTACK) || has(v, R.TATTACK) || has(v, R.SKIP) || has(v, R.REVERSE) || has(v, R.BOTTOM);
+      // 2026-11-28 用户：被甩锅（还要摸 2 张）手里一张跳过也当成「躲得掉」，把炸弹猫放第一张——跳过只抵一张，第二张照样摸到炸弹猫。
+      // 甩锅 / 自由甩锅一次全躲；跳过 / 转向 / 抽底一张抵一回合，要够这几回合才算躲得掉；不够就先摸安全牌（见下）
+      const oneTurn = cnt(v, R.SKIP) + cnt(v, R.REVERSE) + cnt(v, R.BOTTOM);
+      const canDodge = has(v, R.ATTACK) || has(v, R.TATTACK) || oneTurn >= Math.max(1, v.turnsLeft || 1);
       const mn = mateNext(v) ? 1 : 0;   // 组队、下家是队友：多垫一张安全牌给他，炸弹猫留给后面的对手
       if (canDodge) return safe.slice(0, mn).concat(booms, safe.slice(mn));
       const k = Math.min(v.turnsLeft + mn, safe.length);
