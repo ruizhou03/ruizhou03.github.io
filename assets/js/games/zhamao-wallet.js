@@ -392,8 +392,8 @@
           () => ({ relief: Object.assign({}, rl, { first: false, left: rl.first ? rl.left : Math.max(0, (rl.left | 0) - 1), amount: 2000 }) })), CLAIM);
         // 签到：「前往」= 关掉弹窗、整页切到猫咪档案（签到卡在那儿签）——2026-11-28 用户：不要留在对局排行榜里
         task(T('ui.wallet.checkin', '每日签到'), state.ck === today(), () => { end(false); openProfile(); });
-        if (state.fw && state.fw.ready) task(T('ui.wallet.win', '对局获胜'), false, (b) => claim(b, state.fw.amount || 1000, () => claimFirstWin()), CLAIM);   // 赢过、首胜奖励还没领：当场领
-        else task(T('ui.wallet.win', '对局获胜'), !!state.winToday, () => end(false));
+        // 对局获胜：钱不够本来就开不了局，「去赢一局」没意义——只在已经赢过、奖励还没领时出现，当场领（2026-11-28 用户）
+        if (state.fw && state.fw.ready) task(T('ui.wallet.win', '对局获胜'), false, (b) => claim(b, state.fw.amount || 1000, () => claimFirstWin()), CLAIM);
         btn('is-plain', T('ui.ok', '知道了'), () => end(false));
       }
       draw();
